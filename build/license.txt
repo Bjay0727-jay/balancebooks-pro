@@ -1,0 +1,54 @@
+BALANCE BOOKS PRO - END USER LICENSE AGREEMENT
+
+Copyright (c) 2025 Balance Books Pro LLC. All rights reserved.
+
+IMPORTANT: READ CAREFULLY BEFORE INSTALLING OR USING THIS SOFTWARE.
+
+This End User License Agreement ("Agreement") is a legal agreement between you 
+("User") and Balance Books Pro LLC ("Company") for the Balance Books Pro 
+software application ("Software").
+
+BY INSTALLING OR USING THE SOFTWARE, YOU AGREE TO BE BOUND BY THE TERMS OF 
+THIS AGREEMENT.
+
+1. LICENSE GRANT
+   The Company grants you a non-exclusive, non-transferable license to install 
+   and use the Software on devices you own or control, subject to the terms of 
+   this Agreement.
+
+2. RESTRICTIONS
+   You may not:
+   - Copy, modify, or distribute the Software
+   - Reverse engineer, decompile, or disassemble the Software
+   - Rent, lease, or lend the Software to third parties
+   - Use the Software for any unlawful purpose
+
+3. OWNERSHIP
+   The Software is licensed, not sold. The Company retains all intellectual 
+   property rights in the Software.
+
+4. PRIVACY
+   Your financial data is stored locally on your device. The Software does not 
+   transmit personal financial data to external servers without your explicit 
+   consent (e.g., when connecting bank accounts via Plaid).
+
+5. DISCLAIMER OF WARRANTIES
+   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. THE COMPANY 
+   DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF 
+   MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+6. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE COMPANY BE LIABLE FOR ANY INDIRECT, INCIDENTAL, 
+   SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OF THE SOFTWARE.
+
+7. TERMINATION
+   This license is effective until terminated. It will terminate automatically 
+   if you fail to comply with any term of this Agreement.
+
+8. GOVERNING LAW
+   This Agreement shall be governed by the laws of the State of Delaware, 
+   United States.
+
+For questions about this license, contact: legal@balancebookspro.com
+
+Balance Books Pro LLC
