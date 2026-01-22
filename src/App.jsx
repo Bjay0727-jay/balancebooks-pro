@@ -1182,7 +1182,7 @@ export default function App() {
           </div>
           <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro • v1.5</p></div>
         </div>
-        <nav className="space-y-1 flex-1">
+      <nav className="space-y-1 flex-1 overflow-y-auto">
           <NavItem id="dashboard" icon={LayoutGrid} label="Dashboard" />
           <NavItem id="transactions" icon={Receipt} label="Transactions" badge={stats.unpaidCount || null} />
           <NavItem id="budget" icon={Target} label="Budget Goals" badge={budgetStats.categoriesOverBudget || null} />
