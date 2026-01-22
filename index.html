@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#14b8a6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BalanceBooks" />
+    <meta name="description" content="Personal finance management with privacy-first design. Track expenses, set budgets, and manage debts - all stored locally on your device." />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <title>BalanceBooks Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body, #root { height: 100%; }
+      body { 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        background: #0f172a;
+      }
+      /* PWA Install Banner */
+      .pwa-install-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #1e3a5f 0%, #14b8a6 100%);
+        color: white;
+        padding: 16px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 9999;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+      }
+      .pwa-install-banner.show { display: flex; }
+      .pwa-install-btn {
+        background: white;
+        color: #14b8a6;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .pwa-dismiss {
+        background: transparent;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 8px;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- PWA Install Banner -->
+    <div class="pwa-install-banner" id="pwa-banner">
+      <div>
+        <strong>📱 Install BalanceBooks</strong>
+        <p style="font-size: 12px; opacity: 0.9;">Add to home screen for the best experience</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="pwa-install-btn" id="pwa-install">Install</button>
+        <button class="pwa-dismiss" id="pwa-dismiss">✕</button>
+      </div>
+    </div>
+    
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Service Worker & PWA Install -->
+    <script>
+      // Register Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('BalanceBooks SW registered:', reg.scope))
+            .catch(err => console.log('SW registration failed:', err));
+        });
+      }
+      
+      // PWA Install Prompt
+      let deferredPrompt;
+      const banner = document.getElementById('pwa-banner');
+      const installBtn = document.getElementById('pwa-install');
+      const dismissBtn = document.getElementById('pwa-dismiss');
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Show install banner if not dismissed before
+        if (!localStorage.getItem('pwa-dismissed')) {
+          banner.classList.add('show');
+        }
+      });
+      
+      installBtn?.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log('PWA install:', outcome);
+          deferredPrompt = null;
+          banner.classList.remove('show');
+        }
+      });
+      
+      dismissBtn?.addEventListener('click', () => {
+        banner.classList.remove('show');
+        localStorage.setItem('pwa-dismissed', 'true');
+      });
+      
+      // Hide banner if already installed
+      window.addEventListener('appinstalled', () => {
+        banner.classList.remove('show');
+        console.log('BalanceBooks installed as PWA!');
+      });
+    </script>
+  </body>
+</html>
