@@ -1,6 +1,6 @@
 {
   "name": "balance-books-pro",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "Financial management solution for expense tracking and book balancing",
   "author": "Balance Books Pro",
   "license": "Commercial",
@@ -70,7 +70,7 @@
     },
     "mac": {
       "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
-      "icon": "build/icon.icns",
+      "icon": "build/icon.png",
       "category": "public.app-category.finance"
     },
     "linux": {

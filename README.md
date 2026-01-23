@@ -1,4 +1,4 @@
-# Balance Books Pro v1.5
+# Balance Books Pro v1.6
 
 Personal finance management with privacy-first design.
 
