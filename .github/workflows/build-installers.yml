@@ -7,16 +7,24 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.6.0)'
+        required: false
+        default: '1.6.0'
 
 permissions:
   contents: write
 
 jobs:
+  # ============================================
+  # BUILD WINDOWS INSTALLER (.exe)
+  # ============================================
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Get version from tag
         id: version
         shell: bash
@@ -25,37 +33,46 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="1.5.0"
+            VERSION="${{ github.event.inputs.version || '1.6.0' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          
+
       - name: Update package.json version
         shell: bash
         run: |
           sed -i 's/"version": "[^"]*"/"version": "${{ steps.version.outputs.VERSION }}"/' package.json
           cat package.json | grep version
-          
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+
       - run: npm install
-      
-      - name: Build Windows Installer
+
+      - name: Build Windows installer
         run: npm run electron:build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
+      - name: List release folder
+        run: dir release
+        shell: cmd
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer
           path: release/*.exe
+          if-no-files-found: error
+          retention-days: 30
 
+  # ============================================
+  # BUILD MAC INSTALLERS (.dmg for Intel & ARM)
+  # ============================================
   build-mac:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Get version from tag
         id: version
         run: |
@@ -63,36 +80,44 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="1.5.0"
+            VERSION="${{ github.event.inputs.version || '1.6.0' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          
+
       - name: Update package.json version
         run: |
           sed -i '' 's/"version": "[^"]*"/"version": "${{ steps.version.outputs.VERSION }}"/' package.json
           cat package.json | grep version
-          
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+
       - run: npm install
-      
-      - name: Build Mac Installer
+
+      - name: Build Mac installers
         run: npm run electron:build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
+      - name: List release folder
+        run: ls -la release/
+
       - uses: actions/upload-artifact@v4
         with:
           name: mac-installer
           path: release/*.dmg
+          if-no-files-found: error
+          retention-days: 30
 
+  # ============================================
+  # BUILD LINUX INSTALLER (.AppImage)
+  # ============================================
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Get version from tag
         id: version
         run: |
@@ -100,43 +125,69 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="1.5.0"
+            VERSION="${{ github.event.inputs.version || '1.6.0' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          
+
       - name: Update package.json version
         run: |
           sed -i 's/"version": "[^"]*"/"version": "${{ steps.version.outputs.VERSION }}"/' package.json
           cat package.json | grep version
-          
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+
       - run: npm install
-      
-      - name: Build Linux Installer
+
+      - name: Build Linux installer
         run: npm run electron:build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
+      - name: List release folder
+        run: ls -la release/
+
       - uses: actions/upload-artifact@v4
         with:
           name: linux-installer
           path: release/*.AppImage
+          if-no-files-found: error
+          retention-days: 30
 
+  # ============================================
+  # CREATE GITHUB RELEASE WITH ALL INSTALLERS
+  # ============================================
   create-release:
     needs: [build-windows, build-mac, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/download-artifact@v4
-      
+
       - name: List artifacts
-        run: find . -type f -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage"
-        
+        run: find . -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" \)
+
       - uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
+          name: Balance Books Pro ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
+          body: |
+            ## 📥 Downloads
+            
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | **Windows** | `.exe` installer | Standard Windows installer |
+            | **Mac (Intel)** | `.dmg` | For Intel-based Macs |
+            | **Mac (Apple Silicon)** | `-arm64.dmg` | For M1/M2/M3/M4 Macs |
+            | **Linux** | `.AppImage` | Universal Linux package |
+            
+            ## 🌐 Web App
+            Use instantly at: https://app.balancebooksapp.com
+            
+            ## What's New
+            - Professional Excel template for importing transactions
+            - Improved user interface
           files: |
             windows-installer/*
             mac-installer/*
