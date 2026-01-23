@@ -1180,7 +1180,7 @@ export default function App() {
               <path d="M 36 52 L 46 62 L 66 42" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro • v1.6.0</p></div>
+          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro • v{__APP_VERSION__}</p></div>
         </div>
       <nav className="space-y-1 flex-1 overflow-y-auto">
           <NavItem id="dashboard" icon={LayoutGrid} label="Dashboard" />
@@ -2264,7 +2264,7 @@ export default function App() {
               {/* About */}
               <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4">About</h3>
-                <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Version:</span> 1.6.0</p>
+               <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Version:</span> {__APP_VERSION__}</p>
                 <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
                 <p className="text-sm text-slate-600"><span className="font-medium text-purple-600">Storage:</span> Local (your data stays on your device)</p>
               </div>
