@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { db } from './db/database';
+import { migrateFromLocalStorage } from './db/migration';
 import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save } from 'lucide-react';
 
 // Categories
@@ -90,6 +92,15 @@ export default function App() {
   const [editDebt, setEditDebt] = useState(null);
   const [editBudget, setEditBudget] = useState(null);
   const [restoreData, setRestoreData] = useState(null); // For restore wizard
+  
+  // Initialize IndexedDB and migrate data
+  useEffect(() => {
+    migrateFromLocalStorage().then(migrated => {
+      if (migrated) {
+        console.log('Migration complete - reload to use IndexedDB');
+      }
+    }).catch(err => console.error('Migration error:', err));
+  }, []);
 
   useEffect(() => { saveData('transactions', transactions); }, [transactions]);
   useEffect(() => { saveData('recurring', recurringExpenses); }, [recurringExpenses]);
