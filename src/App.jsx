@@ -58,32 +58,8 @@ const shortDate = (dateStr) => {
 const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-// Enhanced localStorage with immediate sync and error logging
-const saveData = (key, data) => { 
-  try { 
-    localStorage.setItem('bb_' + key, JSON.stringify(data));
-    // Force sync marker for Electron
-    if (typeof window !== 'undefined' && window.electronAPI?.isElectron) {
-      localStorage.setItem('bb_lastSync', Date.now().toString());
-    }
-  } catch (e) {
-    console.error('Failed to save data:', key, e);
-  }
-};
-
-const loadData = (key, defaultValue) => { 
-  try { 
-    const saved = localStorage.getItem('bb_' + key); 
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed;
-    }
-    return defaultValue;
-  } catch (e) { 
-    console.error('Failed to load data:', key, e);
-    return defaultValue; 
-  }
-};
+const saveData = (key, data) => { try { localStorage.setItem('bb_' + key, JSON.stringify(data)); } catch {} };
+const loadData = (key, defaultValue) => { try { const saved = localStorage.getItem('bb_' + key); return saved ? JSON.parse(saved) : defaultValue; } catch { return defaultValue; } };
 
 export default function App() {
   const [view, setView] = useState('dashboard');
@@ -124,20 +100,6 @@ export default function App() {
   useEffect(() => { saveData('autoBackup', autoBackupEnabled); }, [autoBackupEnabled]);
   useEffect(() => { saveData('lastBackup', lastBackupDate); }, [lastBackupDate]);
   useEffect(() => { saveData('notifications', notificationsEnabled); }, [notificationsEnabled]);
-
-  // Force immediate localStorage sync before page unload
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      saveData('transactions', transactions);
-      saveData('recurring', recurringExpenses);
-      saveData('monthlyBalances', monthlyBalances);
-      saveData('savingsGoal', savingsGoal);
-      saveData('budgetGoals', budgetGoals);
-      saveData('debts', debts);
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts]);
 
   // Auto-backup every 24 hours
   useEffect(() => {
@@ -181,7 +143,7 @@ export default function App() {
 
   const performAutoBackup = useCallback(() => {
     const backup = {
-      version: '1.6.0',
+      version: __APP_VERSION__,
       exportDate: new Date().toISOString(),
       autoBackup: true,
       data: { transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts }
@@ -1218,7 +1180,7 @@ export default function App() {
               <path d="M 36 52 L 46 62 L 66 42" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro • v1.6.0</p></div>
+          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro • v{__APP_VERSION__}</p></div>
         </div>
       <nav className="space-y-1 flex-1 overflow-y-auto">
           <NavItem id="dashboard" icon={LayoutGrid} label="Dashboard" />
@@ -1367,48 +1329,17 @@ export default function App() {
                   <span><strong>{filtered.length}</strong> transactions {filterCat !== 'all' || filterPaid !== 'all' || search ? '(filtered)' : ''}</span>
                   {transactions.length > 0 && <span className="text-slate-400">• Total: {transactions.length}</span>}
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* Select All (Mark as Paid) */}
-                  <button 
-                    onClick={() => {
-                      const ids = filtered.map(t => t.id);
-                      setTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, paid: true } : t));
-                    }}
-                    className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 shadow-sm text-sm"
-                    disabled={filtered.length === 0}
-                  >
-                    <Check size={16} />
-                    <span>Select All</span>
-                  </button>
-                  
-                  {/* Deselect All (Mark as Unpaid) */}
-                  <button 
-                    onClick={() => {
-                      const ids = filtered.map(t => t.id);
-                      setTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, paid: false } : t));
-                    }}
-                    className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-slate-400 to-slate-500 text-white rounded-lg font-medium hover:from-slate-500 hover:to-slate-600 shadow-sm text-sm"
-                    disabled={filtered.length === 0}
-                  >
-                    <X size={16} />
-                    <span>Deselect All</span>
-                  </button>
-                  
-                  {/* Divider */}
-                  <div className="w-px h-6 bg-slate-300 mx-1"></div>
-                  
+                <div className="flex items-center gap-2">
                   {/* Save/Backup Button */}
                   <button 
                     onClick={() => {
                       const data = {
-                        version: '1.7.1',
+                        version: '1.2',
                         exportDate: new Date().toISOString(),
                         transactions,
                         recurringExpenses,
                         monthlyBalances,
-                        savingsGoal,
-                        budgetGoals,
-                        debts
+                        savingsGoal
                       };
                       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                       const a = document.createElement('a');
@@ -2074,7 +2005,7 @@ export default function App() {
                           onClick={() => {
                             const data = {
                               appName: 'Balance Books Pro',
-                              version: '1.6.0',
+                              version: __APP_VERSION__,
                               exportDate: new Date().toISOString(),
                               exportDateFormatted: new Date().toLocaleDateString('en-US', { 
                                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -2254,7 +2185,7 @@ export default function App() {
                   <button 
                     onClick={() => {
                       const backup = {
-                        version: '1.6.0',
+                        version: __APP_VERSION__,
                         exportDate: new Date().toISOString(),
                         transactions,
                         recurringExpenses,
@@ -2333,7 +2264,7 @@ export default function App() {
               {/* About */}
               <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4">About</h3>
-                <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Version:</span> 1.6.0</p>
+                <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Version:</span> {__APP_VERSION__}</p>
                 <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
                 <p className="text-sm text-slate-600"><span className="font-medium text-purple-600">Storage:</span> Local (your data stays on your device)</p>
               </div>
