@@ -91,9 +91,9 @@ export default function App() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => loadData('notifications', false));
   const [editDebt, setEditDebt] = useState(null);
   const [editBudget, setEditBudget] = useState(null);
-  const [restoreData, setRestoreData] = useState(null); // For restore wizard
+  const [restoreData, setRestoreData] = useState(null);
   
-  // Initialize IndexedDB and migrate data
+// Initialize IndexedDB and migrate data
   useEffect(() => {
     migrateFromLocalStorage().then(migrated => {
       if (migrated) {
