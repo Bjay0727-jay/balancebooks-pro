@@ -15,7 +15,7 @@ import { migrateFromLocalStorage, loadFromIndexedDB, needsMigration } from './db
 import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save } from 'lucide-react';
 
 // App version
-const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.8.0';
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.8.1';
 
 // Cache version for force refresh
 const CACHE_VERSION = '1.8.0';
@@ -59,10 +59,13 @@ const CATEGORIES = [
   { id: 'savings', name: 'Savings', color: '#047857', bg: '#ecfdf5', icon: '💰' },
   { id: 'investment', name: 'Investment', color: '#065f46', bg: '#ecfdf5', icon: '📈' },
   { id: 'debt', name: 'Debt Payment', color: '#b91c1c', bg: '#fef2f2', icon: '💳' },
+  { id: 'creditcard', name: 'Credit Card Payment', color: '#e11d48', bg: '#fff1f2', icon: '💳' },
   { id: 'childcare', name: 'Childcare', color: '#f472b6', bg: '#fdf2f8', icon: '👶' },
   { id: 'pets', name: 'Pets', color: '#f59e0b', bg: '#fffbeb', icon: '🐾' },
   { id: 'personal', name: 'Personal Care', color: '#ec4899', bg: '#fdf2f8', icon: '💇' },
   { id: 'gifts', name: 'Gifts & Donations', color: '#8b5cf6', bg: '#f5f3ff', icon: '🎁' },
+  { id: 'taxes', name: 'Taxes', color: '#991b1b', bg: '#fef2f2', icon: '🏛️' },
+  { id: 'travel', name: 'Travel', color: '#0891b2', bg: '#ecfeff', icon: '✈️' },
   { id: 'transfer', name: 'Transfer', color: '#475569', bg: '#f8fafc', icon: '🔄' },
   { id: 'other', name: 'Other', color: '#64748b', bg: '#f8fafc', icon: '📦' },
 ];
@@ -635,20 +638,156 @@ export default function App() {
   };
 
   const downloadTemplate = () => {
-    const rows = [
-      ['Date', 'Description', 'Amount', 'Category', 'Type', 'Paid'],
-      ['2025-01-15', 'Grocery Shopping', '-85.50', 'groceries', 'expense', 'yes'],
-      ['2025-01-14', 'Gas Station', '-45.00', 'transportation', 'expense', 'yes'],
-      ['2025-01-10', 'Electric Bill', '-125.00', 'utilities', 'expense', 'no'],
-      ['2025-01-01', 'Paycheck', '2500.00', 'income', 'income', 'yes'],
-      ['2025-01-05', 'Freelance Work', '350.00', 'income', 'income', 'yes']
+    const XLSX = window.XLSX;
+    if (!XLSX) {
+      // Fallback to CSV if XLSX not available
+      const rows = [
+        ['Date', 'Description', 'Amount', 'Category', 'Type', 'Paid', 'Notes'],
+        ['01/20/2026', 'January Paycheck', '3500.00', 'Income', 'Income', 'Yes', 'Direct deposit'],
+        ['01/15/2026', 'Grocery Shopping', '-125.50', 'Groceries', 'Expense', 'Yes', 'Weekly groceries'],
+        ['01/10/2026', 'Electric Bill', '-145.00', 'Utilities', 'Expense', 'No', 'Due on the 20th'],
+        ['01/07/2026', 'Chase Visa Payment', '-500.00', 'Credit Card Payment', 'Expense', 'Yes', 'Monthly payment'],
+        ['01/01/2026', 'Mortgage/Rent', '-1850.00', 'Housing', 'Expense', 'Yes', 'Monthly payment']
+      ];
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'BalanceBooks-Import-Template.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      return;
+    }
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // ============ TRANSACTIONS SHEET ============
+    const templateData = [
+      ['Balance Books Pro - Import Template'],
+      ['Fill in transactions below. Use dropdowns for Category, Type, and Paid. Expenses = negative amounts, Income = positive.'],
+      [],
+      ['Beginning Balance:', 0, '', 'Ending Balance:', '=B4+SUMIF(C7:C1000,"<>",C7:C1000)', '', ''],
+      [],
+      ['Date', 'Description', 'Amount', 'Category', 'Type', 'Paid', 'Notes'],
+      ['01/20/2026', 'January Paycheck', 3500, 'Income', 'Income', 'Yes', 'Direct deposit'],
+      ['01/18/2026', 'Grocery Shopping', -125.50, 'Groceries', 'Expense', 'Yes', 'Weekly groceries'],
+      ['01/15/2026', 'Electric Bill', -145.00, 'Utilities', 'Expense', 'No', 'Due on the 20th'],
+      ['01/14/2026', 'Gas Station', -52.00, 'Transportation', 'Expense', 'Yes', ''],
+      ['01/12/2026', 'Netflix & Spotify', -25.99, 'Subscriptions', 'Expense', 'Yes', 'Monthly'],
+      ['01/10/2026', 'Church Tithe', -350.00, 'Tithes & Offerings', 'Expense', 'Yes', '10% of income'],
+      ['01/08/2026', 'Family Dinner', -78.50, 'Dining', 'Expense', 'Yes', 'Birthday celebration'],
+      ['01/07/2026', 'Chase Visa Payment', -500.00, 'Credit Card Payment', 'Expense', 'Yes', 'Monthly payment'],
+      ['01/06/2026', 'Car Insurance', -125.00, 'Insurance', 'Expense', 'Yes', 'Monthly premium'],
+      ['01/05/2026', 'Side Gig Payment', 500.00, 'Income', 'Income', 'Yes', 'Freelance work'],
+      ['01/03/2026', 'Doctor Visit Copay', -35.00, 'Healthcare', 'Expense', 'Yes', 'Annual checkup'],
+      ['01/02/2026', 'Amazon Purchase', -67.99, 'Shopping', 'Expense', 'Yes', 'Household items'],
+      ['01/01/2026', 'Mortgage/Rent', -1850.00, 'Housing', 'Expense', 'Yes', 'Monthly payment'],
+      ['01/01/2026', 'Savings Transfer', -200.00, 'Savings', 'Expense', 'Yes', 'Emergency fund'],
     ];
-    const csv = rows.map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 12 },  // Date
+      { wch: 28 },  // Description
+      { wch: 14 },  // Amount
+      { wch: 22 },  // Category
+      { wch: 10 },  // Type
+      { wch: 8 },   // Paid
+      { wch: 25 }   // Notes
+    ];
+
+    // Merge title rows
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+
+    // ============ CATEGORIES REFERENCE SHEET ============
+    const categories = [
+      ['Category', 'Type Options', 'Paid Options'],
+      ['Income', 'Income', 'Yes'],
+      ['Childcare', 'Expense', 'No'],
+      ['Credit Card Payment', '', ''],
+      ['Debt Payment', '', ''],
+      ['Dining', '', ''],
+      ['Education', '', ''],
+      ['Entertainment', '', ''],
+      ['Gifts & Donations', '', ''],
+      ['Groceries', '', ''],
+      ['Healthcare', '', ''],
+      ['Housing', '', ''],
+      ['Insurance', '', ''],
+      ['Investment', '', ''],
+      ['Personal Care', '', ''],
+      ['Pets', '', ''],
+      ['Savings', '', ''],
+      ['Shopping', '', ''],
+      ['Subscriptions', '', ''],
+      ['Taxes', '', ''],
+      ['Tithes & Offerings', '', ''],
+      ['Transfer', '', ''],
+      ['Transportation', '', ''],
+      ['Travel', '', ''],
+      ['Utilities', '', ''],
+      ['Other', '', '']
+    ];
+
+    const catSheet = XLSX.utils.aoa_to_sheet(categories);
+    catSheet['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, catSheet, 'Categories');
+
+    // ============ INSTRUCTIONS SHEET ============
+    const instructions = [
+      ['Balance Books Pro - Import Instructions'],
+      [''],
+      ['HOW TO USE THIS TEMPLATE:'],
+      [''],
+      ['1. DATE: Use MM/DD/YYYY format (e.g., 01/15/2026)'],
+      [''],
+      ['2. DESCRIPTION: Brief description of transaction'],
+      [''],
+      ['3. AMOUNT:'],
+      ['   • EXPENSES: Enter NEGATIVE numbers (e.g., -125.50)'],
+      ['   • INCOME: Enter POSITIVE numbers (e.g., 3500.00)'],
+      [''],
+      ['4. CATEGORY: Choose from Categories sheet:'],
+      ['   Income, Housing, Utilities, Groceries, Transportation,'],
+      ['   Healthcare, Insurance, Entertainment, Dining, Shopping,'],
+      ['   Subscriptions, Education, Tithes & Offerings, Savings,'],
+      ['   Investment, Debt Payment, Credit Card Payment, Childcare,'],
+      ['   Pets, Personal Care, Gifts & Donations, Taxes, Travel,'],
+      ['   Transfer, Other'],
+      [''],
+      ['5. TYPE: "Income" or "Expense"'],
+      [''],
+      ['6. PAID: "Yes" or "No" - tracks payment status'],
+      [''],
+      ['7. NOTES: Optional details'],
+      [''],
+      ['TIPS:'],
+      ['• Delete sample transactions before importing'],
+      ['• Ending Balance auto-calculates'],
+      ['• Set Beginning Balance to your account starting balance'],
+      ['• Save as .xlsx before importing'],
+    ];
+
+    const helpSheet = XLSX.utils.aoa_to_sheet(instructions);
+    helpSheet['!cols'] = [{ wch: 60 }];
+    XLSX.utils.book_append_sheet(wb, helpSheet, 'Instructions');
+
+    // Generate and download using browser-compatible method
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'balance-books-template.csv';
+    a.download = 'BalanceBooks-Import-Template.xlsx';
     a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   const parseDate = (dateValue) => {
@@ -715,14 +854,18 @@ export default function App() {
       'pet': 'pets', 'dog': 'pets', 'cat': 'pets', 'vet': 'pets',
       'hair': 'personal', 'salon': 'personal', 'spa': 'personal',
       'gym': 'healthcare', 'medical': 'healthcare', 'doctor': 'healthcare', 'pharmacy': 'healthcare',
-      'car': 'transportation', 'gas': 'transportation', 'fuel': 'transportation', 'uber': 'transportation',
+      'car': 'transportation', 'gas': 'transportation', 'fuel': 'transportation', 'uber': 'transportation', 'lyft': 'transportation',
       'food': 'groceries', 'grocery': 'groceries', 'supermarket': 'groceries',
-      'restaurant': 'dining', 'coffee': 'dining', 'cafe': 'dining',
-      'netflix': 'subscriptions', 'spotify': 'subscriptions', 'hulu': 'subscriptions',
+      'restaurant': 'dining', 'coffee': 'dining', 'cafe': 'dining', 'takeout': 'dining',
+      'netflix': 'subscriptions', 'spotify': 'subscriptions', 'hulu': 'subscriptions', 'disney': 'subscriptions',
       'amazon': 'shopping', 'walmart': 'shopping', 'target': 'shopping',
       'rent': 'housing', 'mortgage': 'housing',
       'electric': 'utilities', 'water': 'utilities', 'internet': 'utilities', 'phone': 'utilities',
       'salary': 'income', 'paycheck': 'income', 'wages': 'income', 'freelance': 'income',
+      'credit card': 'creditcard', 'creditcard': 'creditcard', 'visa': 'creditcard', 'mastercard': 'creditcard', 'amex': 'creditcard', 'discover': 'creditcard', 'chase': 'creditcard', 'capital one': 'creditcard',
+      'tax': 'taxes', 'irs': 'taxes', 'federal tax': 'taxes', 'state tax': 'taxes', 'property tax': 'taxes',
+      'vacation': 'travel', 'flight': 'travel', 'hotel': 'travel', 'airbnb': 'travel', 'trip': 'travel',
+      'loan': 'debt', 'student loan': 'debt', 'car loan': 'debt', 'personal loan': 'debt',
     };
     
     for (const [alias, catId] of Object.entries(aliases)) {
