@@ -10,6 +10,33 @@
   to = "/index.html"
   status = 200
 
+# ===========================================
+# Cache Control - Fixes Chrome refresh issue
+# ===========================================
+
+# HTML and root files - always check for updates
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+
+# Hashed assets (Vite adds hash to filenames) - cache long-term
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ===========================================
+# Existing headers
+# ===========================================
+
 [[headers]]
   for = "/sw.js"
   [headers.values]
@@ -20,6 +47,7 @@
   [headers.values]
     Cache-Control = "no-cache"
 
+# Security headers
 [[headers]]
   for = "/*"
   [headers.values]
