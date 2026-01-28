@@ -1,10 +1,45 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { db } from './db/database';
-import { migrateFromLocalStorage } from './db/migration';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { 
+  db, 
+  transactionsDB, 
+  recurringDB, 
+  balancesDB, 
+  budgetDB, 
+  debtsDB, 
+  settingsDB,
+  exportAllData,
+  importAllData,
+  clearAllData
+} from './db/database';
+import { migrateFromLocalStorage, loadFromIndexedDB, needsMigration } from './db/migration';
 import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save } from 'lucide-react';
 
-// App version - uses build-time injection or fallback
-const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.7.1';
+// App version
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.8.0';
+
+// Cache version for force refresh
+const CACHE_VERSION = '1.8.0';
+const forceRefreshOnNewVersion = () => {
+  const storedVersion = localStorage.getItem('bb_app_version');
+  if (storedVersion && storedVersion !== CACHE_VERSION) {
+    console.log(`Version changed from ${storedVersion} to ${CACHE_VERSION}, clearing cache...`);
+    if ('caches' in window) {
+      caches.keys().then(names => names.forEach(name => caches.delete(name)));
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+    }
+    localStorage.setItem('bb_app_version', CACHE_VERSION);
+    window.location.reload(true);
+    return true;
+  }
+  localStorage.setItem('bb_app_version', CACHE_VERSION);
+  return false;
+};
+
+if (typeof window !== 'undefined') {
+  forceRefreshOnNewVersion();
+}
 
 // Categories
 const CATEGORIES = [
@@ -46,16 +81,13 @@ const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 const currency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
-// Fixed shortDate to handle YYYY-MM-DD strings without timezone shifting
 const shortDate = (dateStr) => {
   if (!dateStr) return '';
-  // Parse YYYY-MM-DD directly to avoid timezone issues
   const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (match) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${months[parseInt(match[2]) - 1]} ${parseInt(match[3])}`;
   }
-  // Fallback
   const d = new Date(dateStr);
   return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
@@ -63,15 +95,13 @@ const shortDate = (dateStr) => {
 const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-const saveData = (key, data) => { try { localStorage.setItem('bb_' + key, JSON.stringify(data)); } catch {} };
-const loadData = (key, defaultValue) => { try { const saved = localStorage.getItem('bb_' + key); return saved ? JSON.parse(saved) : defaultValue; } catch { return defaultValue; } };
-
 export default function App() {
+  // Loading state - show spinner until IndexedDB data loads
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  
+  // UI States
   const [view, setView] = useState('dashboard');
-  const [transactions, setTransactions] = useState(() => loadData('transactions', []));
-  const [recurringExpenses, setRecurringExpenses] = useState(() => loadData('recurring', []));
-  const [monthlyBalances, setMonthlyBalances] = useState(() => loadData('monthlyBalances', {}));
-  const [savingsGoal, setSavingsGoal] = useState(() => loadData('savingsGoal', 500));
   const [month, setMonth] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
   const [modal, setModal] = useState(null);
@@ -85,39 +115,154 @@ export default function App() {
   const [plaidLoading, setPlaidLoading] = useState(false);
   const [importData, setImportData] = useState(null);
   const [importNotification, setImportNotification] = useState(null);
-  
-  // New Feature States
-  const [budgetGoals, setBudgetGoals] = useState(() => loadData('budgetGoals', {}));
-  const [debts, setDebts] = useState(() => loadData('debts', []));
-  const [autoBackupEnabled, setAutoBackupEnabled] = useState(() => loadData('autoBackup', false));
-  const [lastBackupDate, setLastBackupDate] = useState(() => loadData('lastBackup', null));
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => loadData('notifications', false));
   const [editDebt, setEditDebt] = useState(null);
   const [editBudget, setEditBudget] = useState(null);
   const [restoreData, setRestoreData] = useState(null);
+  const [selectedTxIds, setSelectedTxIds] = useState(new Set());
   
-// Initialize IndexedDB and migrate data
+  // Data States - initialized empty, loaded from IndexedDB
+  const [transactions, setTransactions] = useState([]);
+  const [recurringExpenses, setRecurringExpenses] = useState([]);
+  const [monthlyBalances, setMonthlyBalances] = useState({});
+  const [savingsGoal, setSavingsGoal] = useState(500);
+  const [budgetGoals, setBudgetGoals] = useState({});
+  const [debts, setDebts] = useState([]);
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
+  const [lastBackupDate, setLastBackupDate] = useState(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  
+  // Ref to track if initial load is complete (prevents save on load)
+  const initialLoadComplete = useRef(false);
+
+  // ============================================
+  // INDEXEDDB INITIALIZATION
+  // ============================================
+  
   useEffect(() => {
-    migrateFromLocalStorage().then(migrated => {
-      if (migrated) {
-        console.log('Migration complete - reload to use IndexedDB');
+    const initializeApp = async () => {
+      try {
+        console.log(`[BalanceBooks] Initializing v${APP_VERSION}...`);
+        
+        // Check if migration from localStorage is needed
+        if (needsMigration()) {
+          console.log('[BalanceBooks] Migrating from localStorage...');
+          const result = await migrateFromLocalStorage();
+          if (!result.success && !result.skipped) {
+            console.error('[BalanceBooks] Migration failed:', result.error);
+          }
+        }
+        
+        // Load all data from IndexedDB
+        const data = await loadFromIndexedDB();
+        
+        // Set state with loaded data
+        setTransactions(data.transactions || []);
+        setRecurringExpenses(data.recurringExpenses || []);
+        setMonthlyBalances(data.monthlyBalances || {});
+        setBudgetGoals(data.budgetGoals || {});
+        setDebts(data.debts || []);
+        setSavingsGoal(data.savingsGoal ?? 500);
+        setAutoBackupEnabled(data.autoBackup ?? false);
+        setLastBackupDate(data.lastBackup ?? null);
+        setNotificationsEnabled(data.notifications ?? false);
+        
+        console.log(`[BalanceBooks] Loaded ${data.transactions?.length || 0} transactions from IndexedDB`);
+        
+        // Mark initial load complete after state is set
+        setTimeout(() => {
+          initialLoadComplete.current = true;
+        }, 100);
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('[BalanceBooks] Initialization error:', error);
+        setLoadError(error.message);
+        setIsLoading(false);
       }
-    }).catch(err => console.error('Migration error:', err));
+    };
+    
+    initializeApp();
   }, []);
 
-  useEffect(() => { saveData('transactions', transactions); }, [transactions]);
-  useEffect(() => { saveData('recurring', recurringExpenses); }, [recurringExpenses]);
-  useEffect(() => { saveData('monthlyBalances', monthlyBalances); }, [monthlyBalances]);
-  useEffect(() => { saveData('savingsGoal', savingsGoal); }, [savingsGoal]);
-  useEffect(() => { saveData('budgetGoals', budgetGoals); }, [budgetGoals]);
-  useEffect(() => { saveData('debts', debts); }, [debts]);
-  useEffect(() => { saveData('autoBackup', autoBackupEnabled); }, [autoBackupEnabled]);
-  useEffect(() => { saveData('lastBackup', lastBackupDate); }, [lastBackupDate]);
-  useEffect(() => { saveData('notifications', notificationsEnabled); }, [notificationsEnabled]);
-
-  // Auto-backup every 24 hours
+  // ============================================
+  // INDEXEDDB SAVE OPERATIONS
+  // ============================================
+  
+  // Save transactions to IndexedDB when they change
   useEffect(() => {
-    if (autoBackupEnabled) {
+    if (!initialLoadComplete.current) return;
+    transactionsDB.replaceAll(transactions).catch(err => 
+      console.error('[IndexedDB] Failed to save transactions:', err)
+    );
+  }, [transactions]);
+  
+  // Save recurring expenses
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
+    recurringDB.replaceAll(recurringExpenses).catch(err => 
+      console.error('[IndexedDB] Failed to save recurring:', err)
+    );
+  }, [recurringExpenses]);
+  
+  // Save monthly balances
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
+    balancesDB.replaceAll(monthlyBalances).catch(err => 
+      console.error('[IndexedDB] Failed to save balances:', err)
+    );
+  }, [monthlyBalances]);
+  
+  // Save budget goals
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
+    budgetDB.replaceAll(budgetGoals).catch(err => 
+      console.error('[IndexedDB] Failed to save budgets:', err)
+    );
+  }, [budgetGoals]);
+  
+  // Save debts
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
+    debtsDB.replaceAll(debts).catch(err => 
+      console.error('[IndexedDB] Failed to save debts:', err)
+    );
+  }, [debts]);
+  
+  // Save settings
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
+    settingsDB.set('savingsGoal', savingsGoal).catch(err => 
+      console.error('[IndexedDB] Failed to save savingsGoal:', err)
+    );
+  }, [savingsGoal]);
+  
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
+    settingsDB.set('autoBackup', autoBackupEnabled).catch(err => 
+      console.error('[IndexedDB] Failed to save autoBackup:', err)
+    );
+  }, [autoBackupEnabled]);
+  
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
+    settingsDB.set('lastBackup', lastBackupDate).catch(err => 
+      console.error('[IndexedDB] Failed to save lastBackup:', err)
+    );
+  }, [lastBackupDate]);
+  
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
+    settingsDB.set('notifications', notificationsEnabled).catch(err => 
+      console.error('[IndexedDB] Failed to save notifications:', err)
+    );
+  }, [notificationsEnabled]);
+
+  // ============================================
+  // AUTO-BACKUP & NOTIFICATIONS
+  // ============================================
+
+  useEffect(() => {
+    if (autoBackupEnabled && initialLoadComplete.current) {
       const checkBackup = () => {
         const last = lastBackupDate ? new Date(lastBackupDate) : null;
         const now = new Date();
@@ -126,21 +271,19 @@ export default function App() {
         }
       };
       checkBackup();
-      const interval = setInterval(checkBackup, 60 * 60 * 1000); // Check every hour
+      const interval = setInterval(checkBackup, 60 * 60 * 1000);
       return () => clearInterval(interval);
     }
   }, [autoBackupEnabled, lastBackupDate]);
 
-  // Request notification permission
   useEffect(() => {
     if (notificationsEnabled && 'Notification' in window) {
       Notification.requestPermission();
     }
   }, [notificationsEnabled]);
 
-  // Bill reminder notifications
   useEffect(() => {
-    if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+    if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted' && initialLoadComplete.current) {
       const today = new Date();
       const day = today.getDate();
       recurringExpenses.filter(r => r.active).forEach(r => {
@@ -155,46 +298,50 @@ export default function App() {
     }
   }, [notificationsEnabled, recurringExpenses]);
 
-  const performAutoBackup = useCallback(() => {
-    const backup = {
-      version: APP_VERSION,
-      exportDate: new Date().toISOString(),
-      autoBackup: true,
-      data: { transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts }
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `balance-books-auto-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    setLastBackupDate(new Date().toISOString());
-  }, [transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts]);
+  const performAutoBackup = useCallback(async () => {
+    try {
+      const data = await exportAllData();
+      const backup = {
+        version: APP_VERSION,
+        exportDate: new Date().toISOString(),
+        autoBackup: true,
+        storage: 'IndexedDB',
+        data
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `balance-books-auto-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      setLastBackupDate(new Date().toISOString());
+    } catch (err) {
+      console.error('[AutoBackup] Failed:', err);
+    }
+  }, []);
 
-  // Get the key for monthly balance storage
-  const getMonthKey = (m, y) => `${y}-${String(m).padStart(2, '0')}`;
+  // ============================================
+  // COMPUTED VALUES
+  // ============================================
+
+  const getMonthKey = (m, y) => `${y}-${String(m + 1).padStart(2, '0')}`;
   const currentMonthKey = getMonthKey(month, year);
 
-  // Get beginning balance for a month - either manually set or carried over from previous month
   const getBeginningBalance = (m, y) => {
     const key = getMonthKey(m, y);
-    // If manually set, use that
     if (monthlyBalances[key]?.beginning !== undefined) {
       return monthlyBalances[key].beginning;
     }
-    // Otherwise, get ending balance from previous month
     const prevMonth = m === 0 ? 11 : m - 1;
     const prevYear = m === 0 ? y - 1 : y;
     const prevKey = getMonthKey(prevMonth, prevYear);
     if (monthlyBalances[prevKey]?.ending !== undefined) {
       return monthlyBalances[prevKey].ending;
     }
-    // Fallback to 0 or calculate from previous month's data
     return 0;
   };
 
   const beginningBalance = getBeginningBalance(month, year);
 
-  // Set beginning balance for current month
   const setBeginningBalance = (value) => {
     setMonthlyBalances(prev => ({
       ...prev,
@@ -202,7 +349,6 @@ export default function App() {
     }));
   };
 
-  // Set ending balance override for current month
   const setEndingBalance = (value) => {
     setMonthlyBalances(prev => ({
       ...prev,
@@ -210,15 +356,12 @@ export default function App() {
     }));
   };
 
-  // Helper to extract month/year from a date string without timezone issues
   const getDateParts = (dateStr) => {
     if (!dateStr) return null;
-    // Parse YYYY-MM-DD directly to avoid timezone issues
     const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (match) {
       return { year: parseInt(match[1]), month: parseInt(match[2]) - 1, day: parseInt(match[3]) };
     }
-    // Fallback to Date parsing for other formats
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) {
       return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
@@ -247,7 +390,6 @@ export default function App() {
     const unpaidCount = monthTx.filter(t => !t.paid && t.amount < 0).length;
     const net = income - expenses;
     const calculatedEnding = beginningBalance + net;
-    // Use manual override if set, otherwise use calculated
     const ending = monthlyBalances[currentMonthKey]?.ending !== undefined 
       ? monthlyBalances[currentMonthKey].ending 
       : calculatedEnding;
@@ -256,11 +398,16 @@ export default function App() {
 
   const catBreakdown = useMemo(() => {
     const map = {};
-    monthTx.filter(t => t.amount < 0 && t.category !== 'savings').forEach(t => { map[t.category] = (map[t.category] || 0) + Math.abs(t.amount); });
-    return Object.entries(map).map(([id, total]) => ({ ...CATEGORIES.find(c => c.id === id), total, pct: stats.expenses > 0 ? (total / stats.expenses) * 100 : 0 })).sort((a, b) => b.total - a.total);
+    monthTx.filter(t => t.amount < 0 && t.category !== 'savings').forEach(t => { 
+      map[t.category] = (map[t.category] || 0) + Math.abs(t.amount); 
+    });
+    return Object.entries(map).map(([id, total]) => ({ 
+      ...CATEGORIES.find(c => c.id === id), 
+      total, 
+      pct: stats.expenses > 0 ? (total / stats.expenses) * 100 : 0 
+    })).sort((a, b) => b.total - a.total);
   }, [monthTx, stats.expenses]);
 
-  // Budget Analysis - Compare spending vs goals
   const budgetAnalysis = useMemo(() => {
     return CATEGORIES.filter(c => c.id !== 'income').map(cat => {
       const spent = catBreakdown.find(c => c.id === cat.id)?.total || 0;
@@ -272,7 +419,6 @@ export default function App() {
     }).filter(b => b.budget > 0 || b.spent > 0).sort((a, b) => b.spent - a.spent);
   }, [catBreakdown, budgetGoals]);
 
-  // Total budget stats
   const budgetStats = useMemo(() => {
     const totalBudget = Object.values(budgetGoals).reduce((s, v) => s + (v || 0), 0);
     const totalSpent = budgetAnalysis.reduce((s, b) => s + b.spent, 0);
@@ -281,46 +427,38 @@ export default function App() {
     return { totalBudget, totalSpent, remaining: totalBudget - totalSpent, categoriesOverBudget, categoriesNearLimit };
   }, [budgetGoals, budgetAnalysis]);
 
-  // Debt Payoff Calculator
   const debtPayoffPlan = useMemo(() => {
     if (debts.length === 0) return { snowball: [], avalanche: [], totalDebt: 0, totalInterest: 0 };
     
     const totalDebt = debts.reduce((s, d) => s + d.balance, 0);
     const totalMinPayment = debts.reduce((s, d) => s + d.minPayment, 0);
-    
-    // Snowball: Smallest balance first
     const snowball = [...debts].sort((a, b) => a.balance - b.balance);
-    
-    // Avalanche: Highest interest first
     const avalanche = [...debts].sort((a, b) => b.interestRate - a.interestRate);
     
-    // Calculate payoff timeline for snowball method
-    const calculatePayoff = (sortedDebts, extraPayment = 0) => {
+    const calculatePayoff = (sortedDebts) => {
       let totalInterestPaid = 0;
       let months = 0;
-      const maxMonths = 360; // 30 years max
+      const maxMonths = 360;
       let balances = sortedDebts.map(d => ({ ...d, currentBalance: d.balance }));
       
       while (balances.some(d => d.currentBalance > 0) && months < maxMonths) {
         months++;
-        let availableExtra = extraPayment;
+        let availableExtra = 0;
         
         for (let i = 0; i < balances.length; i++) {
           const d = balances[i];
           if (d.currentBalance <= 0) continue;
           
-          // Add monthly interest
           const monthlyInterest = (d.currentBalance * (d.interestRate / 100)) / 12;
           totalInterestPaid += monthlyInterest;
           d.currentBalance += monthlyInterest;
           
-          // Apply payment
           let payment = d.minPayment + (i === balances.findIndex(b => b.currentBalance > 0) ? availableExtra : 0);
           payment = Math.min(payment, d.currentBalance);
           d.currentBalance -= payment;
           
           if (d.currentBalance <= 0) {
-            availableExtra += d.minPayment; // Freed up payment goes to next debt
+            availableExtra += d.minPayment;
           }
         }
       }
@@ -328,8 +466,8 @@ export default function App() {
       return { months, totalInterestPaid: Math.round(totalInterestPaid) };
     };
     
-    const snowballResult = calculatePayoff(snowball, 0);
-    const avalancheResult = calculatePayoff(avalanche, 0);
+    const snowballResult = calculatePayoff(snowball);
+    const avalancheResult = calculatePayoff(avalanche);
     
     return { 
       snowball, 
@@ -344,7 +482,6 @@ export default function App() {
     };
   }, [debts]);
 
-  // Spending trends for last 6 months
   const spendingTrends = useMemo(() => {
     const trends = [];
     for (let i = 5; i >= 0; i--) {
@@ -361,187 +498,55 @@ export default function App() {
     return trends;
   }, [transactions, month, year]);
 
-  // Enhanced Savings Recommendations
   const savingsRecommendations = useMemo(() => {
     const recs = [];
     const avgIncome = stats.income || 0;
     const savingsRate = avgIncome > 0 ? (stats.saved / avgIncome) * 100 : 0;
     const expenseRatio = avgIncome > 0 ? (stats.expenses / avgIncome) * 100 : 0;
     
-    // Dining analysis
     const dining = catBreakdown.find(c => c.id === 'dining')?.total || 0;
     if (dining > 150) {
       recs.push({ 
         id: 1, type: 'reduce', priority: 'high',
         title: 'Reduce Dining Out Costs', 
-        description: `You spent ${currency(dining)} on dining this month. The average household spends about $300/month. Consider meal prepping on Sundays.`, 
+        description: `You spent ${currency(dining)} on dining this month.`, 
         potential: dining * 0.4,
-        tips: ['Cook at home 2 more days per week', 'Use meal planning apps like Mealime', 'Bring lunch to work instead of buying'],
+        tips: ['Cook at home 2 more days per week', 'Use meal planning apps', 'Bring lunch to work'],
         icon: '🍽️'
       });
     }
     
-    // Subscriptions audit
     const subs = catBreakdown.find(c => c.id === 'subscriptions')?.total || 0;
     if (subs > 50) {
       recs.push({ 
         id: 2, type: 'audit', priority: 'medium',
         title: 'Audit Your Subscriptions', 
-        description: `${currency(subs)} in monthly subscriptions. Review each service and cancel what you don't use regularly.`, 
+        description: `${currency(subs)} in monthly subscriptions.`, 
         potential: subs * 0.3,
-        tips: ['Cancel streaming services you rarely watch', 'Look for annual payment discounts (save 15-20%)', 'Share family plans with relatives'],
+        tips: ['Cancel unused streaming services', 'Look for annual payment discounts', 'Share family plans'],
         icon: '📱'
       });
     }
-    
-    // Shopping impulse control
-    const shopping = catBreakdown.find(c => c.id === 'shopping')?.total || 0;
-    if (shopping > 200) {
-      recs.push({ 
-        id: 3, type: 'reduce', priority: 'high',
-        title: 'Curb Impulse Shopping', 
-        description: `${currency(shopping)} on shopping this month. Try the 24-hour rule before making non-essential purchases.`, 
-        potential: shopping * 0.35,
-        tips: ['Wait 24 hours before buying anything over $50', 'Unsubscribe from retail email lists', 'Use a shopping list and stick to it'],
-        icon: '🛍️'
-      });
-    }
 
-    // Entertainment spending
-    const entertainment = catBreakdown.find(c => c.id === 'entertainment')?.total || 0;
-    if (entertainment > 200) {
-      recs.push({ 
-        id: 6, type: 'reduce', priority: 'medium',
-        title: 'Find Free Entertainment', 
-        description: `${currency(entertainment)} on entertainment. Look for free local events, parks, and activities.`, 
-        potential: entertainment * 0.3,
-        tips: ['Check library for free events and movie rentals', 'Host game nights at home instead of going out', 'Explore free outdoor activities and hiking'],
-        icon: '🎬'
-      });
-    }
-
-    // Transportation costs
-    const transport = catBreakdown.find(c => c.id === 'transportation')?.total || 0;
-    if (transport > 400) {
-      recs.push({ 
-        id: 7, type: 'reduce', priority: 'medium',
-        title: 'Lower Transportation Costs', 
-        description: `${currency(transport)} on transportation. Consider carpooling, combining trips, or public transit.`, 
-        potential: transport * 0.2,
-        tips: ['Combine multiple errands into one trip', 'Use GasBuddy to find cheaper gas', 'Consider carpooling to work 2-3 days/week'],
-        icon: '🚗'
-      });
-    }
-
-    // Groceries optimization
-    const groceries = catBreakdown.find(c => c.id === 'groceries')?.total || 0;
-    if (groceries > 600) {
-      recs.push({ 
-        id: 8, type: 'reduce', priority: 'medium',
-        title: 'Optimize Grocery Spending', 
-        description: `${currency(groceries)} on groceries. Smart shopping strategies can save 15-20% monthly.`, 
-        potential: groceries * 0.15,
-        tips: ['Make a list and stick to it - avoid impulse buys', 'Buy store brands (often same quality, 30% cheaper)', 'Use cashback apps like Ibotta and Fetch'],
-        icon: '🛒'
-      });
-    }
-
-    // Utilities reduction
-    const utilities = catBreakdown.find(c => c.id === 'utilities')?.total || 0;
-    if (utilities > 300) {
-      recs.push({ 
-        id: 9, type: 'reduce', priority: 'low',
-        title: 'Lower Utility Bills', 
-        description: `${currency(utilities)} on utilities. Small changes can reduce costs by 10-15%.`, 
-        potential: utilities * 0.1,
-        tips: ['Adjust thermostat 2 degrees (saves ~3% per degree)', 'Switch to LED bulbs throughout your home', 'Unplug devices and use smart power strips'],
-        icon: '💡'
-      });
-    }
-
-    // Critical: Very low savings rate
     if (savingsRate < 10 && avgIncome > 0) {
-      const target = avgIncome * 0.1;
-      const needed = target - stats.saved;
       recs.push({ 
         id: 4, type: 'alert', priority: 'high',
         title: '🚨 Savings Rate Below 10%', 
-        description: `You're only saving ${savingsRate.toFixed(1)}% of income. Financial experts recommend at least 20% for long-term security.`, 
-        potential: needed,
-        tips: ['Set up automatic transfer to savings on payday', 'Start with just $25-50 per paycheck', 'Build a 3-month emergency fund first'],
+        description: `You're only saving ${savingsRate.toFixed(1)}% of income.`, 
+        potential: avgIncome * 0.1 - stats.saved,
+        tips: ['Set up automatic transfer to savings', 'Start with $25-50 per paycheck', 'Build emergency fund first'],
         icon: '⚠️'
       });
-    } else if (savingsRate < 20 && avgIncome > 0) {
-      const target = avgIncome * 0.2;
-      const needed = target - stats.saved;
-      recs.push({ 
-        id: 4, type: 'increase', priority: 'medium',
-        title: 'Boost Savings to 20%', 
-        description: `Current savings rate: ${savingsRate.toFixed(1)}%. Add ${currency(needed)} more monthly to hit the recommended 20%.`, 
-        potential: needed,
-        tips: ['Increase savings by 1% each month gradually', 'Save all windfalls, bonuses, and tax refunds', 'Follow the 50/30/20 budget rule'],
-        icon: '📈'
-      });
     }
 
-    // Living paycheck to paycheck warning
-    if (expenseRatio > 90 && avgIncome > 0) {
-      recs.push({ 
-        id: 10, type: 'alert', priority: 'high',
-        title: '⚠️ Living Paycheck to Paycheck', 
-        description: `You're spending ${expenseRatio.toFixed(0)}% of your income. This leaves almost no buffer for emergencies.`, 
-        potential: avgIncome * 0.1,
-        tips: ['Track every expense for one week to find leaks', 'Cut one non-essential expense immediately', 'Build a $1,000 starter emergency fund'],
-        icon: '🔴'
-      });
-    }
-
-    // Unpaid bills warning
-    if (stats.unpaidCount > 3) {
-      recs.push({ 
-        id: 11, type: 'alert', priority: 'high',
-        title: 'Manage Unpaid Bills', 
-        description: `You have ${stats.unpaidCount} unpaid expenses this month. Staying on top of due dates prevents late fees.`, 
-        potential: 0,
-        tips: ['Set up calendar reminders for due dates', 'Enable autopay for fixed recurring bills', 'Review bills weekly, not monthly'],
-        icon: '📋'
-      });
-    }
-
-    // Housing cost check (should be under 30% of income)
-    const housing = catBreakdown.find(c => c.id === 'housing')?.total || 0;
-    if (housing > 0 && avgIncome > 0 && (housing / avgIncome) > 0.30) {
-      recs.push({ 
-        id: 12, type: 'alert', priority: 'medium',
-        title: 'Housing Costs High', 
-        description: `Housing is ${((housing / avgIncome) * 100).toFixed(0)}% of income. Experts recommend keeping it under 30%.`, 
-        potential: housing - (avgIncome * 0.30),
-        tips: ['Consider a roommate to split costs', 'Negotiate rent at lease renewal', 'Look for housing in nearby affordable areas'],
-        icon: '🏠'
-      });
-    }
-
-    // Positive reinforcement - great savings
     if (savingsRate >= 20) {
       recs.push({ 
         id: 5, type: 'success', priority: 'low',
         title: '🎉 Excellent Savings Rate!', 
-        description: `You're saving ${savingsRate.toFixed(1)}% of your income - above the recommended 20%! You're building real wealth.`, 
+        description: `You're saving ${savingsRate.toFixed(1)}% of your income!`, 
         potential: 0,
-        tips: ['Consider maxing out retirement accounts', 'Look into index fund investing', 'Keep up the amazing work!'],
+        tips: ['Consider maxing retirement accounts', 'Look into index fund investing'],
         icon: '🏆'
-      });
-    }
-
-    // Positive cash flow
-    if (stats.ending > stats.beginning && stats.beginning > 0) {
-      recs.push({ 
-        id: 13, type: 'success', priority: 'low',
-        title: '📈 Positive Cash Flow!', 
-        description: `Your balance grew by ${currency(stats.ending - stats.beginning)} this month. You're moving in the right direction!`, 
-        potential: 0,
-        tips: ['Maintain this momentum', 'Consider increasing savings goal', 'Plan ahead for upcoming large expenses'],
-        icon: '✅'
       });
     }
 
@@ -565,7 +570,6 @@ export default function App() {
       const m = (month - 11 + i + 12) % 12;
       const y = year - (month - 11 + i < 0 ? 1 : 0);
       const key = getMonthKey(m, y);
-      // Use getDateParts for consistent date parsing
       const txs = transactions.filter(t => { 
         const parts = getDateParts(t.date);
         return parts && parts.month === m && parts.year === y; 
@@ -582,8 +586,11 @@ export default function App() {
 
   const totalMonthlyRecurring = recurringExpenses.filter(r => r.active).reduce((s, r) => s + r.amount, 0);
 
+  // ============================================
+  // EXPORT & IMPORT FUNCTIONS
+  // ============================================
+
   const exportCSV = () => {
-    // Professional CSV export with all transaction details
     const rows = [
       ['Balance Books Pro - Transaction Export'],
       [`Export Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`],
@@ -592,7 +599,6 @@ export default function App() {
       ['Date', 'Description', 'Amount', 'Category', 'Type', 'Status', 'Notes']
     ];
     
-    // Sort transactions by date (newest first)
     const sortedTx = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
     
     sortedTx.forEach(t => {
@@ -608,7 +614,6 @@ export default function App() {
       ]);
     });
     
-    // Add summary section
     const totalIncome = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
     const totalExpenses = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
     const netAmount = totalIncome - totalExpenses;
@@ -620,7 +625,7 @@ export default function App() {
     rows.push(['Net Amount', '', netAmount.toFixed(2)]);
     rows.push(['Total Transactions', '', transactions.length]);
     rows.push(['']);
-    rows.push(['Generated by Balance Books Pro v1.3']);
+    rows.push([`Generated by Balance Books Pro v${APP_VERSION}`]);
     
     const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); 
@@ -629,8 +634,7 @@ export default function App() {
     a.click();
   };
 
-  const downloadTemplate = async () => {
-    // Always provide CSV template for maximum compatibility
+  const downloadTemplate = () => {
     const rows = [
       ['Date', 'Description', 'Amount', 'Category', 'Type', 'Paid'],
       ['2025-01-15', 'Grocery Shopping', '-85.50', 'groceries', 'expense', 'yes'],
@@ -645,19 +649,14 @@ export default function App() {
     a.href = URL.createObjectURL(blob);
     a.download = 'balance-books-template.csv';
     a.click();
-    URL.revokeObjectURL(a.href);
   };
 
-  // Enhanced date parsing - handles multiple formats including Excel serial dates
   const parseDate = (dateValue) => {
     if (!dateValue && dateValue !== 0) return null;
     
-    // Handle Excel serial date numbers (days since 1899-12-30)
-    // Excel uses 1 = Jan 1, 1900, but has a leap year bug for 1900
     if (typeof dateValue === 'number' || (typeof dateValue === 'string' && /^\d+$/.test(dateValue.trim()))) {
       const num = parseFloat(dateValue);
-      if (num > 0 && num < 100000) { // Reasonable range for Excel dates
-        // Excel epoch: December 30, 1899
+      if (num > 0 && num < 100000) {
         const excelEpoch = new Date(Date.UTC(1899, 11, 30));
         const date = new Date(excelEpoch.getTime() + num * 86400000);
         if (!isNaN(date.getTime())) {
@@ -672,21 +671,18 @@ export default function App() {
     const str = String(dateValue).trim();
     if (!str) return null;
     
-    // Try ISO format first (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
     const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
     if (isoMatch) {
       const [, y, m, d] = isoMatch;
       return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
     }
     
-    // Try MM/DD/YYYY or M/D/YYYY (US format)
     const usMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (usMatch) {
       const [, m, d, y] = usMatch;
       return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
     }
     
-    // Try MM/DD/YY (short year)
     const usShortMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
     if (usShortMatch) {
       const [, m, d, yy] = usShortMatch;
@@ -694,130 +690,61 @@ export default function App() {
       return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
     }
     
-    // Try MM-DD-YYYY
-    const usDashMatch = str.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-    if (usDashMatch) {
-      const [, m, d, y] = usDashMatch;
-      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-    
-    // Try Month DD, YYYY (e.g., "January 15, 2025" or "Jan 15, 2025")
-    const longDateMatch = str.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
-    if (longDateMatch) {
-      const [, monthStr, d, y] = longDateMatch;
-      const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-      const m = monthNames.findIndex(name => monthStr.toLowerCase().startsWith(name));
-      if (m >= 0) {
-        return `${y}-${String(m + 1).padStart(2, '0')}-${d.padStart(2, '0')}`;
-      }
-    }
-    
-    // Try natural language parsing as fallback (but be careful with timezone)
     const d = new Date(str);
     if (!isNaN(d.getTime())) {
-      // Use local date parts to avoid timezone shifting
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       return `${y}-${m}-${day}`;
     }
     
-    console.warn('Could not parse date:', dateValue);
     return null;
   };
 
-  // Map category names to IDs (case-insensitive, fuzzy matching)
   const mapCategory = (catName) => {
     if (!catName) return 'other';
     const lower = String(catName).toLowerCase().trim();
     
-    // Direct match first
     const exactMatch = CATEGORIES.find(c => c.id === lower || c.name.toLowerCase() === lower);
     if (exactMatch) return exactMatch.id;
     
-    // Special handling for common variations
     const aliases = {
-      'tithe': 'tithes',
-      'tithes': 'tithes',
-      'offering': 'tithes',
-      'offerings': 'tithes',
-      'church': 'tithes',
-      'donation': 'gifts',
-      'donations': 'gifts',
-      'gift': 'gifts',
-      'charity': 'gifts',
-      'baby': 'childcare',
-      'daycare': 'childcare',
-      'child': 'childcare',
-      'kids': 'childcare',
-      'pet': 'pets',
-      'dog': 'pets',
-      'cat': 'pets',
-      'vet': 'pets',
-      'hair': 'personal',
-      'salon': 'personal',
-      'spa': 'personal',
-      'gym': 'healthcare',
-      'medical': 'healthcare',
-      'doctor': 'healthcare',
-      'pharmacy': 'healthcare',
-      'medicine': 'healthcare',
-      'car': 'transportation',
-      'auto': 'transportation',
-      'gas': 'transportation',
-      'fuel': 'transportation',
-      'uber': 'transportation',
-      'lyft': 'transportation',
-      'food': 'groceries',
-      'grocery': 'groceries',
-      'supermarket': 'groceries',
-      'restaurant': 'dining',
-      'coffee': 'dining',
-      'cafe': 'dining',
-      'takeout': 'dining',
-      'netflix': 'subscriptions',
-      'spotify': 'subscriptions',
-      'hulu': 'subscriptions',
-      'amazon': 'shopping',
-      'walmart': 'shopping',
-      'target': 'shopping',
-      'rent': 'housing',
-      'mortgage': 'housing',
-      'electric': 'utilities',
-      'water': 'utilities',
-      'internet': 'utilities',
-      'phone': 'utilities',
-      'salary': 'income',
-      'paycheck': 'income',
-      'wages': 'income',
-      'freelance': 'income',
+      'tithe': 'tithes', 'tithes': 'tithes', 'offering': 'tithes', 'church': 'tithes',
+      'donation': 'gifts', 'gift': 'gifts', 'charity': 'gifts',
+      'baby': 'childcare', 'daycare': 'childcare', 'kids': 'childcare',
+      'pet': 'pets', 'dog': 'pets', 'cat': 'pets', 'vet': 'pets',
+      'hair': 'personal', 'salon': 'personal', 'spa': 'personal',
+      'gym': 'healthcare', 'medical': 'healthcare', 'doctor': 'healthcare', 'pharmacy': 'healthcare',
+      'car': 'transportation', 'gas': 'transportation', 'fuel': 'transportation', 'uber': 'transportation',
+      'food': 'groceries', 'grocery': 'groceries', 'supermarket': 'groceries',
+      'restaurant': 'dining', 'coffee': 'dining', 'cafe': 'dining',
+      'netflix': 'subscriptions', 'spotify': 'subscriptions', 'hulu': 'subscriptions',
+      'amazon': 'shopping', 'walmart': 'shopping', 'target': 'shopping',
+      'rent': 'housing', 'mortgage': 'housing',
+      'electric': 'utilities', 'water': 'utilities', 'internet': 'utilities', 'phone': 'utilities',
+      'salary': 'income', 'paycheck': 'income', 'wages': 'income', 'freelance': 'income',
     };
     
-    // Check aliases
     for (const [alias, catId] of Object.entries(aliases)) {
       if (lower.includes(alias)) return catId;
     }
     
-    // Partial match
     const partialMatch = CATEGORIES.find(c => 
-      c.name.toLowerCase().includes(lower) || lower.includes(c.id) || lower.includes(c.name.toLowerCase())
+      c.name.toLowerCase().includes(lower) || lower.includes(c.id)
     );
     if (partialMatch) return partialMatch.id;
     
     return 'other';
   };
 
-  // Parse CSV content
   const parseCSV = (content) => {
     const lines = content.split(/\r?\n/).filter(l => l.trim());
     const txs = [];
     const errors = [];
     
-    // Skip header row
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       try {
-        // Handle quoted values with commas
         const parts = [];
         let current = '';
         let inQuotes = false;
@@ -841,18 +768,9 @@ export default function App() {
         const date = parseDate(dateStr);
         const amount = parseFloat(amountStr.replace(/[$,]/g, ''));
         
-        if (!date) {
-          errors.push(`Row ${i + 1}: Invalid date "${dateStr}" - Use YYYY-MM-DD or MM/DD/YYYY format`);
-          continue;
-        }
-        if (!desc) {
-          errors.push(`Row ${i + 1}: Missing description`);
-          continue;
-        }
-        if (isNaN(amount)) {
-          errors.push(`Row ${i + 1}: Invalid amount "${amountStr}"`);
-          continue;
-        }
+        if (!date) { errors.push(`Row ${i + 1}: Invalid date`); continue; }
+        if (!desc) { errors.push(`Row ${i + 1}: Missing description`); continue; }
+        if (isNaN(amount)) { errors.push(`Row ${i + 1}: Invalid amount`); continue; }
         
         const isIncome = type.toLowerCase() === 'income' || (amount > 0 && !type);
         const category = isIncome ? 'income' : mapCategory(cat);
@@ -866,17 +784,15 @@ export default function App() {
           paid: ['yes', '1', 'true', 'y', 'paid'].includes(String(paid).toLowerCase())
         });
       } catch (e) {
-        errors.push(`Row ${i + 1}: Parse error - ${e.message}`);
+        errors.push(`Row ${i + 1}: Parse error`);
       }
     }
     
     return { transactions: txs, errors };
   };
 
-  // Parse Excel file - using SheetJS loaded via CDN
   const parseExcel = async (file) => {
     return new Promise((resolve) => {
-      // Access XLSX from window object (loaded via CDN in index.html)
       const XLSX = window.XLSX;
       
       if (XLSX) {
@@ -888,39 +804,24 @@ export default function App() {
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
             
-            // Get raw data with dates preserved
-            const json = XLSX.utils.sheet_to_json(sheet, { 
-              header: 1, 
-              raw: false, 
-              dateNF: 'yyyy-mm-dd',
-              defval: ''
-            });
-            
-            console.log('Excel parsed rows:', json.length);
-            console.log('First few rows:', json.slice(0, 3));
+            const json = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd', defval: '' });
             
             const txs = [];
             const errors = [];
             
-            // Find header row and column indices
             const headers = json[0]?.map(h => String(h || '').toLowerCase().trim()) || [];
-            console.log('Headers found:', headers);
             
-            // Try to auto-detect column positions
             const dateCol = headers.findIndex(h => h.includes('date'));
-            const descCol = headers.findIndex(h => h.includes('desc') || h.includes('memo') || h.includes('payee') || h.includes('name'));
-            const amountCol = headers.findIndex(h => h.includes('amount') || h.includes('sum') || h.includes('total'));
+            const descCol = headers.findIndex(h => h.includes('desc') || h.includes('memo') || h.includes('payee'));
+            const amountCol = headers.findIndex(h => h.includes('amount') || h.includes('sum'));
             const catCol = headers.findIndex(h => h.includes('cat') || h.includes('type'));
-            const typeCol = headers.findIndex(h => h === 'type' || h.includes('income') || h.includes('expense'));
-            const paidCol = headers.findIndex(h => h.includes('paid') || h.includes('status') || h.includes('cleared'));
-            
-            console.log('Column indices:', { dateCol, descCol, amountCol, catCol, typeCol, paidCol });
+            const typeCol = headers.findIndex(h => h === 'type');
+            const paidCol = headers.findIndex(h => h.includes('paid') || h.includes('status'));
             
             for (let i = 1; i < json.length; i++) {
               const row = json[i];
-              if (!row || row.every(cell => !cell)) continue; // Skip empty rows
+              if (!row || row.every(cell => !cell)) continue;
               
-              // Get values using detected columns or fallback to fixed positions
               const dateVal = row[dateCol >= 0 ? dateCol : 0];
               const desc = row[descCol >= 0 ? descCol : 1];
               const amountVal = row[amountCol >= 0 ? amountCol : 2];
@@ -931,18 +832,9 @@ export default function App() {
               const date = parseDate(dateVal);
               const amount = parseFloat(String(amountVal || '0').replace(/[$,]/g, ''));
               
-              if (!date) { 
-                errors.push(`Row ${i + 1}: Invalid date "${dateVal}"`); 
-                continue; 
-              }
-              if (!desc) { 
-                errors.push(`Row ${i + 1}: Missing description`); 
-                continue; 
-              }
-              if (isNaN(amount) || amount === 0) { 
-                errors.push(`Row ${i + 1}: Invalid amount "${amountVal}"`); 
-                continue; 
-              }
+              if (!date) { errors.push(`Row ${i + 1}: Invalid date`); continue; }
+              if (!desc) { errors.push(`Row ${i + 1}: Missing description`); continue; }
+              if (isNaN(amount) || amount === 0) { errors.push(`Row ${i + 1}: Invalid amount`); continue; }
               
               const isIncome = String(type || '').toLowerCase() === 'income' || 
                                String(cat || '').toLowerCase() === 'income' ||
@@ -958,79 +850,44 @@ export default function App() {
               });
             }
             
-            console.log('Parsed transactions:', txs.length);
-            console.log('Errors:', errors);
-            
             resolve({ transactions: txs, errors });
           } catch (err) {
-            console.error('Excel parse error:', err);
-            resolve({ transactions: [], errors: [`Failed to parse Excel file: ${err.message}. Please save as CSV and try again.`] });
+            resolve({ transactions: [], errors: [`Failed to parse Excel: ${err.message}`] });
           }
-        };
-        reader.onerror = () => {
-          resolve({ transactions: [], errors: ['Failed to read file. Please try again.'] });
         };
         reader.readAsArrayBuffer(file);
       } else {
-        console.error('XLSX library not loaded');
-        // XLSX library not available - prompt user to use CSV
-        resolve({ 
-          transactions: [], 
-          errors: ['Excel (.xlsx) files require the XLSX library which failed to load. Please save your file as CSV (File → Save As → CSV) and import that instead.']
-        });
+        resolve({ transactions: [], errors: ['Excel library not loaded. Please save as CSV.'] });
       }
     });
   };
 
-  // Main import handler
   const handleFileImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    console.log('=== FILE IMPORT STARTED ===');
-    console.log('File name:', file.name);
-    console.log('File size:', file.size, 'bytes');
-    console.log('File type:', file.type);
     
     const filename = file.name.toLowerCase();
     let result;
     
     try {
       if (filename.endsWith('.xlsx') || filename.endsWith('.xls')) {
-        console.log('Processing as Excel file...');
         result = await parseExcel(file);
-        
-        // If Excel parsing failed, suggest CSV
         if (result.transactions.length === 0 && result.errors.length > 0) {
-          alert(`Unable to read Excel file.\n\n${result.errors[0]}\n\nTip: In Excel, use File → Save As → CSV UTF-8`);
+          alert(`Unable to read Excel file.\n\n${result.errors[0]}`);
           e.target.value = '';
           return;
         }
       } else if (filename.endsWith('.csv') || filename.endsWith('.txt')) {
-        console.log('Processing as CSV file...');
         const content = await file.text();
-        console.log('File content preview:', content.substring(0, 500));
         result = parseCSV(content);
       } else {
-        alert('Please upload a CSV or Excel file.\n\nSupported formats:\n• CSV (.csv)\n• Excel (.xlsx, .xls)\n• Text (.txt)\n\nTip: Open your spreadsheet and Save As → CSV UTF-8');
+        alert('Please upload a CSV or Excel file.');
         e.target.value = '';
         return;
       }
       
-      console.log('Parse result:', {
-        transactions: result.transactions.length,
-        errors: result.errors.length
-      });
-      
       if (result.transactions.length > 0) {
-        console.log('Sample parsed transactions:', result.transactions.slice(0, 3));
-        
-        // Sort transactions by date (newest first for preview)
-        result.transactions.sort((a, b) => {
-          const dateA = a.date || '';
-          const dateB = b.date || '';
-          return dateB.localeCompare(dateA);
-        });
+        result.transactions.sort((a, b) => b.date.localeCompare(a.date));
         
         setImportData({
           transactions: result.transactions,
@@ -1044,38 +901,22 @@ export default function App() {
         });
         setModal('import-confirm');
       } else {
-        const errorMsg = result.errors.length > 0 
-          ? `\n\nIssues found:\n${result.errors.slice(0, 5).join('\n')}`
-          : '\n\nMake sure your file has columns: Date, Description, Amount';
-        alert(`No valid transactions found in "${file.name}".${errorMsg}`);
+        alert(`No valid transactions found in "${file.name}".`);
       }
     } catch (err) {
-      console.error('Import error:', err);
       alert(`Error reading file: ${err.message}`);
     }
     
     e.target.value = '';
-    console.log('=== FILE IMPORT COMPLETE ===');
   };
 
-  // Confirm import and navigate to the correct month
   const confirmImport = () => {
     if (importData && importData.transactions.length > 0) {
-      console.log('=== IMPORT CONFIRMATION ===');
-      console.log('Transactions to import:', importData.transactions.length);
-      console.log('Sample transaction:', importData.transactions[0]);
-      
-      // Add all imported transactions
       const newTransactions = [...transactions, ...importData.transactions];
-      console.log('Total transactions after import:', newTransactions.length);
-      
-      // Update state
       setTransactions(newTransactions);
       
-      // Find the month with the most imported transactions and navigate there
       const monthCounts = {};
       importData.transactions.forEach(t => {
-        // Parse date without timezone issues using getDateParts
         const parts = getDateParts(t.date);
         if (parts) {
           const key = `${parts.year}-${parts.month}`;
@@ -1083,56 +924,110 @@ export default function App() {
         }
       });
       
-      console.log('Month distribution:', monthCounts);
-      
-      // Navigate to the month with most transactions
       const topMonth = Object.entries(monthCounts).sort((a, b) => b[1] - a[1])[0];
       if (topMonth) {
         const [yearMonth] = topMonth;
         const [y, m] = yearMonth.split('-').map(Number);
-        console.log(`Navigating to ${FULL_MONTHS[m]} ${y} (${monthCounts[yearMonth]} transactions)`);
         setYear(y);
         setMonth(m);
-      } else {
-        // If no valid dates found, navigate to current month
-        console.log('No valid months found, staying on current month');
       }
       
-      // Calculate import summary for notification
-      const importedIncome = importData.transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-      const importedExpenses = importData.transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-      
-      console.log('Import summary - Income:', importedIncome, 'Expenses:', importedExpenses);
-      
-      // Show success notification
       setImportNotification({
         count: importData.transactions.length,
-        income: importedIncome,
-        expenses: importedExpenses
+        income: importData.summary.income,
+        expenses: importData.summary.expenses
       });
       
-      // Auto-hide notification after 5 seconds
       setTimeout(() => setImportNotification(null), 5000);
       
-      // Switch to dashboard to show updated stats
       setView('dashboard');
       setImportData(null);
       setModal(null);
-      
-      console.log('=== IMPORT COMPLETE ===');
     }
   };
 
-  const addTx = (tx) => { setTransactions([...transactions, { ...tx, id: uid() }]); setModal(null); };
-  const updateTx = (tx) => { setTransactions(transactions.map(t => t.id === tx.id ? tx : t)); setEditTx(null); };
+  // ============================================
+  // CRUD OPERATIONS
+  // ============================================
+
+  const addTx = (tx) => { 
+    setTransactions([...transactions, { ...tx, id: uid() }]); 
+    setModal(null); 
+  };
+  
+  const updateTx = (tx) => { 
+    setTransactions(transactions.map(t => t.id === tx.id ? tx : t)); 
+    setEditTx(null); 
+  };
+  
   const deleteTx = (id) => setTransactions(transactions.filter(t => t.id !== id));
+  
   const togglePaid = (id) => setTransactions(transactions.map(t => t.id === id ? { ...t, paid: !t.paid } : t));
 
-  const addRecurring = (r) => { setRecurringExpenses([...recurringExpenses, { ...r, id: uid(), active: true }]); setModal(null); };
-  const updateRecurring = (r) => { setRecurringExpenses(recurringExpenses.map(e => e.id === r.id ? r : e)); setEditRecurring(null); };
+  // Multi-select helpers
+  const toggleSelectTx = (id) => {
+    setSelectedTxIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
+  
+  const selectAllFiltered = () => {
+    const filteredIds = filtered.map(t => t.id);
+    setSelectedTxIds(new Set(filteredIds));
+  };
+  
+  const deselectAll = () => setSelectedTxIds(new Set());
+  
+  const deleteSelectedTx = () => {
+    if (selectedTxIds.size === 0) return;
+    if (confirm(`Delete ${selectedTxIds.size} selected transaction(s)?`)) {
+      setTransactions(prev => prev.filter(t => !selectedTxIds.has(t.id)));
+      setSelectedTxIds(new Set());
+    }
+  };
+  
+  const markSelectedAsPaid = () => {
+    if (selectedTxIds.size === 0) return;
+    setTransactions(prev => prev.map(t => selectedTxIds.has(t.id) ? { ...t, paid: true } : t));
+  };
+  
+  const markSelectedAsUnpaid = () => {
+    if (selectedTxIds.size === 0) return;
+    setTransactions(prev => prev.map(t => selectedTxIds.has(t.id) ? { ...t, paid: false } : t));
+  };
+  
+  useEffect(() => {
+    setSelectedTxIds(new Set());
+  }, [search, filterCat, filterPaid]);
+
+  const addRecurring = (r) => { 
+    setRecurringExpenses([...recurringExpenses, { ...r, id: uid(), active: true }]); 
+    setModal(null); 
+  };
+  
+  const updateRecurring = (r) => { 
+    setRecurringExpenses(recurringExpenses.map(e => e.id === r.id ? r : e)); 
+    setEditRecurring(null); 
+  };
+  
   const deleteRecurring = (id) => setRecurringExpenses(recurringExpenses.filter(r => r.id !== id));
+  
   const toggleRecurringActive = (id) => setRecurringExpenses(recurringExpenses.map(r => r.id === id ? { ...r, active: !r.active } : r));
-  const createFromRecurring = (r) => { const today = new Date(); setTransactions([...transactions, { id: uid(), date: today.toISOString().split('T')[0], desc: r.name, amount: -r.amount, category: r.category, paid: r.autoPay }]); };
+  
+  const createFromRecurring = (r) => { 
+    const today = new Date(); 
+    setTransactions([...transactions, { 
+      id: uid(), 
+      date: today.toISOString().split('T')[0], 
+      desc: r.name, 
+      amount: -r.amount, 
+      category: r.category, 
+      paid: r.autoPay 
+    }]); 
+  };
 
   const connectBank = () => { 
     setPlaidLoading(true); 
@@ -1145,6 +1040,10 @@ export default function App() {
     }, 2500); 
   };
 
+  // ============================================
+  // UI COMPONENTS
+  // ============================================
+
   const NavItem = ({ id, icon: Icon, label, badge }) => (
     <button onClick={() => { setView(id); if (isMobile) setSidebarOpen(false); }} className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all ${view === id ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white shadow-lg' : 'text-slate-600 hover:bg-gradient-to-r hover:from-[#0f172a]/5 hover:to-[#14b8a6]/5'}`}>
       <div className="flex items-center gap-3"><Icon size={20} /><span className="font-medium">{label}</span></div>
@@ -1152,11 +1051,10 @@ export default function App() {
     </button>
   );
 
-  // Clickable/Editable Card Component
   const EditableStatCard = ({ label, value, icon: Icon, iconBg, valueColor, onEdit, editable = false, suffix = '' }) => (
     <div 
       onClick={() => editable && onEdit && setModal(onEdit)} 
-      className={`bg-white rounded-2xl p-5 border-2 shadow-sm hover:shadow-lg transition-all ${editable ? 'cursor-pointer hover:border-blue-400 group' : ''} ${valueColor === 'text-[#14b8a6]' ? 'border-[#1e3a5f]/20' : valueColor === 'text-[#14b8a6]' ? 'border-[#14b8a6]/20' : valueColor === 'text-rose-600' ? 'border-rose-200' : 'border-[#1e3a5f]/10'}`}
+      className={`bg-white rounded-2xl p-5 border-2 shadow-sm hover:shadow-lg transition-all ${editable ? 'cursor-pointer hover:border-blue-400 group' : ''} ${valueColor === 'text-[#14b8a6]' ? 'border-[#1e3a5f]/20' : valueColor === 'text-rose-600' ? 'border-rose-200' : 'border-[#1e3a5f]/10'}`}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="text-slate-500 text-sm font-medium">{label}</span>
@@ -1170,6 +1068,39 @@ export default function App() {
     </div>
   );
 
+  // ============================================
+  // LOADING STATE
+  // ============================================
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#1e3a5f]/10 via-white to-[#14b8a6]/10 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 size={48} className="animate-spin text-[#14b8a6] mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-700">Loading BalanceBooks...</h2>
+          <p className="text-slate-500 text-sm mt-2">Initializing your financial data</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#1e3a5f]/10 via-white to-[#14b8a6]/10 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md text-center">
+          <AlertTriangle size={48} className="text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-700 mb-2">Error Loading Data</h2>
+          <p className="text-slate-500 mb-4">{loadError}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-[#14b8a6] text-white rounded-xl font-medium"
+          >
+            Reload App
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1e3a5f]/10 via-white to-[#14b8a6]/10" style={{ fontFamily: "'Inter', sans-serif" }}>
       {isMobile && sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSidebarOpen(false)} />}
@@ -1338,108 +1269,173 @@ export default function App() {
               
               {/* Action Buttons Row */}
               <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Receipt size={16} className="text-blue-500" />
-                  <span><strong>{filtered.length}</strong> transactions {filterCat !== 'all' || filterPaid !== 'all' || search ? '(filtered)' : ''}</span>
-                  {transactions.length > 0 && <span className="text-slate-400">• Total: {transactions.length}</span>}
+                <div className="flex items-center gap-4 text-sm text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <Receipt size={16} className="text-blue-500" />
+                    <span><strong>{filtered.length}</strong> transactions {filterCat !== 'all' || filterPaid !== 'all' || search ? '(filtered)' : ''}</span>
+                    {transactions.length > 0 && <span className="text-slate-400">• Total: {transactions.length}</span>}
+                  </div>
+                  {/* Selection indicator */}
+                  {selectedTxIds.size > 0 && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
+                      <CheckCircle size={14} />
+                      <span>{selectedTxIds.size} selected</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Select All / Deselect All Buttons */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Selection Controls */}
                   {filtered.length > 0 && (
                     <>
                       <button 
-                        onClick={() => {
-                          const idsToUpdate = new Set(filtered.map(t => t.id));
-                          setTransactions(prev => prev.map(t => idsToUpdate.has(t.id) ? { ...t, paid: true } : t));
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 shadow-sm text-sm"
+                        onClick={selectAllFiltered}
+                        className="flex items-center gap-2 px-3 py-2 bg-white border-2 border-blue-300 text-blue-600 rounded-lg font-medium hover:bg-blue-50 hover:border-blue-400 text-sm transition-all"
+                        title="Select all visible transactions"
                       >
-                        <Check size={16} />
+                        <CheckCircle size={16} />
                         <span>Select All</span>
                       </button>
+                      {selectedTxIds.size > 0 && (
+                        <button 
+                          onClick={deselectAll}
+                          className="flex items-center gap-2 px-3 py-2 bg-white border-2 border-slate-300 text-slate-600 rounded-lg font-medium hover:bg-slate-50 hover:border-slate-400 text-sm transition-all"
+                          title="Clear selection"
+                        >
+                          <X size={16} />
+                          <span>Deselect</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Bulk Actions for Selected Items */}
+                  {selectedTxIds.size > 0 && (
+                    <>
+                      <div className="w-px h-6 bg-slate-300 mx-1" />
                       <button 
-                        onClick={() => {
-                          const idsToUpdate = new Set(filtered.map(t => t.id));
-                          setTransactions(prev => prev.map(t => idsToUpdate.has(t.id) ? { ...t, paid: false } : t));
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-400 to-slate-500 text-white rounded-lg font-medium hover:from-slate-500 hover:to-slate-600 shadow-sm text-sm"
+                        onClick={markSelectedAsPaid}
+                        className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 shadow-sm text-sm"
+                        title="Mark selected as paid"
                       >
-                        <X size={16} />
-                        <span>Deselect All</span>
+                        <Check size={16} />
+                        <span>Mark Paid</span>
+                      </button>
+                      <button 
+                        onClick={markSelectedAsUnpaid}
+                        className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 shadow-sm text-sm"
+                        title="Mark selected as unpaid"
+                      >
+                        <Clock size={16} />
+                        <span>Mark Unpaid</span>
+                      </button>
+                      <button 
+                        onClick={deleteSelectedTx}
+                        className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-lg font-medium hover:from-rose-600 hover:to-rose-700 shadow-sm text-sm"
+                        title="Delete selected transactions"
+                      >
+                        <Trash2 size={16} />
+                        <span>Delete ({selectedTxIds.size})</span>
                       </button>
                     </>
                   )}
                   
-                  {/* Save/Backup Button */}
-                  <button 
-                    onClick={() => {
-                      const data = {
-                        version: APP_VERSION,
-                        exportDate: new Date().toISOString(),
-                        transactions,
-                        recurringExpenses,
-                        monthlyBalances,
-                        savingsGoal
-                      };
-                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                      const a = document.createElement('a');
-                      a.href = URL.createObjectURL(blob);
-                      a.download = `balance-books-backup-${new Date().toISOString().split('T')[0]}.json`;
-                      a.click();
-                      URL.revokeObjectURL(a.href);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-lg font-medium hover:from-[#1e3a5f] hover:to-[#0f172a] shadow-sm text-sm"
-                  >
-                    <Download size={16} />
-                    <span>Backup All</span>
-                  </button>
-                  
-                  {/* Delete Filtered Button */}
-                  {(filterCat !== 'all' || filterPaid !== 'all' || search) && filtered.length > 0 && (
-                    <button 
-                      onClick={() => {
-                        if (confirm(`Delete ${filtered.length} filtered transactions?\n\nThis will only delete the currently visible transactions matching your filters.\n\nThis cannot be undone.`)) {
-                          const idsToDelete = new Set(filtered.map(t => t.id));
-                          setTransactions(prev => prev.filter(t => !idsToDelete.has(t.id)));
-                          setSearch('');
-                          setFilterCat('all');
-                          setFilterPaid('all');
-                        }
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg font-medium hover:from-amber-600 hover:to-amber-700 shadow-sm text-sm"
-                    >
-                      <Trash2 size={16} />
-                      <span>Delete Filtered ({filtered.length})</span>
-                    </button>
+                  {selectedTxIds.size === 0 && (
+                    <>
+                      {/* Save/Backup Button */}
+                      <button 
+                        onClick={() => {
+                          const data = {
+                            version: APP_VERSION,
+                            exportDate: new Date().toISOString(),
+                            transactions,
+                            recurringExpenses,
+                            monthlyBalances,
+                            savingsGoal
+                          };
+                          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                          const a = document.createElement('a');
+                          a.href = URL.createObjectURL(blob);
+                          a.download = `balance-books-backup-${new Date().toISOString().split('T')[0]}.json`;
+                          a.click();
+                          URL.revokeObjectURL(a.href);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-lg font-medium hover:from-[#1e3a5f] hover:to-[#0f172a] shadow-sm text-sm"
+                      >
+                        <Download size={16} />
+                        <span>Backup All</span>
+                      </button>
+                      
+                      {/* Delete All Button */}
+                      <button 
+                        onClick={() => {
+                          if (confirm(`⚠️ DELETE ALL ${transactions.length} TRANSACTIONS?\n\nThis will permanently remove ALL your transaction data.\n\nTip: Use "Backup All" first to save your data.\n\nThis cannot be undone!`)) {
+                            if (confirm('Are you absolutely sure? Type "yes" in your mind and click OK to confirm.')) {
+                              setTransactions([]);
+                              setSearch('');
+                              setFilterCat('all');
+                              setFilterPaid('all');
+                            }
+                          }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-lg font-medium hover:from-rose-600 hover:to-rose-700 shadow-sm text-sm"
+                        disabled={transactions.length === 0}
+                      >
+                        <Trash2 size={16} />
+                        <span>Delete All</span>
+                      </button>
+                    </>
                   )}
-                  
-                  {/* Delete All Button */}
-                  <button 
-                    onClick={() => {
-                      if (confirm(`⚠️ DELETE ALL ${transactions.length} TRANSACTIONS?\n\nThis will permanently remove ALL your transaction data.\n\nTip: Use "Backup All" first to save your data.\n\nThis cannot be undone!`)) {
-                        if (confirm('Are you absolutely sure? Type "yes" in your mind and click OK to confirm.')) {
-                          setTransactions([]);
-                          setSearch('');
-                          setFilterCat('all');
-                          setFilterPaid('all');
-                        }
-                      }
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-lg font-medium hover:from-rose-600 hover:to-rose-700 shadow-sm text-sm"
-                    disabled={transactions.length === 0}
-                  >
-                    <Trash2 size={16} />
-                    <span>Delete All</span>
-                  </button>
                 </div>
               </div>
               
               {/* Transactions List */}
               <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm divide-y divide-slate-100">
-                {filtered.length > 0 ? filtered.slice(0, 50).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (
-                  <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-gradient-to-r hover:from-[#0f172a]/5/50 hover:to-[#14b8a6]/5/50">
+                {/* Header row with select all checkbox */}
+                {filtered.length > 0 && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <button 
+                      onClick={() => {
+                        const filteredIds = filtered.slice(0, 50).map(t => t.id);
+                        const allSelected = filteredIds.every(id => selectedTxIds.has(id));
+                        if (allSelected) {
+                          deselectAll();
+                        } else {
+                          setSelectedTxIds(new Set(filteredIds));
+                        }
+                      }}
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                        filtered.slice(0, 50).every(t => selectedTxIds.has(t.id)) && filtered.length > 0
+                          ? 'bg-blue-500 border-blue-500' 
+                          : filtered.slice(0, 50).some(t => selectedTxIds.has(t.id))
+                          ? 'bg-blue-200 border-blue-400'
+                          : 'border-slate-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {filtered.slice(0, 50).every(t => selectedTxIds.has(t.id)) && filtered.length > 0 && <Check size={12} className="text-white" />}
+                      {filtered.slice(0, 50).some(t => selectedTxIds.has(t.id)) && !filtered.slice(0, 50).every(t => selectedTxIds.has(t.id)) && <div className="w-2 h-2 bg-blue-500 rounded-sm" />}
+                    </button>
+                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Select</span>
+                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide ml-8">Status</span>
+                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide ml-12 flex-1">Transaction</span>
+                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Amount</span>
+                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide ml-4">Actions</span>
+                  </div>
+                )}
+                {filtered.length > 0 ? filtered.slice(0, 50).map(tx => { 
+                  const cat = CATEGORIES.find(c => c.id === tx.category); 
+                  const isSelected = selectedTxIds.has(tx.id);
+                  return (
+                  <div key={tx.id} className={`flex items-center justify-between px-4 py-3 transition-all ${isSelected ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gradient-to-r hover:from-[#0f172a]/5/50 hover:to-[#14b8a6]/5/50'}`}>
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <button onClick={() => togglePaid(tx.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${tx.paid ? 'bg-gradient-to-r from-[#14b8a6]/50 to-green-400 border-green-500' : 'border-blue-300 hover:border-green-400'}`}>{tx.paid && <Check size={14} className="text-white" />}</button>
+                      {/* Selection checkbox */}
+                      <button 
+                        onClick={() => toggleSelectTx(tx.id)} 
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-300 hover:border-blue-400'}`}
+                      >
+                        {isSelected && <Check size={12} className="text-white" />}
+                      </button>
+                      {/* Paid status toggle */}
+                      <button onClick={() => togglePaid(tx.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${tx.paid ? 'bg-gradient-to-r from-[#14b8a6]/50 to-green-400 border-green-500' : 'border-amber-300 hover:border-green-400'}`}>{tx.paid ? <Check size={14} className="text-white" /> : <Clock size={12} className="text-amber-400" />}</button>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div>
                       <div className="min-w-0"><p className={`font-medium text-sm truncate ${tx.paid ? 'text-slate-900' : 'text-slate-600'}`}>{tx.desc}</p><p className="text-xs text-slate-500">{shortDate(tx.date)}</p></div>
                     </div>
@@ -1968,6 +1964,7 @@ export default function App() {
                     <div className="pt-4 border-t border-[#14b8a6]/20">
                       <p className="text-sm text-slate-600">Est. payoff: <strong>{Math.ceil(debtPayoffPlan.avalancheMonths / 12)} years</strong></p>
                       <p className="text-sm text-slate-600">Total interest: <strong className="text-[#14b8a6]">{currency(debtPayoffPlan.avalancheInterest)}</strong></p>
+                      <p className="text-sm font-semibold text-green-700 mt-2">💰 Save {currency(debtPayoffPlan.interestSavings)} vs snowball!</p>
                       <p className="text-sm font-semibold text-green-700 mt-2">💰 Save {currency(debtPayoffPlan.interestSavings)} vs snowball!</p>
                     </div>
                   </div>
