@@ -3,6 +3,9 @@ import { db } from './db/database';
 import { migrateFromLocalStorage } from './db/migration';
 import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save } from 'lucide-react';
 
+// App version - uses build-time injection or fallback
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.7.1';
+
 // Categories
 const CATEGORIES = [
   { id: 'income', name: 'Income', color: '#059669', bg: '#ecfdf5', icon: '💵' },
@@ -154,7 +157,7 @@ export default function App() {
 
   const performAutoBackup = useCallback(() => {
     const backup = {
-      version: __APP_VERSION__,
+      version: APP_VERSION,
       exportDate: new Date().toISOString(),
       autoBackup: true,
       data: { transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts }
@@ -1191,7 +1194,7 @@ export default function App() {
               <path d="M 36 52 L 46 62 L 66 42" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro • v{__APP_VERSION__}</p></div>
+          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro • v{APP_VERSION}</p></div>
         </div>
       <nav className="space-y-1 flex-1 overflow-y-auto">
           <NavItem id="dashboard" icon={LayoutGrid} label="Dashboard" />
@@ -1241,7 +1244,7 @@ export default function App() {
                     <Calculator size={24} />
                     <h3 className="font-bold text-lg">Monthly Balance Overview</h3>
                   </div>
-                  <span className="text-[#14b8a6]/70 text-sm bg-white/10 px-3 py-1 rounded-full">Click any card to edit</span>
+                  <span className="text-white font-semibold text-sm bg-white/20 px-3 py-1 rounded-full">Click any card to edit</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white/15 backdrop-blur rounded-xl p-4 cursor-pointer hover:bg-white/25 transition-all border border-white/20" onClick={() => setModal('edit-beginning')}>
@@ -1341,11 +1344,37 @@ export default function App() {
                   {transactions.length > 0 && <span className="text-slate-400">• Total: {transactions.length}</span>}
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Select All / Deselect All Buttons */}
+                  {filtered.length > 0 && (
+                    <>
+                      <button 
+                        onClick={() => {
+                          const idsToUpdate = new Set(filtered.map(t => t.id));
+                          setTransactions(prev => prev.map(t => idsToUpdate.has(t.id) ? { ...t, paid: true } : t));
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 shadow-sm text-sm"
+                      >
+                        <Check size={16} />
+                        <span>Select All</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const idsToUpdate = new Set(filtered.map(t => t.id));
+                          setTransactions(prev => prev.map(t => idsToUpdate.has(t.id) ? { ...t, paid: false } : t));
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-400 to-slate-500 text-white rounded-lg font-medium hover:from-slate-500 hover:to-slate-600 shadow-sm text-sm"
+                      >
+                        <X size={16} />
+                        <span>Deselect All</span>
+                      </button>
+                    </>
+                  )}
+                  
                   {/* Save/Backup Button */}
                   <button 
                     onClick={() => {
                       const data = {
-                        version: '1.2',
+                        version: APP_VERSION,
                         exportDate: new Date().toISOString(),
                         transactions,
                         recurringExpenses,
@@ -2016,7 +2045,7 @@ export default function App() {
                           onClick={() => {
                             const data = {
                               appName: 'Balance Books Pro',
-                              version: __APP_VERSION__,
+                              version: APP_VERSION,
                               exportDate: new Date().toISOString(),
                               exportDateFormatted: new Date().toLocaleDateString('en-US', { 
                                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -2196,7 +2225,7 @@ export default function App() {
                   <button 
                     onClick={() => {
                       const backup = {
-                        version: __APP_VERSION__,
+                        version: APP_VERSION,
                         exportDate: new Date().toISOString(),
                         transactions,
                         recurringExpenses,
@@ -2275,7 +2304,7 @@ export default function App() {
               {/* About */}
               <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4">About</h3>
-                <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Version:</span> {__APP_VERSION__}</p>
+                <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Version:</span> {APP_VERSION}</p>
                 <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
                 <p className="text-sm text-slate-600"><span className="font-medium text-purple-600">Storage:</span> Local (your data stays on your device)</p>
               </div>
