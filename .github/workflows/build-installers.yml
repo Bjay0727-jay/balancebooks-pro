@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (e.g., 1.6.0)'
+        description: 'Version number (e.g., 1.7.1)'
         required: false
-        default: '1.6.0'
+        default: '1.7.1'
 
 permissions:
   contents: write
@@ -33,7 +33,7 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="${{ github.event.inputs.version || '1.6.0' }}"
+            VERSION="${{ github.event.inputs.version || '1.7.1' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
@@ -80,7 +80,7 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="${{ github.event.inputs.version || '1.6.0' }}"
+            VERSION="${{ github.event.inputs.version || '1.7.1' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
@@ -125,7 +125,7 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="${{ github.event.inputs.version || '1.6.0' }}"
+            VERSION="${{ github.event.inputs.version || '1.7.1' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
