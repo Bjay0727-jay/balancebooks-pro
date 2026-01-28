@@ -3,28 +3,28 @@ import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, 
 
 // Categories
 const CATEGORIES = [
-  { id: 'income', name: 'Income', color: '#059669', bg: '#ecfdf5', icon: 'ðŸ’µ' },
-  { id: 'housing', name: 'Housing', color: '#4f46e5', bg: '#eef2ff', icon: 'ðŸ ' },
-  { id: 'utilities', name: 'Utilities', color: '#7c3aed', bg: '#f5f3ff', icon: 'ðŸ’¡' },
-  { id: 'groceries', name: 'Groceries', color: '#16a34a', bg: '#f0fdf4', icon: 'ðŸ›’' },
-  { id: 'transportation', name: 'Transportation', color: '#d97706', bg: '#fffbeb', icon: 'ðŸš—' },
-  { id: 'healthcare', name: 'Healthcare', color: '#dc2626', bg: '#fef2f2', icon: 'ðŸ¥' },
-  { id: 'insurance', name: 'Insurance', color: '#0284c7', bg: '#f0f9ff', icon: 'ðŸ›¡ï¸' },
-  { id: 'entertainment', name: 'Entertainment', color: '#db2777', bg: '#fdf2f8', icon: 'ðŸŽ¬' },
-  { id: 'dining', name: 'Dining', color: '#ea580c', bg: '#fff7ed', icon: 'ðŸ½ï¸' },
-  { id: 'shopping', name: 'Shopping', color: '#9333ea', bg: '#faf5ff', icon: 'ðŸ›ï¸' },
-  { id: 'subscriptions', name: 'Subscriptions', color: '#0d9488', bg: '#f0fdfa', icon: 'ðŸ“±' },
-  { id: 'education', name: 'Education', color: '#2563eb', bg: '#eff6ff', icon: 'ðŸ“š' },
-  { id: 'tithes', name: 'Tithes & Offerings', color: '#7c3aed', bg: '#f5f3ff', icon: 'â›ª' },
-  { id: 'savings', name: 'Savings', color: '#047857', bg: '#ecfdf5', icon: 'ðŸ’°' },
-  { id: 'investment', name: 'Investment', color: '#065f46', bg: '#ecfdf5', icon: 'ðŸ“ˆ' },
-  { id: 'debt', name: 'Debt Payment', color: '#b91c1c', bg: '#fef2f2', icon: 'ðŸ’³' },
-  { id: 'childcare', name: 'Childcare', color: '#f472b6', bg: '#fdf2f8', icon: 'ðŸ‘¶' },
-  { id: 'pets', name: 'Pets', color: '#f59e0b', bg: '#fffbeb', icon: 'ðŸ¾' },
-  { id: 'personal', name: 'Personal Care', color: '#ec4899', bg: '#fdf2f8', icon: 'ðŸ’‡' },
-  { id: 'gifts', name: 'Gifts & Donations', color: '#8b5cf6', bg: '#f5f3ff', icon: 'ðŸŽ' },
-  { id: 'transfer', name: 'Transfer', color: '#475569', bg: '#f8fafc', icon: 'ðŸ”„' },
-  { id: 'other', name: 'Other', color: '#64748b', bg: '#f8fafc', icon: 'ðŸ“¦' },
+  { id: 'income', name: 'Income', color: '#059669', bg: '#ecfdf5', icon: '💵' },
+  { id: 'housing', name: 'Housing', color: '#4f46e5', bg: '#eef2ff', icon: '🏠' },
+  { id: 'utilities', name: 'Utilities', color: '#7c3aed', bg: '#f5f3ff', icon: '💡' },
+  { id: 'groceries', name: 'Groceries', color: '#16a34a', bg: '#f0fdf4', icon: '🛒' },
+  { id: 'transportation', name: 'Transportation', color: '#d97706', bg: '#fffbeb', icon: '🚗' },
+  { id: 'healthcare', name: 'Healthcare', color: '#dc2626', bg: '#fef2f2', icon: '🏥' },
+  { id: 'insurance', name: 'Insurance', color: '#0284c7', bg: '#f0f9ff', icon: '🛡️' },
+  { id: 'entertainment', name: 'Entertainment', color: '#db2777', bg: '#fdf2f8', icon: '🎬' },
+  { id: 'dining', name: 'Dining', color: '#ea580c', bg: '#fff7ed', icon: '🍽️' },
+  { id: 'shopping', name: 'Shopping', color: '#9333ea', bg: '#faf5ff', icon: '🛍️' },
+  { id: 'subscriptions', name: 'Subscriptions', color: '#0d9488', bg: '#f0fdfa', icon: '📱' },
+  { id: 'education', name: 'Education', color: '#2563eb', bg: '#eff6ff', icon: '📚' },
+  { id: 'tithes', name: 'Tithes & Offerings', color: '#7c3aed', bg: '#f5f3ff', icon: '⛪' },
+  { id: 'savings', name: 'Savings', color: '#047857', bg: '#ecfdf5', icon: '💰' },
+  { id: 'investment', name: 'Investment', color: '#065f46', bg: '#ecfdf5', icon: '📈' },
+  { id: 'debt', name: 'Debt Payment', color: '#b91c1c', bg: '#fef2f2', icon: '💳' },
+  { id: 'childcare', name: 'Childcare', color: '#f472b6', bg: '#fdf2f8', icon: '👶' },
+  { id: 'pets', name: 'Pets', color: '#f59e0b', bg: '#fffbeb', icon: '🐾' },
+  { id: 'personal', name: 'Personal Care', color: '#ec4899', bg: '#fdf2f8', icon: '💇' },
+  { id: 'gifts', name: 'Gifts & Donations', color: '#8b5cf6', bg: '#f5f3ff', icon: '🎁' },
+  { id: 'transfer', name: 'Transfer', color: '#475569', bg: '#f8fafc', icon: '🔄' },
+  { id: 'other', name: 'Other', color: '#64748b', bg: '#f8fafc', icon: '📦' },
 ];
 
 const FREQUENCY_OPTIONS = [
@@ -132,7 +132,7 @@ export default function App() {
       recurringExpenses.filter(r => r.active).forEach(r => {
         const daysUntil = r.dueDay >= day ? r.dueDay - day : (30 - day) + r.dueDay;
         if (daysUntil <= 3 && daysUntil >= 0) {
-          new Notification('ðŸ’° Bill Reminder', {
+          new Notification('💰 Bill Reminder', {
             body: `${r.name} (${currency(r.amount)}) is due ${daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`}`,
             icon: '/icon.svg'
           });
@@ -143,7 +143,7 @@ export default function App() {
 
   const performAutoBackup = useCallback(() => {
     const backup = {
-      version: '1.6.0',
+      version: __APP_VERSION__,
       exportDate: new Date().toISOString(),
       autoBackup: true,
       data: { transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts }
@@ -363,7 +363,7 @@ export default function App() {
         description: `You spent ${currency(dining)} on dining this month. The average household spends about $300/month. Consider meal prepping on Sundays.`, 
         potential: dining * 0.4,
         tips: ['Cook at home 2 more days per week', 'Use meal planning apps like Mealime', 'Bring lunch to work instead of buying'],
-        icon: 'ðŸ½ï¸'
+        icon: '🍽️'
       });
     }
     
@@ -376,7 +376,7 @@ export default function App() {
         description: `${currency(subs)} in monthly subscriptions. Review each service and cancel what you don't use regularly.`, 
         potential: subs * 0.3,
         tips: ['Cancel streaming services you rarely watch', 'Look for annual payment discounts (save 15-20%)', 'Share family plans with relatives'],
-        icon: 'ðŸ“±'
+        icon: '📱'
       });
     }
     
@@ -389,7 +389,7 @@ export default function App() {
         description: `${currency(shopping)} on shopping this month. Try the 24-hour rule before making non-essential purchases.`, 
         potential: shopping * 0.35,
         tips: ['Wait 24 hours before buying anything over $50', 'Unsubscribe from retail email lists', 'Use a shopping list and stick to it'],
-        icon: 'ðŸ›ï¸'
+        icon: '🛍️'
       });
     }
 
@@ -402,7 +402,7 @@ export default function App() {
         description: `${currency(entertainment)} on entertainment. Look for free local events, parks, and activities.`, 
         potential: entertainment * 0.3,
         tips: ['Check library for free events and movie rentals', 'Host game nights at home instead of going out', 'Explore free outdoor activities and hiking'],
-        icon: 'ðŸŽ¬'
+        icon: '🎬'
       });
     }
 
@@ -415,7 +415,7 @@ export default function App() {
         description: `${currency(transport)} on transportation. Consider carpooling, combining trips, or public transit.`, 
         potential: transport * 0.2,
         tips: ['Combine multiple errands into one trip', 'Use GasBuddy to find cheaper gas', 'Consider carpooling to work 2-3 days/week'],
-        icon: 'ðŸš—'
+        icon: '🚗'
       });
     }
 
@@ -428,7 +428,7 @@ export default function App() {
         description: `${currency(groceries)} on groceries. Smart shopping strategies can save 15-20% monthly.`, 
         potential: groceries * 0.15,
         tips: ['Make a list and stick to it - avoid impulse buys', 'Buy store brands (often same quality, 30% cheaper)', 'Use cashback apps like Ibotta and Fetch'],
-        icon: 'ðŸ›’'
+        icon: '🛒'
       });
     }
 
@@ -441,7 +441,7 @@ export default function App() {
         description: `${currency(utilities)} on utilities. Small changes can reduce costs by 10-15%.`, 
         potential: utilities * 0.1,
         tips: ['Adjust thermostat 2 degrees (saves ~3% per degree)', 'Switch to LED bulbs throughout your home', 'Unplug devices and use smart power strips'],
-        icon: 'ðŸ’¡'
+        icon: '💡'
       });
     }
 
@@ -451,11 +451,11 @@ export default function App() {
       const needed = target - stats.saved;
       recs.push({ 
         id: 4, type: 'alert', priority: 'high',
-        title: 'ðŸš¨ Savings Rate Below 10%', 
+        title: '🚨 Savings Rate Below 10%', 
         description: `You're only saving ${savingsRate.toFixed(1)}% of income. Financial experts recommend at least 20% for long-term security.`, 
         potential: needed,
         tips: ['Set up automatic transfer to savings on payday', 'Start with just $25-50 per paycheck', 'Build a 3-month emergency fund first'],
-        icon: 'âš ï¸'
+        icon: '⚠ ï¸'
       });
     } else if (savingsRate < 20 && avgIncome > 0) {
       const target = avgIncome * 0.2;
@@ -466,7 +466,7 @@ export default function App() {
         description: `Current savings rate: ${savingsRate.toFixed(1)}%. Add ${currency(needed)} more monthly to hit the recommended 20%.`, 
         potential: needed,
         tips: ['Increase savings by 1% each month gradually', 'Save all windfalls, bonuses, and tax refunds', 'Follow the 50/30/20 budget rule'],
-        icon: 'ðŸ“ˆ'
+        icon: '📈'
       });
     }
 
@@ -474,11 +474,11 @@ export default function App() {
     if (expenseRatio > 90 && avgIncome > 0) {
       recs.push({ 
         id: 10, type: 'alert', priority: 'high',
-        title: 'âš ï¸ Living Paycheck to Paycheck', 
+        title: '⚠ ï¸ Living Paycheck to Paycheck', 
         description: `You're spending ${expenseRatio.toFixed(0)}% of your income. This leaves almost no buffer for emergencies.`, 
         potential: avgIncome * 0.1,
         tips: ['Track every expense for one week to find leaks', 'Cut one non-essential expense immediately', 'Build a $1,000 starter emergency fund'],
-        icon: 'ðŸ”´'
+        icon: '🔴'
       });
     }
 
@@ -490,7 +490,7 @@ export default function App() {
         description: `You have ${stats.unpaidCount} unpaid expenses this month. Staying on top of due dates prevents late fees.`, 
         potential: 0,
         tips: ['Set up calendar reminders for due dates', 'Enable autopay for fixed recurring bills', 'Review bills weekly, not monthly'],
-        icon: 'ðŸ“‹'
+        icon: '📋'
       });
     }
 
@@ -503,7 +503,7 @@ export default function App() {
         description: `Housing is ${((housing / avgIncome) * 100).toFixed(0)}% of income. Experts recommend keeping it under 30%.`, 
         potential: housing - (avgIncome * 0.30),
         tips: ['Consider a roommate to split costs', 'Negotiate rent at lease renewal', 'Look for housing in nearby affordable areas'],
-        icon: 'ðŸ '
+        icon: '🏠'
       });
     }
 
@@ -511,11 +511,11 @@ export default function App() {
     if (savingsRate >= 20) {
       recs.push({ 
         id: 5, type: 'success', priority: 'low',
-        title: 'ðŸŽ‰ Excellent Savings Rate!', 
+        title: '🎉 Excellent Savings Rate!', 
         description: `You're saving ${savingsRate.toFixed(1)}% of your income - above the recommended 20%! You're building real wealth.`, 
         potential: 0,
         tips: ['Consider maxing out retirement accounts', 'Look into index fund investing', 'Keep up the amazing work!'],
-        icon: 'ðŸ†'
+        icon: '🏆'
       });
     }
 
@@ -523,11 +523,11 @@ export default function App() {
     if (stats.ending > stats.beginning && stats.beginning > 0) {
       recs.push({ 
         id: 13, type: 'success', priority: 'low',
-        title: 'ðŸ“ˆ Positive Cash Flow!', 
+        title: '📈 Positive Cash Flow!', 
         description: `Your balance grew by ${currency(stats.ending - stats.beginning)} this month. You're moving in the right direction!`, 
         potential: 0,
         tips: ['Maintain this momentum', 'Consider increasing savings goal', 'Plan ahead for upcoming large expenses'],
-        icon: 'âœ…'
+        icon: '✅'
       });
     }
 
@@ -1075,7 +1075,7 @@ export default function App() {
         // XLSX library not available - prompt user to use CSV
         resolve({ 
           transactions: [], 
-          errors: ['Excel (.xlsx) files require the XLSX library which failed to load. Please save your file as CSV (File â†’ Save As â†’ CSV) and import that instead.']
+          errors: ['Excel (.xlsx) files require the XLSX library which failed to load. Please save your file as CSV (File ↑ Save As ↑ CSV) and import that instead.']
         });
       }
     });
@@ -1101,7 +1101,7 @@ export default function App() {
         
         // If Excel parsing failed, suggest CSV
         if (result.transactions.length === 0 && result.errors.length > 0) {
-          alert(`Unable to read Excel file.\n\n${result.errors[0]}\n\nTip: In Excel, use File â†’ Save As â†’ CSV UTF-8`);
+          alert(`Unable to read Excel file.\n\n${result.errors[0]}\n\nTip: In Excel, use File ↑ Save As ↑ CSV UTF-8`);
           e.target.value = '';
           return;
         }
@@ -1111,7 +1111,7 @@ export default function App() {
         console.log('File content preview:', content.substring(0, 500));
         result = parseCSV(content);
       } else {
-        alert('Please upload a CSV or Excel file.\n\nSupported formats:\nâ€¢ CSV (.csv)\nâ€¢ Excel (.xlsx, .xls)\nâ€¢ Text (.txt)\n\nTip: Open your spreadsheet and Save As â†’ CSV UTF-8');
+        alert('Please upload a CSV or Excel file.\n\nSupported formats:\n• CSV (.csv)\n• Excel (.xlsx, .xls)\n• Text (.txt)\n\nTip: Open your spreadsheet and Save As ↑ CSV UTF-8');
         e.target.value = '';
         return;
       }
@@ -1293,7 +1293,7 @@ export default function App() {
               <path d="M 36 52 L 46 62 L 66 42" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro â€¢ v{__APP_VERSION__}</p></div>
+          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro • v{__APP_VERSION__}</p></div>
         </div>
       <nav className="space-y-1 flex-1 overflow-y-auto">
           <NavItem id="dashboard" icon={LayoutGrid} label="Dashboard" />
@@ -1412,15 +1412,15 @@ export default function App() {
 
               {savingsRecommendations.filter(r => r.priority === 'high').length > 0 && (
                 <div className="bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50 rounded-2xl p-6 border-2 border-[#14b8a6]/20 shadow-sm">
-                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><Sparkles size={20} className="text-[#14b8a6]" /><h3 className="font-semibold text-slate-900">Priority Recommendations</h3></div><button onClick={() => setView('recommendations')} className="text-sm text-[#14b8a6] font-medium hover:text-[#0d9488] bg-blue-50 px-3 py-1 rounded-full">View All â†’</button></div>
-                  <div className="space-y-3">{savingsRecommendations.filter(r => r.priority === 'high').slice(0, 2).map(rec => (<div key={rec.id} className="flex items-start gap-3 bg-white rounded-xl p-4 border border-[#14b8a6]/10 shadow-sm hover:shadow-md transition-all"><div className={`p-2 rounded-xl ${rec.type === 'alert' ? 'bg-gradient-to-br from-rose-100 to-rose-200' : rec.type === 'success' ? 'bg-gradient-to-br from-green-100 to-green-200' : 'bg-gradient-to-br from-[#1e3a5f]/10 to-[#14b8a6]/10'}`}>{rec.type === 'alert' ? <AlertTriangle size={16} className="text-rose-600" /> : <Lightbulb size={16} className="text-[#14b8a6]" />}</div><div className="flex-1"><p className="font-medium text-slate-900">{rec.title}</p><p className="text-sm text-slate-500 line-clamp-2">{rec.description}</p>{rec.potential > 0 && <p className="text-sm text-[#14b8a6] font-semibold mt-1">ðŸ’° Save up to {currency(rec.potential)}/mo</p>}</div></div>))}</div>
+                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><Sparkles size={20} className="text-[#14b8a6]" /><h3 className="font-semibold text-slate-900">Priority Recommendations</h3></div><button onClick={() => setView('recommendations')} className="text-sm text-[#14b8a6] font-medium hover:text-[#0d9488] bg-blue-50 px-3 py-1 rounded-full">View All ↑</button></div>
+                  <div className="space-y-3">{savingsRecommendations.filter(r => r.priority === 'high').slice(0, 2).map(rec => (<div key={rec.id} className="flex items-start gap-3 bg-white rounded-xl p-4 border border-[#14b8a6]/10 shadow-sm hover:shadow-md transition-all"><div className={`p-2 rounded-xl ${rec.type === 'alert' ? 'bg-gradient-to-br from-rose-100 to-rose-200' : rec.type === 'success' ? 'bg-gradient-to-br from-green-100 to-green-200' : 'bg-gradient-to-br from-[#1e3a5f]/10 to-[#14b8a6]/10'}`}>{rec.type === 'alert' ? <AlertTriangle size={16} className="text-rose-600" /> : <Lightbulb size={16} className="text-[#14b8a6]" />}</div><div className="flex-1"><p className="font-medium text-slate-900">{rec.title}</p><p className="text-sm text-slate-500 line-clamp-2">{rec.description}</p>{rec.potential > 0 && <p className="text-sm text-[#14b8a6] font-semibold mt-1">💰 Save up to {currency(rec.potential)}/mo</p>}</div></div>))}</div>
                 </div>
               )}
 
               <div className="bg-white rounded-2xl p-6 border-2 border-[#1e3a5f]/10 shadow-sm"><h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><CreditCard size={18} className="text-[#14b8a6]" />Spending by Category</h3><div className="space-y-4">{catBreakdown.slice(0, 5).map(cat => (<div key={cat.id}><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><span>{cat.icon}</span><span className="font-medium text-slate-700 text-sm">{cat.name}</span></div><span className="font-bold text-slate-900 text-sm">{currency(cat.total)}</span></div><div className="h-3 bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${cat.pct}%`, backgroundColor: cat.color }} /></div></div>))}</div></div>
               
               <div className="bg-white rounded-2xl border-2 border-[#14b8a6]/10 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between p-6 border-b border-[#14b8a6]/10 bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50"><h3 className="font-semibold text-slate-900 flex items-center gap-2"><Receipt size={18} className="text-[#14b8a6]" />Recent Transactions</h3><button onClick={() => setView('transactions')} className="text-sm text-[#14b8a6] font-medium hover:text-green-700 bg-[#14b8a6]/5 px-3 py-1 rounded-full">View All â†’</button></div>
+                <div className="flex items-center justify-between p-6 border-b border-[#14b8a6]/10 bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50"><h3 className="font-semibold text-slate-900 flex items-center gap-2"><Receipt size={18} className="text-[#14b8a6]" />Recent Transactions</h3><button onClick={() => setView('transactions')} className="text-sm text-[#14b8a6] font-medium hover:text-green-700 bg-[#14b8a6]/5 px-3 py-1 rounded-full">View All ↑</button></div>
                 <div className="divide-y divide-slate-100">{monthTx.slice(0, 6).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (<div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-gradient-to-r hover:from-[#0f172a]/5/30 hover:to-[#14b8a6]/5/30"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div><div><div className="flex items-center gap-2"><p className="font-medium text-slate-900 text-sm">{tx.desc}</p>{tx.paid ? <Check size={14} className="text-green-500" /> : <Clock size={14} className="text-amber-500" />}</div><p className="text-xs text-slate-500">{shortDate(tx.date)}</p></div></div><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>{tx.amount > 0 ? '+' : ''}{currency(tx.amount)}</span></div>); })}</div>
               </div>
             </div>
@@ -1432,7 +1432,7 @@ export default function App() {
               <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#14b8a6]" size={18} /><input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]" /></div>
                 <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
-                <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-[#14b8a6]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Status</option><option value="paid">âœ“ Paid</option><option value="unpaid">â—‹ Unpaid</option></select>
+                <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-[#14b8a6]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Status</option><option value="paid">✔ Paid</option><option value="unpaid">○ Unpaid</option></select>
               </div>
               
               {/* Action Buttons Row */}
@@ -1440,24 +1440,26 @@ export default function App() {
                 <div className="flex items-center gap-2 text-sm text-slate-600">
                   <Receipt size={16} className="text-blue-500" />
                   <span><strong>{filtered.length}</strong> transactions {filterCat !== 'all' || filterPaid !== 'all' || search ? '(filtered)' : ''}</span>
-                  {transactions.length > 0 && <span className="text-slate-400">â€¢ Total: {transactions.length}</span>}
+                  {transactions.length > 0 && <span className="text-slate-400">• Total: {transactions.length}</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Save/Backup Button */}
                   <button 
                     onClick={() => {
                       const data = {
-                        version: '1.2',
+                        version: __APP_VERSION__,
                         exportDate: new Date().toISOString(),
                         transactions,
                         recurringExpenses,
                         monthlyBalances,
-                        savingsGoal
+                        savingsGoal,
+                        budgetGoals,
+                        debts
                       };
                       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                       const a = document.createElement('a');
                       a.href = URL.createObjectURL(blob);
-                      a.download = `balance-books-backup-${new Date().toISOString().split('T')[0]}.json`;
+                      a.download = `BalanceBooks-Backup-${new Date().toISOString().split('T')[0]}.json`;
                       a.click();
                       URL.revokeObjectURL(a.href);
                     }}
@@ -1489,7 +1491,7 @@ export default function App() {
                   {/* Delete All Button */}
                   <button 
                     onClick={() => {
-                      if (confirm(`âš ï¸ DELETE ALL ${transactions.length} TRANSACTIONS?\n\nThis will permanently remove ALL your transaction data.\n\nTip: Use "Backup All" first to save your data.\n\nThis cannot be undone!`)) {
+                      if (confirm(`⚠ ï¸ DELETE ALL ${transactions.length} TRANSACTIONS?\n\nThis will permanently remove ALL your transaction data.\n\nTip: Use "Backup All" first to save your data.\n\nThis cannot be undone!`)) {
                         if (confirm('Are you absolutely sure? Type "yes" in your mind and click OK to confirm.')) {
                           setTransactions([]);
                           setSearch('');
@@ -1552,7 +1554,7 @@ export default function App() {
                     <div className="flex items-center gap-3">
                       <button onClick={() => toggleRecurringActive(r.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${r.active ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] border-blue-500' : 'border-slate-300'}`}>{r.active && <Check size={14} className="text-white" />}</button>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div>
-                      <div><p className="font-medium text-slate-900">{r.name}</p><div className="flex items-center gap-2 text-xs text-slate-500"><span>{freq?.name}</span><span>â€¢</span><span>Due: {r.dueDay}</span>{r.autoPay && <><span>â€¢</span><span className="text-[#14b8a6] font-medium">Auto-pay</span></>}</div></div>
+                      <div><p className="font-medium text-slate-900">{r.name}</p><div className="flex items-center gap-2 text-xs text-slate-500"><span>{freq?.name}</span><span>•</span><span>Due: {r.dueDay}</span>{r.autoPay && <><span>•</span><span className="text-[#14b8a6] font-medium">Auto-pay</span></>}</div></div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-slate-900">{currency(r.amount)}</span>
@@ -1571,8 +1573,8 @@ export default function App() {
               <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 border-2 border-[#1e3a5f]/20 shadow-sm"><div className="flex items-start gap-4"><div className="p-3 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] shadow-lg"><Shield size={24} className="text-white" /></div><div><h3 className="font-semibold text-lg text-slate-900 mb-2">Secure Bank Connection</h3><p className="text-slate-500 text-sm">Transactions auto-marked as paid when cleared</p></div></div></div>
               {linkedAccounts.length > 0 ? linkedAccounts.map(acc => (
                 <div key={acc.id} className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-[#14b8a6]/20 shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center text-white font-bold text-xl shadow-lg">{acc.institution.charAt(0)}</div><div><h4 className="font-bold text-slate-900">{acc.institution}</h4><p className="text-xs text-[#14b8a6] font-medium">âœ“ Auto-marking enabled</p></div></div><button onClick={() => setLinkedAccounts([])} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200"><Unlink size={14} /></button></div>
-                  <div className="grid grid-cols-2 gap-2">{acc.accounts.map(a => (<div key={a.id} className="p-3 rounded-xl bg-white border-2 border-[#1e3a5f]/10"><p className="text-sm font-medium text-slate-700">{a.subtype}</p><p className="text-xs text-slate-400">â€¢â€¢â€¢â€¢{a.mask}</p></div>))}</div>
+                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center text-white font-bold text-xl shadow-lg">{acc.institution.charAt(0)}</div><div><h4 className="font-bold text-slate-900">{acc.institution}</h4><p className="text-xs text-[#14b8a6] font-medium">✔ Auto-marking enabled</p></div></div><button onClick={() => setLinkedAccounts([])} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200"><Unlink size={14} /></button></div>
+                  <div className="grid grid-cols-2 gap-2">{acc.accounts.map(a => (<div key={a.id} className="p-3 rounded-xl bg-white border-2 border-[#1e3a5f]/10"><p className="text-sm font-medium text-slate-700">{a.subtype}</p><p className="text-xs text-slate-400">••••{a.mask}</p></div>))}</div>
                 </div>
               )) : (
                 <div className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-8 text-center">
@@ -2004,7 +2006,7 @@ export default function App() {
                   {/* Snowball Method */}
                   <div className="bg-gradient-to-br from-[#0f172a]/5 to-blue-100 rounded-2xl border-2 border-[#1e3a5f]/20 p-6">
                     <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                      â„ï¸ Debt Snowball
+                      ❤️ Debt Snowball
                     </h4>
                     <p className="text-sm text-[#14b8a6] mb-4">Pay smallest balances first for quick wins</p>
                     <div className="space-y-2 mb-4">
@@ -2025,7 +2027,7 @@ export default function App() {
                   {/* Avalanche Method */}
                   <div className="bg-gradient-to-br from-[#14b8a6]/5 to-[#14b8a6]/10 rounded-2xl border-2 border-[#14b8a6]/20 p-6">
                     <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
-                      ðŸ”ï¸ Debt Avalanche
+                      🏔️ Debt Avalanche
                       <span className="text-xs px-2 py-1 bg-[#14b8a6]/50 text-white rounded-full">Recommended</span>
                     </h4>
                     <p className="text-sm text-[#14b8a6] mb-4">Pay highest interest first to save money</p>
@@ -2041,7 +2043,7 @@ export default function App() {
                     <div className="pt-4 border-t border-[#14b8a6]/20">
                       <p className="text-sm text-slate-600">Est. payoff: <strong>{Math.ceil(debtPayoffPlan.avalancheMonths / 12)} years</strong></p>
                       <p className="text-sm text-slate-600">Total interest: <strong className="text-[#14b8a6]">{currency(debtPayoffPlan.avalancheInterest)}</strong></p>
-                      <p className="text-sm font-semibold text-green-700 mt-2">ðŸ’° Save {currency(debtPayoffPlan.interestSavings)} vs snowball!</p>
+                      <p className="text-sm font-semibold text-green-700 mt-2">💰 Save {currency(debtPayoffPlan.interestSavings)} vs snowball!</p>
                     </div>
                   </div>
                 </div>
@@ -2083,7 +2085,7 @@ export default function App() {
                 
                 {/* Your Data Summary */}
                 <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-xl p-4 mb-4 border border-[#1e3a5f]/20">
-                  <p className="text-sm font-medium text-slate-700 mb-2">ðŸ“Š Your Data Summary</p>
+                  <p className="text-sm font-medium text-slate-700 mb-2">📊 Your Data Summary</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="text-center">
                       <p className="text-xl font-bold text-[#14b8a6]">{transactions.length}</p>
@@ -2112,13 +2114,13 @@ export default function App() {
                         <Download size={24} />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-green-800 mb-1">ðŸ’¾ Save a Backup</h4>
+                        <h4 className="font-semibold text-green-800 mb-1">💾 Save a Backup</h4>
                         <p className="text-sm text-green-700 mb-3">Download a copy of all your data to your computer. You can use this to restore your data if anything goes wrong.</p>
                         <button 
                           onClick={() => {
                             const data = {
                               appName: 'Balance Books Pro',
-                              version: '1.6.0',
+                              version: __APP_VERSION__,
                               exportDate: new Date().toISOString(),
                               exportDateFormatted: new Date().toLocaleDateString('en-US', { 
                                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -2146,7 +2148,7 @@ export default function App() {
                             a.click();
                             URL.revokeObjectURL(a.href);
                             setLastBackupDate(new Date().toISOString());
-                            alert('âœ… Backup saved!\n\nYour backup file has been downloaded.\n\nðŸ’¡ Tip: Keep this file somewhere safe, like:\nâ€¢ Email it to yourself\nâ€¢ Save to Google Drive or Dropbox\nâ€¢ Copy to a USB drive');
+                            alert('✅ Backup saved!\n\nYour backup file has been downloaded.\n\n💡 Tip: Keep this file somewhere safe, like:\n• Email it to yourself\n• Save to Google Drive or Dropbox\n• Copy to a USB drive');
                           }}
                           className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all"
                         >
@@ -2155,7 +2157,7 @@ export default function App() {
                         </button>
                         {lastBackupDate && (
                           <p className="text-xs text-[#14b8a6] mt-2 text-center">
-                            âœ“ Last backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
+                            ✔ Last backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
                           </p>
                         )}
                       </div>
@@ -2169,7 +2171,7 @@ export default function App() {
                         <Upload size={24} />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-blue-800 mb-1">ðŸ“‚ Restore from Backup</h4>
+                        <h4 className="font-semibold text-blue-800 mb-1">📂 Restore from Backup</h4>
                         <p className="text-sm text-blue-700 mb-3">Got a new computer or lost your data? Select a backup file to restore everything.</p>
                         <button 
                           onClick={() => setModal('restore-wizard')}
@@ -2185,7 +2187,7 @@ export default function App() {
 
                 {/* Additional Export Options */}
                 <div className="mt-4 pt-4 border-t border-slate-200">
-                  <p className="text-sm font-medium text-slate-600 mb-3">ðŸ“¤ Other Export Options</p>
+                  <p className="text-sm font-medium text-slate-600 mb-3">📤 Other Export Options</p>
                   <div className="flex flex-wrap gap-2">
                     <button onClick={downloadTemplate} className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg text-slate-700 text-sm font-medium hover:bg-slate-200">
                       <FileSpreadsheet size={16} />Import Template
@@ -2229,7 +2231,7 @@ export default function App() {
                   
                   {lastBackupDate && (
                     <p className="text-sm text-slate-500 px-4">
-                      âœ“ Last auto-backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
+                      ✔ Last auto-backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
                     </p>
                   )}
 
@@ -2253,7 +2255,7 @@ export default function App() {
                             Notification.requestPermission().then(perm => {
                               if (perm === 'granted') {
                                 setNotificationsEnabled(true);
-                                new Notification('ðŸ”” Notifications Enabled', { body: 'You will now receive bill reminders!' });
+                                new Notification('🔔 Notifications Enabled', { body: 'You will now receive bill reminders!' });
                               } else {
                                 alert('Please enable notifications in your browser settings.');
                               }
@@ -2279,51 +2281,86 @@ export default function App() {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                        <span className="text-2xl">ðŸ“</span>
+                        <span className="text-2xl">📁</span>
                         <span className="text-xs text-slate-500">Google Drive</span>
                       </button>
                       <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                        <span className="text-2xl">ðŸ“¦</span>
+                        <span className="text-2xl">📦</span>
                         <span className="text-xs text-slate-500">Dropbox</span>
                       </button>
                       <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                        <span className="text-2xl">â˜ï¸</span>
+                        <span className="text-2xl">☁️</span>
                         <span className="text-xs text-slate-500">OneDrive</span>
                       </button>
                     </div>
                     <p className="text-xs text-slate-400 mt-2 text-center">Sync across devices while keeping your data private</p>
                   </div>
 
-                  {/* Email Backup */}
-                  <button 
-                    onClick={() => {
-                      const backup = {
-                        version: '1.6.0',
-                        exportDate: new Date().toISOString(),
-                        transactions,
-                        recurringExpenses,
-                        monthlyBalances,
-                        savingsGoal,
-                        budgetGoals,
-                        debts
-                      };
-                      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-                      const a = document.createElement('a');
-                      a.href = URL.createObjectURL(blob);
-                      a.download = `balance-books-backup-${new Date().toISOString().split('T')[0]}.json`;
-                      a.click();
-                      URL.revokeObjectURL(a.href);
-                      alert('ðŸ’¡ Tip: Email this backup file to yourself for safekeeping!\n\nYour backup has been downloaded.');
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-medium hover:from-indigo-600 hover:to-purple-600 shadow-md"
-                  >
-                    <Mail size={18} />
-                    Download Backup for Email
-                  </button>
-                  
-                  <p className="text-xs text-slate-400 text-center">
-                    ðŸ’¡ Pro tip: Email your backup to yourself regularly for off-device protection
-                  </p>
+                  {/* Email Backup - Quick Win Feature */}
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-200">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                        <Mail size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-purple-800 mb-1">📧 Email Backup to Yourself</h4>
+                        <p className="text-sm text-purple-700 mb-3">Download your backup then email it to yourself for safekeeping in Gmail, Outlook, or any email.</p>
+                        <button 
+                          onClick={() => {
+                            // Generate backup
+                            const dateStr = new Date().toISOString().split('T')[0];
+                            const backup = {
+                              appName: 'BalanceBooks Pro',
+                              version: __APP_VERSION__,
+                              exportDate: new Date().toISOString(),
+                              summary: {
+                                transactions: transactions.length,
+                                recurringBills: recurringExpenses.length,
+                                debts: debts.length
+                              },
+                              data: { transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts }
+                            };
+                            
+                            // Download the backup file
+                            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(blob);
+                            a.download = `BalanceBooks-Backup-${dateStr}.json`;
+                            a.click();
+                            URL.revokeObjectURL(a.href);
+                            
+                            // Open email client with pre-filled message
+                            const subject = encodeURIComponent(`BalanceBooks Backup - ${dateStr}`);
+                            const body = encodeURIComponent(
+                              `BalanceBooks Pro Backup\n` +
+                              `========================\n\n` +
+                              `Date: ${new Date().toLocaleDateString()}\n` +
+                              `Transactions: ${transactions.length}\n` +
+                              `Recurring Bills: ${recurringExpenses.length}\n` +
+                              `Debts Tracked: ${debts.length}\n\n` +
+                              `IMPORTANT: Attach the downloaded backup file to this email!\n\n` +
+                              `The file should be named: BalanceBooks-Backup-${dateStr}.json\n\n` +
+                              `To restore: Go to Settings > Restore from Backup in BalanceBooks Pro.`
+                            );
+                            
+                            // Small delay to ensure download starts first
+                            setTimeout(() => {
+                              window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                            }, 500);
+                            
+                            setLastBackupDate(new Date().toISOString());
+                          }}
+                          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all"
+                        >
+                          <Mail size={18} />
+                          Download & Email Backup
+                        </button>
+                        <p className="text-xs text-purple-500 mt-2 text-center">
+                          Downloads file → Opens email → You attach & send!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -2359,7 +2396,7 @@ export default function App() {
                   </button>
                   <button 
                     onClick={() => { 
-                      if (confirm('RESET EVERYTHING?\n\nThis will delete ALL your data including:\nâ€¢ Transactions\nâ€¢ Recurring expenses\nâ€¢ Monthly balances\nâ€¢ Savings goal\n\nThis cannot be undone!')) { 
+                      if (confirm('RESET EVERYTHING?\n\nThis will delete ALL your data including:\n• Transactions\n• Recurring expenses\n• Monthly balances\n• Savings goal\n\nThis cannot be undone!')) { 
                         setTransactions([]); 
                         setRecurringExpenses([]); 
                         setMonthlyBalances({}); 
@@ -2472,7 +2509,7 @@ export default function App() {
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-rose-50 to-orange-50 rounded-xl p-4 border border-rose-200">
               <p className="text-sm text-slate-600">Current expenses for <strong>{FULL_MONTHS[month]} {year}</strong>: <span className="font-bold text-rose-600">{currency(stats.expenses)}</span></p>
-              {stats.unpaidCount > 0 && <p className="text-xs text-amber-600 mt-2 font-medium">âš ï¸ {stats.unpaidCount} transactions marked as unpaid</p>}
+              {stats.unpaidCount > 0 && <p className="text-xs text-amber-600 mt-2 font-medium">⚠ ï¸ {stats.unpaidCount} transactions marked as unpaid</p>}
             </div>
             <div className="space-y-3">
               <button 
@@ -2576,7 +2613,7 @@ export default function App() {
                 </p>
                 <ul className="mt-2 text-xs text-amber-700 max-h-16 overflow-y-auto space-y-1">
                   {importData.errors.slice(0, 3).map((err, i) => (
-                    <li key={i}>â€¢ {err}</li>
+                    <li key={i}>• {err}</li>
                   ))}
                   {importData.errors.length > 3 && <li className="text-amber-600">...and {importData.errors.length - 3} more</li>}
                 </ul>
@@ -2592,10 +2629,10 @@ export default function App() {
                   return (
                     <div key={i} className="flex items-center justify-between p-3 border-b border-slate-100 last:border-b-0 hover:bg-slate-50">
                       <div className="flex items-center gap-3">
-                        <span className="text-lg">{cat?.icon || 'ðŸ“¦'}</span>
+                        <span className="text-lg">{cat?.icon || '📦'}</span>
                         <div>
                           <p className="font-medium text-sm text-slate-900">{tx.desc}</p>
-                          <p className="text-xs text-slate-500">{tx.date} â€¢ {cat?.name || 'Other'}</p>
+                          <p className="text-xs text-slate-500">{tx.date} • {cat?.name || 'Other'}</p>
                         </div>
                       </div>
                       <span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>
@@ -2650,15 +2687,15 @@ export default function App() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-start gap-2">
                   <Check size={14} className="text-[#14b8a6] mt-0.5 shrink-0" />
-                  <span className="text-slate-600"><strong>Transaction history</strong> â€” To auto-match and mark your bills as paid</span>
+                  <span className="text-slate-600"><strong>Transaction history</strong> – To auto-match and mark your bills as paid</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Check size={14} className="text-[#14b8a6] mt-0.5 shrink-0" />
-                  <span className="text-slate-600"><strong>Account balances</strong> â€” To show your current financial status</span>
+                  <span className="text-slate-600"><strong>Account balances</strong> – To show your current financial status</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Check size={14} className="text-[#14b8a6] mt-0.5 shrink-0" />
-                  <span className="text-slate-600"><strong>Account names</strong> â€” To identify checking vs savings accounts</span>
+                  <span className="text-slate-600"><strong>Account names</strong> – To identify checking vs savings accounts</span>
                 </div>
               </div>
             </div>
@@ -2669,9 +2706,9 @@ export default function App() {
                 What We Never Access
               </h4>
               <div className="space-y-1 text-sm text-slate-600">
-                <p>â€¢ Your login credentials (handled by your bank)</p>
-                <p>â€¢ Ability to move or transfer money</p>
-                <p>â€¢ Your SSN or personal identity info</p>
+                <p>• Your login credentials (handled by your bank)</p>
+                <p>• Ability to move or transfer money</p>
+                <p>• Your SSN or personal identity info</p>
               </div>
             </div>
 
@@ -2773,11 +2810,11 @@ export default function App() {
                 </div>
                 
                 <div className="bg-blue-50 rounded-xl p-4 border border-[#1e3a5f]/20">
-                  <p className="text-sm text-blue-800 mb-2 font-medium">ðŸ“ Where to find your backup:</p>
+                  <p className="text-sm text-blue-800 mb-2 font-medium">📁 Where to find your backup:</p>
                   <ul className="text-sm text-blue-700 space-y-1">
-                    <li>â€¢ Check your <strong>Downloads</strong> folder</li>
-                    <li>â€¢ Look for files named <strong>BalanceBooks-Backup-...</strong></li>
-                    <li>â€¢ Or check your email if you sent it to yourself</li>
+                    <li>• Check your <strong>Downloads</strong> folder</li>
+                    <li>• Look for files named <strong>BalanceBooks-Backup-...</strong></li>
+                    <li>• Or check your email if you sent it to yourself</li>
                   </ul>
                 </div>
 
@@ -2810,10 +2847,10 @@ export default function App() {
                               raw: parsed
                             });
                           } else {
-                            alert('âŒ This doesn\'t look like a Balance Books backup file.\n\nPlease select a file that was created using the "Save Backup" button.');
+                            alert('❌ This doesn\'t look like a Balance Books backup file.\n\nPlease select a file that was created using the "Save Backup" button.');
                           }
                         } catch (err) {
-                          alert('âŒ Could not read this file.\n\nMake sure you\'re selecting a Balance Books backup file.');
+                          alert('❌ Could not read this file.\n\nMake sure you\'re selecting a Balance Books backup file.');
                         }
                       };
                       reader.readAsText(file);
@@ -2851,14 +2888,14 @@ export default function App() {
                     <span className="font-medium text-green-800">{restoreData.filename}</span>
                   </div>
                   <div className="text-sm text-green-700 space-y-1">
-                    <p>ðŸ“… Saved: <strong>{typeof restoreData.date === 'string' && restoreData.date.includes('T') ? new Date(restoreData.date).toLocaleDateString() : restoreData.date}</strong></p>
-                    <p>ðŸ“± Version: <strong>{restoreData.version}</strong></p>
+                    <p>📅 Saved: <strong>{typeof restoreData.date === 'string' && restoreData.date.includes('T') ? new Date(restoreData.date).toLocaleDateString() : restoreData.date}</strong></p>
+                    <p>📱 Version: <strong>{restoreData.version}</strong></p>
                   </div>
                 </div>
 
                 {/* What will be restored */}
                 <div className="bg-blue-50 rounded-xl p-4 border border-[#1e3a5f]/20">
-                  <p className="font-medium text-blue-800 mb-3">ðŸ“¦ This backup contains:</p>
+                  <p className="font-medium text-blue-800 mb-3">📦 This backup contains:</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white rounded-lg p-3 text-center">
                       <p className="text-2xl font-bold text-[#14b8a6]">{restoreData.summary.transactions}</p>
@@ -2893,7 +2930,7 @@ export default function App() {
                     onClick={() => setRestoreData(null)}
                     className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200"
                   >
-                    â† Back
+                    ← Back
                   </button>
                   <button 
                     onClick={() => {
@@ -2914,16 +2951,16 @@ export default function App() {
                       
                       // Show success message
                       setTimeout(() => {
-                        alert('âœ… Restore Complete!\n\nYour data has been successfully restored from the backup.\n\n' + 
-                          `â€¢ ${restoreData.summary.transactions} transactions\n` +
-                          `â€¢ ${restoreData.summary.recurringBills} recurring bills\n` +
-                          `â€¢ ${restoreData.summary.debts} debts\n` +
-                          `â€¢ ${restoreData.summary.budgetGoals} budget goals`);
+                        alert('✅ Restore Complete!\n\nYour data has been successfully restored from the backup.\n\n' + 
+                          `• ${restoreData.summary.transactions} transactions\n` +
+                          `• ${restoreData.summary.recurringBills} recurring bills\n` +
+                          `• ${restoreData.summary.debts} debts\n` +
+                          `• ${restoreData.summary.budgetGoals} budget goals`);
                       }, 100);
                     }}
                     className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:from-green-700 hover:to-emerald-700"
                   >
-                    âœ“ Restore My Data
+                    ✔ Restore My Data
                   </button>
                 </div>
               </div>
@@ -3028,13 +3065,13 @@ function DebtForm({ debt, onSubmit, onCancel }) {
       <div>
         <label className="block text-sm text-slate-600 font-medium mb-2">Debt Type</label>
         <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">
-          <option value="credit-card">ðŸ’³ Credit Card</option>
-          <option value="car-loan">ðŸš— Car Loan</option>
-          <option value="student-loan">ðŸŽ“ Student Loan</option>
-          <option value="mortgage">ðŸ  Mortgage</option>
-          <option value="personal-loan">ðŸ’° Personal Loan</option>
-          <option value="medical">ðŸ¥ Medical Debt</option>
-          <option value="other">ðŸ“‹ Other</option>
+          <option value="credit-card">💳 Credit Card</option>
+          <option value="car-loan">🚗 Car Loan</option>
+          <option value="student-loan">🎓 Student Loan</option>
+          <option value="mortgage">🏠 Mortgage</option>
+          <option value="personal-loan">💰 Personal Loan</option>
+          <option value="medical">🏥 Medical Debt</option>
+          <option value="other">📋 Other</option>
         </select>
       </div>
       <div>
