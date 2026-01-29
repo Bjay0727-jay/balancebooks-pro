@@ -99,7 +99,7 @@ export default function App() {
   const [dropboxError, setDropboxError] = useState(null);
   
   // Dropbox App Key - Replace with your own from https://www.dropbox.com/developers/apps
-  const DROPBOX_APP_KEY = 'YOUR_APP_KEY_HERE';
+  const DROPBOX_APP_KEY = 'spt62u1fcfmd2c1';
   const DROPBOX_REDIRECT_URI = window.location.origin;
 
   useEffect(() => { saveData('transactions', transactions); }, [transactions]);
