@@ -90,17 +90,6 @@ export default function App() {
   const [editDebt, setEditDebt] = useState(null);
   const [editBudget, setEditBudget] = useState(null);
   const [restoreData, setRestoreData] = useState(null); // For restore wizard
-  
-  // Dropbox Cloud Backup States
-  const [dropboxConnected, setDropboxConnected] = useState(() => loadData('dropboxConnected', false));
-  const [dropboxToken, setDropboxToken] = useState(() => loadData('dropboxToken', null));
-  const [dropboxSyncing, setDropboxSyncing] = useState(false);
-  const [dropboxLastSync, setDropboxLastSync] = useState(() => loadData('dropboxLastSync', null));
-  const [dropboxError, setDropboxError] = useState(null);
-  
-  // Dropbox App Key - Replace with your own from https://www.dropbox.com/developers/apps
-  const DROPBOX_APP_KEY = 'spt62u1fcfmd2c1';
-  const DROPBOX_REDIRECT_URI = window.location.origin;
 
   useEffect(() => { saveData('transactions', transactions); }, [transactions]);
   useEffect(() => { saveData('recurring', recurringExpenses); }, [recurringExpenses]);
@@ -111,30 +100,6 @@ export default function App() {
   useEffect(() => { saveData('autoBackup', autoBackupEnabled); }, [autoBackupEnabled]);
   useEffect(() => { saveData('lastBackup', lastBackupDate); }, [lastBackupDate]);
   useEffect(() => { saveData('notifications', notificationsEnabled); }, [notificationsEnabled]);
-
-  // Save Dropbox state
-  useEffect(() => { saveData('dropboxConnected', dropboxConnected); }, [dropboxConnected]);
-  useEffect(() => { saveData('dropboxToken', dropboxToken); }, [dropboxToken]);
-  useEffect(() => { saveData('dropboxLastSync', dropboxLastSync); }, [dropboxLastSync]);
-
-  // Handle Dropbox OAuth callback
-  useEffect(() => {
-    const handleDropboxCallback = () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
-        const params = new URLSearchParams(hash.substring(1));
-        const token = params.get('access_token');
-        if (token) {
-          setDropboxToken(token);
-          setDropboxConnected(true);
-          setDropboxError(null);
-          // Clean URL
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      }
-    };
-    handleDropboxCallback();
-  }, []);
 
   // Auto-backup every 24 hours
   useEffect(() => {
@@ -178,7 +143,7 @@ export default function App() {
 
   const performAutoBackup = useCallback(() => {
     const backup = {
-      version: __APP_VERSION__,
+      version: '1.6.0',
       exportDate: new Date().toISOString(),
       autoBackup: true,
       data: { transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts }
@@ -190,135 +155,6 @@ export default function App() {
     a.click();
     setLastBackupDate(new Date().toISOString());
   }, [transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts]);
-
-  // Dropbox: Connect (OAuth)
-  const connectDropbox = () => {
-    const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(DROPBOX_REDIRECT_URI)}`;
-    window.location.href = authUrl;
-  };
-
-  // Dropbox: Disconnect
-  const disconnectDropbox = () => {
-    setDropboxToken(null);
-    setDropboxConnected(false);
-    setDropboxLastSync(null);
-    setDropboxError(null);
-    localStorage.removeItem('bb_dropboxToken');
-    localStorage.removeItem('bb_dropboxConnected');
-    localStorage.removeItem('bb_dropboxLastSync');
-  };
-
-  // Dropbox: Sync backup to cloud
-  const syncToDropbox = async (token = dropboxToken) => {
-    if (!token) {
-      setDropboxError('Not connected to Dropbox');
-      return;
-    }
-    
-    setDropboxSyncing(true);
-    setDropboxError(null);
-    
-    try {
-      const backup = {
-        appName: 'BalanceBooks Pro',
-        version: __APP_VERSION__,
-        exportDate: new Date().toISOString(),
-        syncedFrom: window.location.hostname,
-        data: {
-          transactions,
-          recurringExpenses,
-          monthlyBalances,
-          savingsGoal,
-          budgetGoals,
-          debts
-        }
-      };
-      
-      const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/octet-stream',
-          'Dropbox-API-Arg': JSON.stringify({
-            path: '/balancebooks-backup.json',
-            mode: 'overwrite',
-            autorename: false,
-            mute: false
-          })
-        },
-        body: JSON.stringify(backup, null, 2)
-      });
-      
-      if (response.ok) {
-        const now = new Date().toISOString();
-        setDropboxLastSync(now);
-        setLastBackupDate(now);
-        setDropboxError(null);
-      } else if (response.status === 401) {
-        disconnectDropbox();
-        setDropboxError('Session expired. Please reconnect.');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error_summary || 'Upload failed');
-      }
-    } catch (err) {
-      console.error('Dropbox sync error:', err);
-      setDropboxError(err.message || 'Sync failed. Please try again.');
-    } finally {
-      setDropboxSyncing(false);
-    }
-  };
-
-  // Dropbox: Restore from cloud
-  const restoreFromDropbox = async () => {
-    if (!dropboxToken) {
-      setDropboxError('Not connected to Dropbox');
-      return;
-    }
-    
-    setDropboxSyncing(true);
-    setDropboxError(null);
-    
-    try {
-      const response = await fetch('https://content.dropboxapi.com/2/files/download', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${dropboxToken}`,
-          'Dropbox-API-Arg': JSON.stringify({ path: '/balancebooks-backup.json' })
-        }
-      });
-      
-      if (response.ok) {
-        const backup = await response.json();
-        setRestoreData({
-          filename: 'Dropbox Cloud Backup',
-          date: backup.exportDate,
-          version: backup.version || '1.0',
-          summary: {
-            transactions: backup.data?.transactions?.length || 0,
-            recurringBills: backup.data?.recurringExpenses?.length || 0,
-            debts: backup.data?.debts?.length || 0,
-            budgetGoals: Object.keys(backup.data?.budgetGoals || {}).filter(k => backup.data.budgetGoals[k] > 0).length
-          },
-          raw: backup,
-          source: 'dropbox'
-        });
-        setModal('restore-wizard');
-      } else if (response.status === 409) {
-        setDropboxError('No backup found in Dropbox. Sync your data first!');
-      } else if (response.status === 401) {
-        disconnectDropbox();
-        setDropboxError('Session expired. Please reconnect.');
-      } else {
-        throw new Error('Download failed');
-      }
-    } catch (err) {
-      console.error('Dropbox restore error:', err);
-      setDropboxError(err.message || 'Restore failed. Please try again.');
-    } finally {
-      setDropboxSyncing(false);
-    }
-  };
 
   // Get the key for monthly balance storage
   const getMonthKey = (m, y) => `${y}-${String(m).padStart(2, '0')}`;
@@ -619,7 +455,7 @@ export default function App() {
         description: `You're only saving ${savingsRate.toFixed(1)}% of income. Financial experts recommend at least 20% for long-term security.`, 
         potential: needed,
         tips: ['Set up automatic transfer to savings on payday', 'Start with just $25-50 per paycheck', 'Build a 3-month emergency fund first'],
-        icon: '⚠ ï¸'
+        icon: '⚠️'
       });
     } else if (savingsRate < 20 && avgIncome > 0) {
       const target = avgIncome * 0.2;
@@ -638,7 +474,7 @@ export default function App() {
     if (expenseRatio > 90 && avgIncome > 0) {
       recs.push({ 
         id: 10, type: 'alert', priority: 'high',
-        title: '⚠ ï¸ Living Paycheck to Paycheck', 
+        title: '⚠️ Living Paycheck to Paycheck', 
         description: `You're spending ${expenseRatio.toFixed(0)}% of your income. This leaves almost no buffer for emergencies.`, 
         potential: avgIncome * 0.1,
         tips: ['Track every expense for one week to find leaks', 'Cut one non-essential expense immediately', 'Build a $1,000 starter emergency fund'],
@@ -691,7 +527,7 @@ export default function App() {
         description: `Your balance grew by ${currency(stats.ending - stats.beginning)} this month. You're moving in the right direction!`, 
         potential: 0,
         tips: ['Maintain this momentum', 'Consider increasing savings goal', 'Plan ahead for upcoming large expenses'],
-        icon: '✅'
+        icon: '✓'
       });
     }
 
@@ -793,11 +629,7 @@ export default function App() {
         ['01/12/2026', 'Netflix & Spotify', '-25.99', 'Subscriptions', 'Expense', 'Yes', 'Monthly'],
         ['01/10/2026', 'Church Tithe', '-350', 'Tithes & Offerings', 'Expense', 'Yes', '10% of income'],
         ['01/08/2026', 'Family Dinner', '-78.50', 'Dining', 'Expense', 'Yes', 'Birthday celebration'],
-        ['01/07/2026', 'Chase Visa Payment', '-500', 'Credit Card Payment', 'Expense', 'Yes', 'Monthly payment'],
-        ['01/06/2026', 'Car Insurance', '-125', 'Insurance', 'Expense', 'Yes', 'Monthly premium'],
         ['01/05/2026', 'Side Gig Payment', '500', 'Income', 'Income', 'Yes', 'Freelance work'],
-        ['01/03/2026', 'Doctor Visit Copay', '-35', 'Healthcare', 'Expense', 'Yes', 'Annual checkup'],
-        ['01/02/2026', 'Amazon Purchase', '-67.99', 'Shopping', 'Expense', 'Yes', 'Household items'],
         ['01/01/2026', 'Mortgage/Rent', '-1850', 'Housing', 'Expense', 'Yes', 'Monthly payment'],
         ['01/01/2026', 'Savings Transfer', '-200', 'Savings', 'Expense', 'Yes', 'Emergency fund']
       ];
@@ -811,29 +643,26 @@ export default function App() {
       return;
     }
 
-    // Create professionally formatted Excel workbook matching official template
+    // Create professionally formatted Excel workbook
     const wb = XLSX.utils.book_new();
-    
-    // Category list for dropdown validation
-    const categoryList = 'Income,Groceries,Utilities,Transportation,Healthcare,Insurance,Entertainment,Dining,Shopping,Subscriptions,Education,Tithes & Offerings,Savings,Investment,Debt Payment,Childcare,Pets,Personal Care,Gifts & Donations,Housing,Credit Card Payment,Other';
     
     // Build template data with header, instructions, balance summary, and sample transactions
     const wsData = [
-      ['📊 Balance Books Pro - Import Template', null, null, null, null, null, null],
-      ['Fill in transactions below. Use dropdowns for Category, Type, and Paid. Expenses = negative amounts, Income = positive.', null, null, null, null, null, null],
-      [null, null, null, null, null, null, null],
-      ['Beginning Balance:', 0, null, 'Ending Balance:', { t: 'n', f: 'B4+SUMIF(E7:E100,"Income",C7:C100)+SUMIF(E7:E100,"Expense",C7:C100)' }, null, null],
-      [null, null, null, null, null, null, null],
+      ['📊 Balance Books Pro - Import Template'],
+      ['Fill in transactions below. Expenses should be negative amounts, Income should be positive. Categories must match exactly.'],
+      [],
+      ['Beginning Balance:', 0, '', 'Ending Balance:', { t: 'n', f: 'B4+SUMIF(E7:E100,"Income",C7:C100)+SUMIF(E7:E100,"Expense",C7:C100)' }],
+      [],
       ['Date', 'Description', 'Amount', 'Category', 'Type', 'Paid', 'Notes'],
       // Sample transactions showing realistic usage
       ['01/20/2026', 'January Paycheck', 3500, 'Income', 'Income', 'Yes', 'Direct deposit'],
       ['01/18/2026', 'Grocery Shopping', -125.50, 'Groceries', 'Expense', 'Yes', 'Weekly groceries'],
       ['01/15/2026', 'Electric Bill', -145, 'Utilities', 'Expense', 'No', 'Due on the 20th'],
-      ['01/14/2026', 'Gas Station', -52, 'Transportation', 'Expense', 'Yes', null],
+      ['01/14/2026', 'Gas Station', -52, 'Transportation', 'Expense', 'Yes', ''],
       ['01/12/2026', 'Netflix & Spotify', -25.99, 'Subscriptions', 'Expense', 'Yes', 'Monthly'],
       ['01/10/2026', 'Church Tithe', -350, 'Tithes & Offerings', 'Expense', 'Yes', '10% of income'],
       ['01/08/2026', 'Family Dinner', -78.50, 'Dining', 'Expense', 'Yes', 'Birthday celebration'],
-      ['01/07/2026', 'Chase Visa Payment', -500, 'Credit Card Payment', 'Expense', 'Yes', 'Monthly payment'],
+      ['01/07/2026', 'Chase Visa Payment', -500, 'Debt Payment', 'Expense', 'Yes', 'Monthly payment'],
       ['01/06/2026', 'Car Insurance', -125, 'Insurance', 'Expense', 'Yes', 'Monthly premium'],
       ['01/05/2026', 'Side Gig Payment', 500, 'Income', 'Income', 'Yes', 'Freelance work'],
       ['01/03/2026', 'Doctor Visit Copay', -35, 'Healthcare', 'Expense', 'Yes', 'Annual checkup'],
@@ -842,9 +671,9 @@ export default function App() {
       ['01/01/2026', 'Savings Transfer', -200, 'Savings', 'Expense', 'Yes', 'Emergency fund']
     ];
 
-    // Add empty rows for user input (36 more rows to reach row 56)
-    for (let i = 0; i < 36; i++) {
-      wsData.push([null, null, null, null, null, null, null]);
+    // Add empty rows for user input (30 more rows)
+    for (let i = 0; i < 30; i++) {
+      wsData.push(['', '', '', '', '', '', '']);
     }
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -866,48 +695,40 @@ export default function App() {
       { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }   // Instructions row
     ];
 
-    // Add data validations for dropdown columns (D7:D56, E7:E56, F7:F56)
-    if (!ws['!dataValidations']) ws['!dataValidations'] = [];
-    ws['!dataValidations'].push(
-      { sqref: 'D7:D56', type: 'list', formula1: '"' + categoryList + '"' },
-      { sqref: 'E7:E56', type: 'list', formula1: '"Income,Expense"' },
-      { sqref: 'F7:F56', type: 'list', formula1: '"Yes,No"' }
-    );
-
     XLSX.utils.book_append_sheet(wb, ws, 'Import Template');
 
     // Create Instructions sheet with detailed help
     const instData = [
       ['📘 How to Use This Template'],
-      [null],
+      [],
       ['1. FILL IN YOUR DATA'],
-      ['   • Date: Enter dates in MM/DD/YYYY format'],
+      ['   • Date: Enter dates in MM/DD/YYYY or YYYY-MM-DD format'],
       ['   • Description: Brief description of the transaction'],
-      ['   • Amount: Positive for income, negative for expenses'],
-      ['   • Category: Select from dropdown (required for import)'],
-      ['   • Type: Income or Expense'],
-      ['   • Paid: Yes or No'],
+      ['   • Amount: POSITIVE for income, NEGATIVE for expenses (e.g., -125.50)'],
+      ['   • Category: Must match one of the supported categories below'],
+      ['   • Type: "Income" or "Expense"'],
+      ['   • Paid: "Yes" or "No"'],
       ['   • Notes: Optional additional details'],
-      [null],
+      [],
       ['2. IMPORT TO BALANCE BOOKS'],
-      ['   • Save this file as .xlsx or .csv'],
-      ['   • In Balance Books Pro, click Import button'],
+      ['   • Save this file (File → Save)'],
+      ['   • In Balance Books Pro, click the Import button'],
       ['   • Select this file'],
       ['   • Review the preview and confirm import'],
-      [null],
+      [],
       ['3. SUPPORTED CATEGORIES'],
-      ['   Income, Groceries, Utilities, Transportation, Healthcare,'],
-      ['   Insurance, Entertainment, Dining, Shopping, Subscriptions,'],
-      ['   Education, Tithes & Offerings, Savings, Investment,'],
-      ['   Debt Payment, Childcare, Pets, Personal Care,'],
-      ['   Gifts & Donations, Housing, Credit Card Payment, Other'],
-      [null],
+      ['   Income, Housing, Utilities, Groceries, Transportation,'],
+      ['   Healthcare, Insurance, Entertainment, Dining, Shopping,'],
+      ['   Subscriptions, Education, Tithes & Offerings, Savings,'],
+      ['   Investment, Debt Payment, Childcare, Pets, Personal Care,'],
+      ['   Gifts & Donations, Transfer, Other'],
+      [],
       ['4. TIPS'],
       ['   • Set your Beginning Balance in cell B4 before importing'],
       ['   • Delete sample rows and replace with your own data'],
       ['   • The Ending Balance formula will auto-calculate'],
       ['   • You can import multiple months at once'],
-      [null],
+      [],
       ['📞 Support: help@balancebooksapp.com'],
       ['🌐 Web: https://balancebooksapp.com']
     ];
@@ -1069,12 +890,6 @@ export default function App() {
       'paycheck': 'income',
       'wages': 'income',
       'freelance': 'income',
-      'credit card': 'debt',
-      'credit card payment': 'debt',
-      'visa': 'debt',
-      'mastercard': 'debt',
-      'loan': 'debt',
-      'payment': 'debt',
     };
     
     // Check aliases
@@ -1260,7 +1075,7 @@ export default function App() {
         // XLSX library not available - prompt user to use CSV
         resolve({ 
           transactions: [], 
-          errors: ['Excel (.xlsx) files require the XLSX library which failed to load. Please save your file as CSV (File ↑ Save As ↑ CSV) and import that instead.']
+          errors: ['Excel (.xlsx) files require the XLSX library which failed to load. Please save your file as CSV (File → Save As → CSV) and import that instead.']
         });
       }
     });
@@ -1286,7 +1101,7 @@ export default function App() {
         
         // If Excel parsing failed, suggest CSV
         if (result.transactions.length === 0 && result.errors.length > 0) {
-          alert(`Unable to read Excel file.\n\n${result.errors[0]}\n\nTip: In Excel, use File ↑ Save As ↑ CSV UTF-8`);
+          alert(`Unable to read Excel file.\n\n${result.errors[0]}\n\nTip: In Excel, use File → Save As → CSV UTF-8`);
           e.target.value = '';
           return;
         }
@@ -1296,7 +1111,7 @@ export default function App() {
         console.log('File content preview:', content.substring(0, 500));
         result = parseCSV(content);
       } else {
-        alert('Please upload a CSV or Excel file.\n\nSupported formats:\n• CSV (.csv)\n• Excel (.xlsx, .xls)\n• Text (.txt)\n\nTip: Open your spreadsheet and Save As ↑ CSV UTF-8');
+        alert('Please upload a CSV or Excel file.\n\nSupported formats:\n• CSV (.csv)\n• Excel (.xlsx, .xls)\n• Text (.txt)\n\nTip: Open your spreadsheet and Save As → CSV UTF-8');
         e.target.value = '';
         return;
       }
@@ -1430,9 +1245,9 @@ export default function App() {
   };
 
   const NavItem = ({ id, icon: Icon, label, badge }) => (
-    <button onClick={() => { setView(id); if (isMobile) setSidebarOpen(false); }} className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all ${view === id ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white shadow-lg' : 'text-slate-600 hover:bg-gradient-to-r hover:from-[#0f172a]/5 hover:to-[#14b8a6]/5'}`}>
+    <button onClick={() => { setView(id); if (isMobile) setSidebarOpen(false); }} className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all ${view === id ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'}`}>
       <div className="flex items-center gap-3"><Icon size={20} /><span className="font-medium">{label}</span></div>
-      {badge && <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${view === id ? 'bg-white/20' : 'bg-gradient-to-r from-green-100 to-blue-100 text-[#14b8a6]'}`}>{badge}</span>}
+      {badge && <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${view === id ? 'bg-white/20' : 'bg-teal-100 text-teal-700'}`}>{badge}</span>}
     </button>
   );
 
@@ -1440,7 +1255,7 @@ export default function App() {
   const EditableStatCard = ({ label, value, icon: Icon, iconBg, valueColor, onEdit, editable = false, suffix = '' }) => (
     <div 
       onClick={() => editable && onEdit && setModal(onEdit)} 
-      className={`bg-white rounded-2xl p-5 border-2 shadow-sm hover:shadow-lg transition-all ${editable ? 'cursor-pointer hover:border-blue-400 group' : ''} ${valueColor === 'text-[#14b8a6]' ? 'border-[#1e3a5f]/20' : valueColor === 'text-[#14b8a6]' ? 'border-[#14b8a6]/20' : valueColor === 'text-rose-600' ? 'border-rose-200' : 'border-[#1e3a5f]/10'}`}
+      className={`bg-white rounded-2xl p-5 border-2 shadow-sm hover:shadow-lg transition-all ${editable ? 'cursor-pointer hover:border-teal-400 group' : ''} ${valueColor === 'text-teal-600' ? 'border-slate-200' : valueColor === 'text-rose-600' ? 'border-rose-200' : 'border-slate-200'}`}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="text-slate-500 text-sm font-medium">{label}</span>
@@ -1455,12 +1270,12 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1e3a5f]/10 via-white to-[#14b8a6]/10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'Inter', sans-serif" }}>
       {isMobile && sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 border-r border-[#1e3a5f]/20 p-6 flex flex-col z-50 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-200 p-6 flex flex-col z-50 transition-transform duration-300 shadow-lg ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#0f172a] flex items-center justify-center shadow-lg overflow-hidden">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center shadow-lg overflow-hidden">
             <svg viewBox="0 0 100 100" className="w-8 h-8">
               <defs>
                 <linearGradient id="navyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -1493,27 +1308,27 @@ export default function App() {
           <NavItem id="recommendations" icon={Lightbulb} label="Smart Tips" badge={savingsRecommendations.filter(r => r.priority === 'high').length || null} />
           <NavItem id="settings" icon={Settings} label="Settings" />
         </nav>
-        <div className="pt-6 border-t border-[#1e3a5f]/20 space-y-2">
-          <button onClick={() => setModal('connect')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#14b8a6] to-[#0d9488] text-white font-medium hover:from-[#0d9488] hover:to-[#0f172a] shadow-md"><Link2 size={20} /><span>Connect Bank</span></button>
-          <button onClick={() => setModal('import')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white font-medium hover:from-[#1e3a5f] hover:to-[#0f172a] shadow-md"><Upload size={20} /><span>Import</span></button>
-          <button onClick={exportCSV} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-slate-500 hover:bg-white border border-[#1e3a5f]/20"><Download size={20} /><span className="font-medium">Export</span></button>
+        <div className="pt-6 border-t border-slate-200 space-y-2">
+          <button onClick={() => setModal('connect')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#14b8a6] to-[#0d9488] text-white font-medium hover:shadow-lg transition-all"><Link2 size={20} /><span>Connect Bank</span></button>
+          <button onClick={() => setModal('import')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white font-medium hover:shadow-lg transition-all"><Upload size={20} /><span>Import</span></button>
+          <button onClick={exportCSV} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200 transition-all"><Download size={20} /><span className="font-medium">Export</span></button>
         </div>
       </aside>
 
       <main className={`transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'}`}>
-        <header className="sticky top-0 z-30 bg-gradient-to-r from-[#0f172a]/5/95 via-white/95 to-[#14b8a6]/5/95 backdrop-blur-lg border-b border-[#1e3a5f]/20">
+        <header className="sticky top-0 z-30 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] shadow-lg">
           <div className="flex items-center justify-between px-4 md:px-8 py-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6]"><Menu size={20} /></button>
-              <div><h2 className="font-bold text-slate-900 text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view}</h2><p className="text-sm text-[#14b8a6] font-medium">{FULL_MONTHS[month]} {year}</p></div>
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg hover:bg-white/10 text-white"><Menu size={20} /></button>
+              <div><h2 className="font-bold text-white text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view}</h2><p className="text-sm text-white/70 font-medium">{FULL_MONTHS[month]} {year}</p></div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 border-2 border-[#1e3a5f]/20 rounded-xl overflow-hidden shadow-sm">
-                <button onClick={() => { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); }} className="p-3 hover:bg-[#14b8a6]/10 text-[#14b8a6]"><ChevronLeft size={18} /></button>
-                <span className="px-4 font-semibold text-slate-700 min-w-[60px] text-center">{MONTHS[month]}</span>
-                <button onClick={() => { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); }} className="p-3 hover:bg-[#14b8a6]/10 text-[#14b8a6]"><ChevronRight size={18} /></button>
+              <div className="flex items-center bg-white/10 border border-white/20 rounded-xl overflow-hidden">
+                <button onClick={() => { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); }} className="p-3 hover:bg-white/10 text-white"><ChevronLeft size={18} /></button>
+                <span className="px-4 font-semibold text-white min-w-[60px] text-center">{MONTHS[month]}</span>
+                <button onClick={() => { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); }} className="p-3 hover:bg-white/10 text-white"><ChevronRight size={18} /></button>
               </div>
-              {!isMobile && <button onClick={() => setModal('add')} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium hover:from-blue-700 hover:to-green-600 shadow-lg"><Plus size={18} />Add</button>}
+              {!isMobile && <button onClick={() => setModal('add')} className="flex items-center gap-2 px-5 py-3 bg-white text-[#1e3a5f] rounded-xl font-semibold hover:bg-white/90 shadow-lg"><Plus size={18} />Add</button>}
             </div>
           </div>
         </header>
@@ -1522,18 +1337,18 @@ export default function App() {
           {view === 'dashboard' && (
             <div className="space-y-6">
               {/* Balance Overview Section - Editable */}
-              <div className="bg-gradient-to-r from-blue-600 via-[#1e3a5f] to-[#14b8a6]/50 rounded-2xl p-6 text-white shadow-xl">
+              <div className="bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] rounded-2xl p-6 text-white shadow-xl">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <Calculator size={24} />
                     <h3 className="font-bold text-lg">Monthly Balance Overview</h3>
                   </div>
-                  <span className="text-[#14b8a6]/70 text-sm bg-white/10 px-3 py-1 rounded-full">Click any card to edit</span>
+                  <span className="text-teal-100 text-sm bg-white/10 px-3 py-1 rounded-full">Click any card to edit</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white/15 backdrop-blur rounded-xl p-4 cursor-pointer hover:bg-white/25 transition-all border border-white/20" onClick={() => setModal('edit-beginning')}>
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-[#14b8a6]/70 text-sm">Beginning Balance</p>
+                      <p className="text-teal-100 text-sm">Beginning Balance</p>
                       <Edit2 size={12} className="text-blue-200" />
                     </div>
                     <p className="text-2xl font-bold">{currency(stats.beginning)}</p>
@@ -1577,36 +1392,36 @@ export default function App() {
               )}
 
               {linkedAccounts.length === 0 && (
-                <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0f172a]/50 via-[#1e3a5f] to-[#14b8a6]/50 text-white shadow-xl">
-                  <div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-3 rounded-xl bg-white/20"><Building2 size={24} /></div><div><h3 className="font-semibold text-lg">Connect Your Bank</h3><p className="text-[#14b8a6]/70 text-sm">Auto-mark expenses as paid</p></div></div><button onClick={() => setModal('connect')} className="flex items-center gap-2 px-5 py-3 bg-white text-[#14b8a6] rounded-xl font-semibold hover:bg-blue-50 shadow-lg"><Link2 size={18} />Connect</button></div>
+                <div className="p-6 rounded-2xl bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white shadow-xl">
+                  <div className="flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-3 rounded-xl bg-white/20"><Building2 size={24} /></div><div><h3 className="font-semibold text-lg">Connect Your Bank</h3><p className="text-teal-100 text-sm">Auto-mark expenses as paid</p></div></div><button onClick={() => setModal('connect')} className="flex items-center gap-2 px-5 py-3 bg-white text-[#1e3a5f] rounded-xl font-semibold hover:bg-slate-50 shadow-lg"><Link2 size={18} />Connect</button></div>
                 </div>
               )}
 
               {/* Stats Cards - Clickable */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <EditableStatCard label="Beginning Balance" value={stats.beginning} icon={Wallet} iconBg="bg-gradient-to-br from-[#1e3a5f]/10 to-blue-200" valueColor="text-[#14b8a6]" editable onEdit="edit-beginning" />
-                <EditableStatCard label="Income" value={stats.income} icon={ArrowUpRight} iconBg="bg-gradient-to-br from-green-100 to-green-200" valueColor="text-[#14b8a6]" editable onEdit="edit-income" />
-                <div className="bg-white rounded-2xl p-5 border-2 border-rose-200 shadow-sm cursor-pointer hover:border-rose-400 hover:shadow-lg transition-all group" onClick={() => setModal('edit-expenses')}><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Expenses</span><div className="p-2 rounded-xl bg-gradient-to-br from-rose-100 to-rose-200"><ArrowDownRight size={16} className="text-rose-600" /></div></div><div className="flex items-baseline gap-1"><p className="font-bold text-rose-600 text-2xl">{currency(stats.expenses)}</p><Edit2 size={14} className="ml-2 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" /></div>{stats.unpaidCount > 0 && <p className="text-xs text-amber-600 mt-1 font-medium">{stats.unpaidCount} unpaid</p>}</div>
-                <EditableStatCard label="Ending Balance" value={stats.ending} icon={Target} iconBg="bg-gradient-to-br from-green-100 to-green-200" valueColor="text-[#14b8a6]" editable onEdit="edit-ending" />
+                <EditableStatCard label="Beginning Balance" value={stats.beginning} icon={Wallet} iconBg="bg-slate-100" valueColor="text-teal-600" editable onEdit="edit-beginning" />
+                <EditableStatCard label="Income" value={stats.income} icon={ArrowUpRight} iconBg="bg-green-100" valueColor="text-green-600" editable onEdit="edit-income" />
+                <div className="bg-white rounded-2xl p-5 border-2 border-rose-200 shadow-sm cursor-pointer hover:border-rose-400 hover:shadow-lg transition-all group" onClick={() => setModal('edit-expenses')}><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Expenses</span><div className="p-2 rounded-xl bg-rose-100"><ArrowDownRight size={16} className="text-rose-600" /></div></div><div className="flex items-baseline gap-1"><p className="font-bold text-rose-600 text-2xl">{currency(stats.expenses)}</p><Edit2 size={14} className="ml-2 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" /></div>{stats.unpaidCount > 0 && <p className="text-xs text-amber-600 mt-1 font-medium">{stats.unpaidCount} unpaid</p>}</div>
+                <EditableStatCard label="Ending Balance" value={stats.ending} icon={Target} iconBg="bg-green-100" valueColor="text-green-600" editable onEdit="edit-ending" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 rounded-2xl p-5 border-2 border-[#1e3a5f]/20 shadow-sm"><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Net Change</span><div className="p-2 rounded-xl bg-gradient-to-br from-[#1e3a5f]/10 to-[#14b8a6]/10"><TrendingUp size={16} className={stats.net >= 0 ? "text-[#14b8a6]" : "text-rose-600"} /></div></div><p className={`font-bold text-2xl ${stats.net >= 0 ? 'text-[#14b8a6]' : 'text-rose-600'}`}>{stats.net >= 0 ? '+' : ''}{currency(stats.net)}</p></div>
-                <div className="bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 rounded-2xl p-5 border-2 border-[#1e3a5f]/20 shadow-sm"><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Monthly Recurring</span><div className="p-2 rounded-xl bg-gradient-to-br from-[#1e3a5f]/10 to-blue-200"><RefreshCw size={16} className="text-[#14b8a6]" /></div></div><p className="font-bold text-[#14b8a6] text-2xl">{currency(totalMonthlyRecurring)}</p><p className="text-xs text-slate-500 mt-1">/month committed</p></div>
+                <div className="bg-white rounded-2xl p-5 border-2 border-slate-200 shadow-sm"><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Net Change</span><div className="p-2 rounded-xl bg-slate-100"><TrendingUp size={16} className={stats.net >= 0 ? "text-teal-600" : "text-rose-600"} /></div></div><p className={`font-bold text-2xl ${stats.net >= 0 ? 'text-teal-600' : 'text-rose-600'}`}>{stats.net >= 0 ? '+' : ''}{currency(stats.net)}</p></div>
+                <div className="bg-white rounded-2xl p-5 border-2 border-slate-200 shadow-sm"><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Monthly Recurring</span><div className="p-2 rounded-xl bg-slate-100"><RefreshCw size={16} className="text-teal-600" /></div></div><p className="font-bold text-teal-600 text-2xl">{currency(totalMonthlyRecurring)}</p><p className="text-xs text-slate-500 mt-1">/month committed</p></div>
               </div>
 
               {savingsRecommendations.filter(r => r.priority === 'high').length > 0 && (
-                <div className="bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50 rounded-2xl p-6 border-2 border-[#14b8a6]/20 shadow-sm">
-                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><Sparkles size={20} className="text-[#14b8a6]" /><h3 className="font-semibold text-slate-900">Priority Recommendations</h3></div><button onClick={() => setView('recommendations')} className="text-sm text-[#14b8a6] font-medium hover:text-[#0d9488] bg-blue-50 px-3 py-1 rounded-full">View All ↑</button></div>
-                  <div className="space-y-3">{savingsRecommendations.filter(r => r.priority === 'high').slice(0, 2).map(rec => (<div key={rec.id} className="flex items-start gap-3 bg-white rounded-xl p-4 border border-[#14b8a6]/10 shadow-sm hover:shadow-md transition-all"><div className={`p-2 rounded-xl ${rec.type === 'alert' ? 'bg-gradient-to-br from-rose-100 to-rose-200' : rec.type === 'success' ? 'bg-gradient-to-br from-green-100 to-green-200' : 'bg-gradient-to-br from-[#1e3a5f]/10 to-[#14b8a6]/10'}`}>{rec.type === 'alert' ? <AlertTriangle size={16} className="text-rose-600" /> : <Lightbulb size={16} className="text-[#14b8a6]" />}</div><div className="flex-1"><p className="font-medium text-slate-900">{rec.title}</p><p className="text-sm text-slate-500 line-clamp-2">{rec.description}</p>{rec.potential > 0 && <p className="text-sm text-[#14b8a6] font-semibold mt-1">💰 Save up to {currency(rec.potential)}/mo</p>}</div></div>))}</div>
+                <div className="bg-slate-50 rounded-2xl p-6 border-2 border-teal-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><Sparkles size={20} className="text-teal-600" /><h3 className="font-semibold text-slate-900">Priority Recommendations</h3></div><button onClick={() => setView('recommendations')} className="text-sm text-teal-600 font-medium hover:text-[#0d9488] bg-blue-50 px-3 py-1 rounded-full">View All →</button></div>
+                  <div className="space-y-3">{savingsRecommendations.filter(r => r.priority === 'high').slice(0, 2).map(rec => (<div key={rec.id} className="flex items-start gap-3 bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-all"><div className={`p-2 rounded-xl ${rec.type === 'alert' ? 'bg-gradient-to-br from-rose-100 to-rose-200' : rec.type === 'success' ? 'bg-gradient-to-br from-green-100 to-green-200' : 'bg-teal-100'}`}>{rec.type === 'alert' ? <AlertTriangle size={16} className="text-rose-600" /> : <Lightbulb size={16} className="text-teal-600" />}</div><div className="flex-1"><p className="font-medium text-slate-900">{rec.title}</p><p className="text-sm text-slate-500 line-clamp-2">{rec.description}</p>{rec.potential > 0 && <p className="text-sm text-teal-600 font-semibold mt-1">💰 Save up to {currency(rec.potential)}/mo</p>}</div></div>))}</div>
                 </div>
               )}
 
-              <div className="bg-white rounded-2xl p-6 border-2 border-[#1e3a5f]/10 shadow-sm"><h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><CreditCard size={18} className="text-[#14b8a6]" />Spending by Category</h3><div className="space-y-4">{catBreakdown.slice(0, 5).map(cat => (<div key={cat.id}><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><span>{cat.icon}</span><span className="font-medium text-slate-700 text-sm">{cat.name}</span></div><span className="font-bold text-slate-900 text-sm">{currency(cat.total)}</span></div><div className="h-3 bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${cat.pct}%`, backgroundColor: cat.color }} /></div></div>))}</div></div>
+              <div className="bg-white rounded-2xl p-6 border-2 border-slate-200 shadow-sm"><h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><CreditCard size={18} className="text-teal-600" />Spending by Category</h3><div className="space-y-4">{catBreakdown.slice(0, 5).map(cat => (<div key={cat.id}><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><span>{cat.icon}</span><span className="font-medium text-slate-700 text-sm">{cat.name}</span></div><span className="font-bold text-slate-900 text-sm">{currency(cat.total)}</span></div><div className="h-3 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${cat.pct}%`, backgroundColor: cat.color }} /></div></div>))}</div></div>
               
-              <div className="bg-white rounded-2xl border-2 border-[#14b8a6]/10 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between p-6 border-b border-[#14b8a6]/10 bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50"><h3 className="font-semibold text-slate-900 flex items-center gap-2"><Receipt size={18} className="text-[#14b8a6]" />Recent Transactions</h3><button onClick={() => setView('transactions')} className="text-sm text-[#14b8a6] font-medium hover:text-green-700 bg-[#14b8a6]/5 px-3 py-1 rounded-full">View All ↑</button></div>
-                <div className="divide-y divide-slate-100">{monthTx.slice(0, 6).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (<div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-gradient-to-r hover:from-[#0f172a]/5/30 hover:to-[#14b8a6]/5/30"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div><div><div className="flex items-center gap-2"><p className="font-medium text-slate-900 text-sm">{tx.desc}</p>{tx.paid ? <Check size={14} className="text-green-500" /> : <Clock size={14} className="text-amber-500" />}</div><p className="text-xs text-slate-500">{shortDate(tx.date)}</p></div></div><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>{tx.amount > 0 ? '+' : ''}{currency(tx.amount)}</span></div>); })}</div>
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50"><h3 className="font-semibold text-slate-900 flex items-center gap-2"><Receipt size={18} className="text-teal-600" />Recent Transactions</h3><button onClick={() => setView('transactions')} className="text-sm text-teal-600 font-medium hover:text-green-700 bg-teal-50 px-3 py-1 rounded-full">View All →</button></div>
+                <div className="divide-y divide-slate-100">{monthTx.slice(0, 6).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (<div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div><div><div className="flex items-center gap-2"><p className="font-medium text-slate-900 text-sm">{tx.desc}</p>{tx.paid ? <Check size={14} className="text-green-500" /> : <Clock size={14} className="text-amber-500" />}</div><p className="text-xs text-slate-500">{shortDate(tx.date)}</p></div></div><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-teal-600' : 'text-slate-900'}`}>{tx.amount > 0 ? '+' : ''}{currency(tx.amount)}</span></div>); })}</div>
               </div>
             </div>
           )}
@@ -1615,9 +1430,9 @@ export default function App() {
             <div className="space-y-4">
               {/* Filters Row */}
               <div className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#14b8a6]" size={18} /><input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]" /></div>
-                <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
-                <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-[#14b8a6]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Status</option><option value="paid">✔ Paid</option><option value="unpaid">○ Unpaid</option></select>
+                <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-600" size={18} /><input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]" /></div>
+                <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
+                <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Status</option><option value="paid">âœ“ Paid</option><option value="unpaid">â—‹ Unpaid</option></select>
               </div>
               
               {/* Action Buttons Row */}
@@ -1632,23 +1447,21 @@ export default function App() {
                   <button 
                     onClick={() => {
                       const data = {
-                        version: __APP_VERSION__,
+                        version: '1.2',
                         exportDate: new Date().toISOString(),
                         transactions,
                         recurringExpenses,
                         monthlyBalances,
-                        savingsGoal,
-                        budgetGoals,
-                        debts
+                        savingsGoal
                       };
                       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                       const a = document.createElement('a');
                       a.href = URL.createObjectURL(blob);
-                      a.download = `BalanceBooks-Backup-${new Date().toISOString().split('T')[0]}.json`;
+                      a.download = `balance-books-backup-${new Date().toISOString().split('T')[0]}.json`;
                       a.click();
                       URL.revokeObjectURL(a.href);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-lg font-medium hover:from-[#1e3a5f] hover:to-[#0f172a] shadow-sm text-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-lg font-medium hover:opacity-90 shadow-sm text-sm"
                   >
                     <Download size={16} />
                     <span>Backup All</span>
@@ -1676,7 +1489,7 @@ export default function App() {
                   {/* Delete All Button */}
                   <button 
                     onClick={() => {
-                      if (confirm(`⚠ ï¸ DELETE ALL ${transactions.length} TRANSACTIONS?\n\nThis will permanently remove ALL your transaction data.\n\nTip: Use "Backup All" first to save your data.\n\nThis cannot be undone!`)) {
+                      if (confirm(`⚠️ DELETE ALL ${transactions.length} TRANSACTIONS?\n\nThis will permanently remove ALL your transaction data.\n\nTip: Use "Backup All" first to save your data.\n\nThis cannot be undone!`)) {
                         if (confirm('Are you absolutely sure? Type "yes" in your mind and click OK to confirm.')) {
                           setTransactions([]);
                           setSearch('');
@@ -1695,15 +1508,15 @@ export default function App() {
               </div>
               
               {/* Transactions List */}
-              <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm divide-y divide-slate-100">
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm divide-y divide-slate-100">
                 {filtered.length > 0 ? filtered.slice(0, 50).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (
-                  <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-gradient-to-r hover:from-[#0f172a]/5/50 hover:to-[#14b8a6]/5/50">
+                  <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <button onClick={() => togglePaid(tx.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${tx.paid ? 'bg-gradient-to-r from-[#14b8a6]/50 to-green-400 border-green-500' : 'border-blue-300 hover:border-green-400'}`}>{tx.paid && <Check size={14} className="text-white" />}</button>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div>
                       <div className="min-w-0"><p className={`font-medium text-sm truncate ${tx.paid ? 'text-slate-900' : 'text-slate-600'}`}>{tx.desc}</p><p className="text-xs text-slate-500">{shortDate(tx.date)}</p></div>
                     </div>
-                    <div className="flex items-center gap-2"><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>{currency(tx.amount)}</span><button onClick={() => setEditTx(tx)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6] hover:text-[#14b8a6]"><Edit2 size={14} /></button><button onClick={() => deleteTx(tx.id)} className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button></div>
+                    <div className="flex items-center gap-2"><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-teal-600' : 'text-slate-900'}`}>{currency(tx.amount)}</span><button onClick={() => setEditTx(tx)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-teal-600 hover:text-teal-600"><Edit2 size={14} /></button><button onClick={() => deleteTx(tx.id)} className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button></div>
                   </div>
                 ); }) : (
                   <div className="p-12 text-center">
@@ -1732,19 +1545,19 @@ export default function App() {
 
           {view === 'recurring' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-600 via-[#1e3a5f] to-[#14b8a6]/50 rounded-2xl text-white shadow-xl"><div><h3 className="text-lg font-semibold">Monthly Recurring</h3><p className="text-3xl font-bold">{currency(totalMonthlyRecurring)}</p></div><button onClick={() => setModal('add-recurring')} className="flex items-center gap-2 px-4 py-3 bg-white text-[#14b8a6] rounded-xl font-medium hover:bg-blue-50 shadow-lg"><Plus size={18} />Add</button></div>
-              <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm divide-y divide-slate-100">
+              <div className="flex items-center justify-between p-6 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] rounded-2xl text-white shadow-xl"><div><h3 className="text-lg font-semibold">Monthly Recurring</h3><p className="text-3xl font-bold">{currency(totalMonthlyRecurring)}</p></div><button onClick={() => setModal('add-recurring')} className="flex items-center gap-2 px-4 py-3 bg-white text-[#1e3a5f] rounded-xl font-semibold hover:bg-slate-50 shadow-lg"><Plus size={18} />Add</button></div>
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm divide-y divide-slate-100">
                 {recurringExpenses.map(r => { const cat = CATEGORIES.find(c => c.id === r.category); const freq = FREQUENCY_OPTIONS.find(f => f.id === r.frequency); return (
-                  <div key={r.id} className={`flex items-center justify-between px-4 py-4 hover:bg-gradient-to-r hover:from-[#0f172a]/5/50 hover:to-[#14b8a6]/5/50 ${!r.active ? 'opacity-50' : ''}`}>
+                  <div key={r.id} className={`flex items-center justify-between px-4 py-4 hover:bg-slate-50 ${!r.active ? 'opacity-50' : ''}`}>
                     <div className="flex items-center gap-3">
                       <button onClick={() => toggleRecurringActive(r.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${r.active ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] border-blue-500' : 'border-slate-300'}`}>{r.active && <Check size={14} className="text-white" />}</button>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div>
-                      <div><p className="font-medium text-slate-900">{r.name}</p><div className="flex items-center gap-2 text-xs text-slate-500"><span>{freq?.name}</span><span>•</span><span>Due: {r.dueDay}</span>{r.autoPay && <><span>•</span><span className="text-[#14b8a6] font-medium">Auto-pay</span></>}</div></div>
+                      <div><p className="font-medium text-slate-900">{r.name}</p><div className="flex items-center gap-2 text-xs text-slate-500"><span>{freq?.name}</span><span>•</span><span>Due: {r.dueDay}</span>{r.autoPay && <><span>•</span><span className="text-teal-600 font-medium">Auto-pay</span></>}</div></div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-slate-900">{currency(r.amount)}</span>
-                      <button onClick={() => createFromRecurring(r)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-green-500 hover:text-[#14b8a6]" title="Create transaction"><Plus size={14} /></button>
-                      <button onClick={() => setEditRecurring(r)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6] hover:text-[#14b8a6]"><Edit2 size={14} /></button>
+                      <button onClick={() => createFromRecurring(r)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-green-500 hover:text-teal-600" title="Create transaction"><Plus size={14} /></button>
+                      <button onClick={() => setEditRecurring(r)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-teal-600 hover:text-teal-600"><Edit2 size={14} /></button>
                       <button onClick={() => deleteRecurring(r.id)} className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
                     </div>
                   </div>
@@ -1755,18 +1568,18 @@ export default function App() {
 
           {view === 'accounts' && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 border-2 border-[#1e3a5f]/20 shadow-sm"><div className="flex items-start gap-4"><div className="p-3 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] shadow-lg"><Shield size={24} className="text-white" /></div><div><h3 className="font-semibold text-lg text-slate-900 mb-2">Secure Bank Connection</h3><p className="text-slate-500 text-sm">Transactions auto-marked as paid when cleared</p></div></div></div>
+              <div className="p-6 rounded-2xl bg-white border-2 border-slate-200 shadow-sm"><div className="flex items-start gap-4"><div className="p-3 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] shadow-lg"><Shield size={24} className="text-white" /></div><div><h3 className="font-semibold text-lg text-slate-900 mb-2">Secure Bank Connection</h3><p className="text-slate-500 text-sm">Transactions auto-marked as paid when cleared</p></div></div></div>
               {linkedAccounts.length > 0 ? linkedAccounts.map(acc => (
-                <div key={acc.id} className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-[#14b8a6]/20 shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center text-white font-bold text-xl shadow-lg">{acc.institution.charAt(0)}</div><div><h4 className="font-bold text-slate-900">{acc.institution}</h4><p className="text-xs text-[#14b8a6] font-medium">✔ Auto-marking enabled</p></div></div><button onClick={() => setLinkedAccounts([])} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200"><Unlink size={14} /></button></div>
-                  <div className="grid grid-cols-2 gap-2">{acc.accounts.map(a => (<div key={a.id} className="p-3 rounded-xl bg-white border-2 border-[#1e3a5f]/10"><p className="text-sm font-medium text-slate-700">{a.subtype}</p><p className="text-xs text-slate-400">••••{a.mask}</p></div>))}</div>
+                <div key={acc.id} className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-teal-200 shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center text-white font-bold text-xl shadow-lg">{acc.institution.charAt(0)}</div><div><h4 className="font-bold text-slate-900">{acc.institution}</h4><p className="text-xs text-teal-600 font-medium">âœ“ Auto-marking enabled</p></div></div><button onClick={() => setLinkedAccounts([])} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200"><Unlink size={14} /></button></div>
+                  <div className="grid grid-cols-2 gap-2">{acc.accounts.map(a => (<div key={a.id} className="p-3 rounded-xl bg-white border-2 border-slate-200"><p className="text-sm font-medium text-slate-700">{a.subtype}</p><p className="text-xs text-slate-400">••••{a.mask}</p></div>))}</div>
                 </div>
               )) : (
-                <div className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-8 text-center">
+                <div className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-slate-200 shadow-sm p-8 text-center">
                   <Building2 className="mx-auto text-blue-300 mb-4" size={48} />
                   <h3 className="font-bold text-slate-900 mb-2">No Banks Connected</h3>
                   <p className="text-slate-500 text-sm mb-4">Connect your bank to auto-track payments</p>
-                  <button onClick={() => setModal('connect')} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium hover:from-blue-700 hover:to-green-600 shadow-lg transition-all">
+                  <button onClick={() => setModal('connect')} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium hover:opacity-90 shadow-lg transition-all">
                     <Link2 size={18} />Connect Bank
                   </button>
                 </div>
@@ -1775,37 +1588,37 @@ export default function App() {
           )}
 
           {view === 'cycle' && (
-            <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm overflow-x-auto">
-              <table className="w-full text-sm"><thead className="bg-gradient-to-r from-[#1e3a5f]/10 via-white to-[#14b8a6]/10 border-b border-[#1e3a5f]/20"><tr><th className="px-4 py-4 text-left font-bold text-slate-700">Month</th><th className="px-4 py-4 text-right font-bold text-[#14b8a6]">Beginning</th><th className="px-4 py-4 text-right font-bold text-[#14b8a6]">Income</th><th className="px-4 py-4 text-right font-bold text-rose-600">Expenses</th><th className="px-4 py-4 text-right font-bold text-slate-600">Net</th><th className="px-4 py-4 text-right font-bold text-[#14b8a6]">Ending</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">{cycleData.map((row, i) => (<tr key={i} className="hover:bg-gradient-to-r hover:from-[#0f172a]/5/30 hover:to-[#14b8a6]/5/30"><td className="px-4 py-3 font-medium text-slate-900">{row.month} {row.year}</td><td className="px-4 py-3 text-right text-[#14b8a6]">{currency(row.beginning)}</td><td className="px-4 py-3 text-right text-[#14b8a6] font-medium">{currency(row.income)}</td><td className="px-4 py-3 text-right text-rose-600">{currency(row.expenses)}</td><td className={`px-4 py-3 text-right font-bold ${row.net >= 0 ? 'text-[#14b8a6]' : 'text-rose-600'}`}>{row.net >= 0 ? '+' : ''}{currency(row.net)}</td><td className="px-4 py-3 text-right font-bold text-[#14b8a6]">{currency(row.ending)}</td></tr>))}</tbody></table>
+            <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-x-auto">
+              <table className="w-full text-sm"><thead className="bg-gradient-to-r from-[#1e3a5f]/10 via-white to-[#14b8a6]/10 border-b border-slate-200"><tr><th className="px-4 py-4 text-left font-bold text-slate-700">Month</th><th className="px-4 py-4 text-right font-bold text-teal-600">Beginning</th><th className="px-4 py-4 text-right font-bold text-teal-600">Income</th><th className="px-4 py-4 text-right font-bold text-rose-600">Expenses</th><th className="px-4 py-4 text-right font-bold text-slate-600">Net</th><th className="px-4 py-4 text-right font-bold text-teal-600">Ending</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">{cycleData.map((row, i) => (<tr key={i} className="hover:bg-slate-50"><td className="px-4 py-3 font-medium text-slate-900">{row.month} {row.year}</td><td className="px-4 py-3 text-right text-teal-600">{currency(row.beginning)}</td><td className="px-4 py-3 text-right text-teal-600 font-medium">{currency(row.income)}</td><td className="px-4 py-3 text-right text-rose-600">{currency(row.expenses)}</td><td className={`px-4 py-3 text-right font-bold ${row.net >= 0 ? 'text-teal-600' : 'text-rose-600'}`}>{row.net >= 0 ? '+' : ''}{currency(row.net)}</td><td className="px-4 py-3 text-right font-bold text-teal-600">{currency(row.ending)}</td></tr>))}</tbody></table>
             </div>
           )}
 
           {view === 'savings' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50 rounded-2xl border-2 border-[#14b8a6]/20 shadow-sm p-6"><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">This Month</span><div className="p-2 rounded-xl bg-gradient-to-br from-green-100 to-green-200"><PiggyBank size={20} className="text-[#14b8a6]" /></div></div><p className="text-3xl font-bold text-[#14b8a6]">{currency(stats.saved)}</p><div className="mt-4"><div className="h-3 bg-gradient-to-r from-[#1e3a5f]/10 to-[#14b8a6]/10 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#14b8a6]/50 to-green-400 rounded-full" style={{ width: `${Math.min(100, (stats.saved / savingsGoal * 100))}%` }} /></div><p className="text-xs text-slate-500 mt-2">{Math.min(100, (stats.saved / savingsGoal * 100)).toFixed(0)}% of {currency(savingsGoal)} goal</p></div></div>
-                <div className="bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6"><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">Year to Date</span><div className="p-2 rounded-xl bg-gradient-to-br from-[#1e3a5f]/10 to-blue-200"><TrendingUp size={20} className="text-[#14b8a6]" /></div></div><p className="text-3xl font-bold text-[#14b8a6]">{currency(transactions.filter(t => t.category === 'savings' && new Date(t.date).getFullYear() === year).reduce((s, t) => s + Math.abs(t.amount), 0))}</p></div>
-                <div className="bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setModal('edit-goal')}><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">Monthly Goal</span><div className="p-2 rounded-xl bg-gradient-to-br from-[#1e3a5f]/10 to-[#14b8a6]/10"><Target size={20} className="text-[#14b8a6]" /></div></div><p className="text-3xl font-bold text-[#14b8a6]">{currency(savingsGoal)}</p><p className="text-xs text-slate-400 mt-2 flex items-center gap-1"><Edit2 size={12} /> Click to edit</p></div>
+                <div className="bg-slate-50 rounded-2xl border-2 border-teal-200 shadow-sm p-6"><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">This Month</span><div className="p-2 rounded-xl bg-gradient-to-br from-green-100 to-green-200"><PiggyBank size={20} className="text-teal-600" /></div></div><p className="text-3xl font-bold text-teal-600">{currency(stats.saved)}</p><div className="mt-4"><div className="h-3 bg-gradient-to-r from-[#1e3a5f]/10 to-[#14b8a6]/10 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#14b8a6]/50 to-green-400 rounded-full" style={{ width: `${Math.min(100, (stats.saved / savingsGoal * 100))}%` }} /></div><p className="text-xs text-slate-500 mt-2">{Math.min(100, (stats.saved / savingsGoal * 100)).toFixed(0)}% of {currency(savingsGoal)} goal</p></div></div>
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6"><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">Year to Date</span><div className="p-2 rounded-xl bg-gradient-to-br from-[#1e3a5f]/10 to-blue-200"><TrendingUp size={20} className="text-teal-600" /></div></div><p className="text-3xl font-bold text-teal-600">{currency(transactions.filter(t => t.category === 'savings' && new Date(t.date).getFullYear() === year).reduce((s, t) => s + Math.abs(t.amount), 0))}</p></div>
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setModal('edit-goal')}><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">Monthly Goal</span><div className="p-2 rounded-xl bg-teal-100"><Target size={20} className="text-teal-600" /></div></div><p className="text-3xl font-bold text-teal-600">{currency(savingsGoal)}</p><p className="text-xs text-slate-400 mt-2 flex items-center gap-1"><Edit2 size={12} /> Click to edit</p></div>
               </div>
             </div>
           )}
 
           {view === 'recommendations' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-blue-600 via-[#1e3a5f] to-[#14b8a6]/50 rounded-2xl p-6 text-white shadow-xl">
+              <div className="bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] rounded-2xl p-6 text-white shadow-xl">
                 <div className="flex items-center gap-3 mb-2"><Sparkles size={24} /><h3 className="text-xl font-bold">Smart Money Tips</h3></div>
-                <p className="text-[#14b8a6]/70">Personalized recommendations based on your spending patterns</p>
+                <p className="text-teal-100">Personalized recommendations based on your spending patterns</p>
               </div>
               {savingsRecommendations.length === 0 ? (
-                <div className="bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50 rounded-2xl border-2 border-[#14b8a6]/20 p-8 text-center">
+                <div className="bg-slate-50 rounded-2xl border-2 border-teal-200 p-8 text-center">
                   <CheckCircle size={48} className="mx-auto text-green-400 mb-4" />
                   <h3 className="font-bold text-slate-900 text-lg mb-2">You're Doing Great!</h3>
                   <p className="text-slate-500">No recommendations at this time. Keep up the good work!</p>
                 </div>
               ) : (
                 <div className="space-y-4">{savingsRecommendations.map(rec => (
-                  <div key={rec.id} className={`bg-white rounded-2xl border-2 p-6 shadow-sm hover:shadow-lg transition-all ${rec.type === 'success' ? 'border-[#14b8a6]/20 bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50' : rec.type === 'alert' ? 'border-rose-200 bg-gradient-to-r from-rose-50 via-white to-white' : rec.priority === 'high' ? 'border-amber-200 bg-gradient-to-r from-amber-50 via-white to-white' : 'border-[#1e3a5f]/10 bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5'}`}>
+                  <div key={rec.id} className={`bg-white rounded-2xl border-2 p-6 shadow-sm hover:shadow-lg transition-all ${rec.type === 'success' ? 'border-teal-200 bg-slate-50' : rec.type === 'alert' ? 'border-rose-200 bg-gradient-to-r from-rose-50 via-white to-white' : rec.priority === 'high' ? 'border-amber-200 bg-gradient-to-r from-amber-50 via-white to-white' : 'border-slate-200 bg-white'}`}>
                     <div className="flex items-start gap-4">
                       <div className={`p-3 rounded-xl shadow-sm shrink-0 ${rec.type === 'success' ? 'bg-gradient-to-br from-green-400 to-[#14b8a6]/50' : rec.type === 'alert' ? 'bg-gradient-to-br from-rose-400 to-rose-500' : rec.type === 'increase' ? 'bg-gradient-to-br from-blue-400 to-blue-500' : 'bg-gradient-to-br from-amber-400 to-amber-500'}`}>
                         {rec.type === 'success' ? <CheckCircle size={20} className="text-white" /> : rec.type === 'alert' ? <AlertTriangle size={20} className="text-white" /> : rec.type === 'increase' ? <TrendingUp size={20} className="text-white" /> : <Lightbulb size={20} className="text-white" />}
@@ -1818,14 +1631,14 @@ export default function App() {
                         </div>
                         <p className="text-slate-600 mb-3">{rec.description}</p>
                         {rec.potential > 0 && (
-                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-100 to-[#14b8a6]/5 rounded-xl border border-[#14b8a6]/20 mb-3">
-                            <DollarSign size={16} className="text-[#14b8a6]" />
+                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-100 to-[#14b8a6]/5 rounded-xl border border-teal-200 mb-3">
+                            <DollarSign size={16} className="text-teal-600" />
                             <span className="font-bold text-green-700">Potential savings: {currency(rec.potential)}/mo</span>
                           </div>
                         )}
                         {rec.tips && rec.tips.length > 0 && (
-                          <div className="mt-3 p-4 bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 rounded-xl border border-[#1e3a5f]/10">
-                            <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2"><Info size={14} className="text-[#14b8a6]" />Action Steps:</p>
+                          <div className="mt-3 p-4 bg-white rounded-xl border border-slate-200">
+                            <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2"><Info size={14} className="text-teal-600" />Action Steps:</p>
                             <ul className="space-y-2">{rec.tips.map((tip, i) => (<li key={i} className="text-sm text-slate-600 flex items-start gap-2"><span className="w-5 h-5 rounded-full bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>{tip}</li>))}</ul>
                           </div>
                         )}
@@ -1842,13 +1655,13 @@ export default function App() {
             <div className="space-y-6 max-w-4xl">
               {/* Budget Overview Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl p-5 border-2 border-[#1e3a5f]/20 shadow-sm">
+                <div className="bg-white rounded-2xl p-5 border-2 border-slate-200 shadow-sm">
                   <p className="text-slate-500 text-sm font-medium mb-1">Total Budget</p>
-                  <p className="text-2xl font-bold text-[#14b8a6]">{currency(budgetStats.totalBudget)}</p>
+                  <p className="text-2xl font-bold text-teal-600">{currency(budgetStats.totalBudget)}</p>
                 </div>
-                <div className="bg-white rounded-2xl p-5 border-2 border-[#14b8a6]/20 shadow-sm">
+                <div className="bg-white rounded-2xl p-5 border-2 border-teal-200 shadow-sm">
                   <p className="text-slate-500 text-sm font-medium mb-1">Total Spent</p>
-                  <p className="text-2xl font-bold text-[#14b8a6]">{currency(budgetStats.totalSpent)}</p>
+                  <p className="text-2xl font-bold text-teal-600">{currency(budgetStats.totalSpent)}</p>
                 </div>
                 <div className={`bg-white rounded-2xl p-5 border-2 shadow-sm ${budgetStats.remaining >= 0 ? 'border-emerald-200' : 'border-rose-200'}`}>
                   <p className="text-slate-500 text-sm font-medium mb-1">Remaining</p>
@@ -1878,15 +1691,15 @@ export default function App() {
               )}
 
               {/* Set Budget Goals */}
-              <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                    <Target size={18} className="text-[#14b8a6]" />
+                    <Target size={18} className="text-teal-600" />
                     Category Budgets
                   </h3>
                   <button 
                     onClick={() => setModal('set-budgets')}
-                    className="px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium text-sm shadow-lg hover:from-blue-700 hover:to-green-600"
+                    className="px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium text-sm shadow-lg hover:opacity-90"
                   >
                     <Plus size={16} className="inline mr-1" />Set Budgets
                   </button>
@@ -1908,7 +1721,7 @@ export default function App() {
                             <span className="font-medium text-slate-900">{b.name}</span>
                           </div>
                           <div className="text-right">
-                            <span className={`font-bold ${b.status === 'over' ? 'text-rose-600' : b.status === 'warning' ? 'text-amber-600' : 'text-[#14b8a6]'}`}>
+                            <span className={`font-bold ${b.status === 'over' ? 'text-rose-600' : b.status === 'warning' ? 'text-amber-600' : 'text-teal-600'}`}>
                               {currency(b.spent)}
                             </span>
                             <span className="text-slate-400"> / {currency(b.budget)}</span>
@@ -1931,7 +1744,7 @@ export default function App() {
                           <span className={b.status === 'over' ? 'text-rose-600 font-medium' : 'text-slate-500'}>
                             {b.percentUsed.toFixed(0)}% used
                           </span>
-                          <span className={b.remaining >= 0 ? 'text-[#14b8a6]' : 'text-rose-600'}>
+                          <span className={b.remaining >= 0 ? 'text-teal-600' : 'text-rose-600'}>
                             {b.remaining >= 0 ? `${currency(b.remaining)} left` : `${currency(Math.abs(b.remaining))} over`}
                           </span>
                         </div>
@@ -1956,9 +1769,9 @@ export default function App() {
               </div>
 
               {/* Spending Trends Chart */}
-              <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <TrendingUp size={18} className="text-[#14b8a6]" />
+                  <TrendingUp size={18} className="text-teal-600" />
                   6-Month Spending Trends
                 </h3>
                 <div className="h-64 flex items-end justify-between gap-2">
@@ -1999,7 +1812,7 @@ export default function App() {
               </div>
 
               {/* Category Breakdown Pie Chart */}
-              <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <PieChart size={18} className="text-purple-600" />
                   Spending by Category ({FULL_MONTHS[month]})
@@ -2065,16 +1878,16 @@ export default function App() {
 
               {/* Monthly Summary Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-[#14b8a6]/5 to-[#14b8a6]/10 rounded-xl p-4 border border-[#14b8a6]/20">
-                  <p className="text-[#14b8a6] text-sm font-medium">Avg Monthly Income</p>
+                <div className="bg-gradient-to-br from-[#14b8a6]/5 to-[#14b8a6]/10 rounded-xl p-4 border border-teal-200">
+                  <p className="text-teal-600 text-sm font-medium">Avg Monthly Income</p>
                   <p className="text-xl font-bold text-green-700">{currency(spendingTrends.reduce((s, t) => s + t.income, 0) / 6)}</p>
                 </div>
                 <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl p-4 border border-rose-200">
                   <p className="text-rose-600 text-sm font-medium">Avg Monthly Expenses</p>
                   <p className="text-xl font-bold text-rose-700">{currency(spendingTrends.reduce((s, t) => s + t.expenses, 0) / 6)}</p>
                 </div>
-                <div className="bg-gradient-to-br from-[#0f172a]/5 to-blue-100 rounded-xl p-4 border border-[#1e3a5f]/20">
-                  <p className="text-[#14b8a6] text-sm font-medium">Avg Savings</p>
+                <div className="bg-blue-50 rounded-xl p-4 border border-slate-200">
+                  <p className="text-teal-600 text-sm font-medium">Avg Savings</p>
                   <p className="text-xl font-bold text-blue-700">{currency(spendingTrends.reduce((s, t) => s + t.net, 0) / 6)}</p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
@@ -2122,20 +1935,20 @@ export default function App() {
                     <p className="text-slate-500 text-sm font-medium mb-1">Min. Payments</p>
                     <p className="text-2xl font-bold text-amber-600">{currency(debtPayoffPlan.totalMinPayment)}/mo</p>
                   </div>
-                  <div className="bg-white rounded-2xl p-5 border-2 border-[#1e3a5f]/20 shadow-sm">
+                  <div className="bg-white rounded-2xl p-5 border-2 border-slate-200 shadow-sm">
                     <p className="text-slate-500 text-sm font-medium mb-1">Payoff Time</p>
-                    <p className="text-2xl font-bold text-[#14b8a6]">{Math.ceil(debtPayoffPlan.avalancheMonths / 12)} years</p>
+                    <p className="text-2xl font-bold text-teal-600">{Math.ceil(debtPayoffPlan.avalancheMonths / 12)} years</p>
                   </div>
-                  <div className="bg-white rounded-2xl p-5 border-2 border-[#14b8a6]/20 shadow-sm">
+                  <div className="bg-white rounded-2xl p-5 border-2 border-teal-200 shadow-sm">
                     <p className="text-slate-500 text-sm font-medium mb-1">Interest Saved</p>
-                    <p className="text-2xl font-bold text-[#14b8a6]">{currency(debtPayoffPlan.interestSavings)}</p>
+                    <p className="text-2xl font-bold text-teal-600">{currency(debtPayoffPlan.interestSavings)}</p>
                     <p className="text-xs text-slate-400">with avalanche method</p>
                   </div>
                 </div>
               )}
 
               {/* Debt List */}
-              <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <CreditCard size={18} className="text-rose-600" />
                   Your Debts
@@ -2157,7 +1970,7 @@ export default function App() {
                             <span className="ml-2 text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full">{d.type}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => setEditDebt(d)} className="p-2 text-[#14b8a6] hover:bg-blue-50 rounded-lg">
+                            <button onClick={() => setEditDebt(d)} className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg">
                               <Edit2 size={16} />
                             </button>
                             <button onClick={() => setDebts(debts.filter(x => x.id !== d.id))} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg">
@@ -2176,7 +1989,7 @@ export default function App() {
                           </div>
                           <div>
                             <p className="text-slate-500">Min Payment</p>
-                            <p className="font-bold text-[#14b8a6]">{currency(d.minPayment)}/mo</p>
+                            <p className="font-bold text-teal-600">{currency(d.minPayment)}/mo</p>
                           </div>
                         </div>
                       </div>
@@ -2189,45 +2002,45 @@ export default function App() {
               {debts.length > 1 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Snowball Method */}
-                  <div className="bg-gradient-to-br from-[#0f172a]/5 to-blue-100 rounded-2xl border-2 border-[#1e3a5f]/20 p-6">
+                  <div className="bg-blue-50 rounded-2xl border-2 border-slate-200 p-6">
                     <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                      ❤️ Debt Snowball
+                      â„ï¸ Debt Snowball
                     </h4>
-                    <p className="text-sm text-[#14b8a6] mb-4">Pay smallest balances first for quick wins</p>
+                    <p className="text-sm text-teal-600 mb-4">Pay smallest balances first for quick wins</p>
                     <div className="space-y-2 mb-4">
                       {debtPayoffPlan.snowball.map((d, i) => (
                         <div key={d.id} className="flex items-center gap-2 text-sm">
                           <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">{i + 1}</span>
                           <span className="text-slate-700">{d.name}</span>
-                          <span className="text-[#14b8a6] ml-auto font-medium">{currency(d.balance)}</span>
+                          <span className="text-teal-600 ml-auto font-medium">{currency(d.balance)}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="pt-4 border-t border-[#1e3a5f]/20">
+                    <div className="pt-4 border-t border-slate-200">
                       <p className="text-sm text-slate-600">Est. payoff: <strong>{Math.ceil(debtPayoffPlan.snowballMonths / 12)} years</strong></p>
                       <p className="text-sm text-slate-600">Total interest: <strong className="text-rose-600">{currency(debtPayoffPlan.snowballInterest)}</strong></p>
                     </div>
                   </div>
 
                   {/* Avalanche Method */}
-                  <div className="bg-gradient-to-br from-[#14b8a6]/5 to-[#14b8a6]/10 rounded-2xl border-2 border-[#14b8a6]/20 p-6">
+                  <div className="bg-gradient-to-br from-[#14b8a6]/5 to-[#14b8a6]/10 rounded-2xl border-2 border-teal-200 p-6">
                     <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
                       🏔️ Debt Avalanche
-                      <span className="text-xs px-2 py-1 bg-[#14b8a6]/50 text-white rounded-full">Recommended</span>
+                      <span className="text-xs px-2 py-1 bg-teal-500 text-white rounded-full">Recommended</span>
                     </h4>
-                    <p className="text-sm text-[#14b8a6] mb-4">Pay highest interest first to save money</p>
+                    <p className="text-sm text-teal-600 mb-4">Pay highest interest first to save money</p>
                     <div className="space-y-2 mb-4">
                       {debtPayoffPlan.avalanche.map((d, i) => (
                         <div key={d.id} className="flex items-center gap-2 text-sm">
-                          <span className="w-6 h-6 rounded-full bg-[#14b8a6]/50 text-white text-xs flex items-center justify-center">{i + 1}</span>
+                          <span className="w-6 h-6 rounded-full bg-teal-500 text-white text-xs flex items-center justify-center">{i + 1}</span>
                           <span className="text-slate-700">{d.name}</span>
                           <span className="text-amber-600 ml-auto font-medium">{d.interestRate}% APR</span>
                         </div>
                       ))}
                     </div>
-                    <div className="pt-4 border-t border-[#14b8a6]/20">
+                    <div className="pt-4 border-t border-teal-200">
                       <p className="text-sm text-slate-600">Est. payoff: <strong>{Math.ceil(debtPayoffPlan.avalancheMonths / 12)} years</strong></p>
-                      <p className="text-sm text-slate-600">Total interest: <strong className="text-[#14b8a6]">{currency(debtPayoffPlan.avalancheInterest)}</strong></p>
+                      <p className="text-sm text-slate-600">Total interest: <strong className="text-teal-600">{currency(debtPayoffPlan.avalancheInterest)}</strong></p>
                       <p className="text-sm font-semibold text-green-700 mt-2">💰 Save {currency(debtPayoffPlan.interestSavings)} vs snowball!</p>
                     </div>
                   </div>
@@ -2238,46 +2051,46 @@ export default function App() {
 
           {view === 'settings' && (
             <div className="space-y-4 max-w-2xl">
-              <div className="bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
-                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Calculator size={18} className="text-[#14b8a6]" />Balance Settings</h3>
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Calculator size={18} className="text-teal-600" />Balance Settings</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-slate-600 mb-2 font-medium">Beginning Balance ({FULL_MONTHS[month]} {year})</label>
-                    <input type="number" value={stats.beginning} onChange={(e) => setBeginningBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
+                    <input type="number" value={stats.beginning} onChange={(e) => setBeginningBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
                   </div>
                   <div>
                     <label className="block text-sm text-slate-600 mb-2 font-medium">Ending Balance Override</label>
-                    <input type="number" value={stats.ending} onChange={(e) => setEndingBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
+                    <input type="number" value={stats.ending} onChange={(e) => setEndingBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
                     <p className="text-xs text-slate-400 mt-1">Calculated: {currency(stats.calculatedEnding)}</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50 rounded-2xl border-2 border-[#14b8a6]/20 shadow-sm p-6">
-                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Target size={18} className="text-[#14b8a6]" />Savings Settings</h3>
+              <div className="bg-slate-50 rounded-2xl border-2 border-teal-200 shadow-sm p-6">
+                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Target size={18} className="text-teal-600" />Savings Settings</h3>
                 <div>
                   <label className="block text-sm text-slate-600 mb-2 font-medium">Monthly Savings Goal</label>
-                  <input type="number" value={savingsGoal} onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)} className="w-full px-4 py-3 bg-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
+                  <input type="number" value={savingsGoal} onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)} className="w-full px-4 py-3 bg-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
                 </div>
               </div>
               
               {/* Backup & Restore Section - User Friendly */}
-              <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                  <Save size={18} className="text-[#14b8a6]" />
+                  <Save size={18} className="text-teal-600" />
                   Save & Restore Your Data
                 </h3>
                 <p className="text-sm text-slate-500 mb-4">Keep your financial data safe by saving a backup file to your computer.</p>
                 
                 {/* Your Data Summary */}
-                <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-xl p-4 mb-4 border border-[#1e3a5f]/20">
+                <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-200">
                   <p className="text-sm font-medium text-slate-700 mb-2">📊 Your Data Summary</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="text-center">
-                      <p className="text-xl font-bold text-[#14b8a6]">{transactions.length}</p>
+                      <p className="text-xl font-bold text-teal-600">{transactions.length}</p>
                       <p className="text-xs text-slate-500">Transactions</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xl font-bold text-[#14b8a6]">{recurringExpenses.length}</p>
+                      <p className="text-xl font-bold text-teal-600">{recurringExpenses.length}</p>
                       <p className="text-xs text-slate-500">Recurring Bills</p>
                     </div>
                     <div className="text-center">
@@ -2293,9 +2106,9 @@ export default function App() {
                 
                 {/* Save Backup - Big Friendly Button */}
                 <div className="space-y-4">
-                  <div className="bg-gradient-to-r from-[#14b8a6]/5 to-emerald-50 rounded-xl p-5 border-2 border-[#14b8a6]/20">
+                  <div className="bg-gradient-to-r from-[#14b8a6]/5 to-emerald-50 rounded-xl p-5 border-2 border-teal-200">
                     <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-xl bg-[#14b8a6]/50 text-white">
+                      <div className="p-3 rounded-xl bg-teal-500 text-white">
                         <Download size={24} />
                       </div>
                       <div className="flex-1">
@@ -2305,7 +2118,7 @@ export default function App() {
                           onClick={() => {
                             const data = {
                               appName: 'Balance Books Pro',
-                              version: __APP_VERSION__,
+                              version: '1.6.0',
                               exportDate: new Date().toISOString(),
                               exportDateFormatted: new Date().toLocaleDateString('en-US', { 
                                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -2333,16 +2146,16 @@ export default function App() {
                             a.click();
                             URL.revokeObjectURL(a.href);
                             setLastBackupDate(new Date().toISOString());
-                            alert('✅ Backup saved!\n\nYour backup file has been downloaded.\n\n💡 Tip: Keep this file somewhere safe, like:\n• Email it to yourself\n• Save to Google Drive or Dropbox\n• Copy to a USB drive');
+                            alert('✓ Backup saved!\n\nYour backup file has been downloaded.\n\n💡 Tip: Keep this file somewhere safe, like:\n• Email it to yourself\n• Save to Google Drive or Dropbox\n• Copy to a USB drive');
                           }}
-                          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all"
+                          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:opacity-90 transition-all"
                         >
                           <Download size={18} />
                           Save Backup to Computer
                         </button>
                         {lastBackupDate && (
-                          <p className="text-xs text-[#14b8a6] mt-2 text-center">
-                            ✔ Last backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
+                          <p className="text-xs text-teal-600 mt-2 text-center">
+                            âœ“ Last backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
                           </p>
                         )}
                       </div>
@@ -2350,7 +2163,7 @@ export default function App() {
                   </div>
 
                   {/* Restore Backup - Visual & Friendly */}
-                  <div className="bg-gradient-to-r from-[#0f172a]/5 to-indigo-50 rounded-xl p-5 border-2 border-[#1e3a5f]/20">
+                  <div className="bg-indigo-50 rounded-xl p-5 border-2 border-slate-200">
                     <div className="flex items-start gap-4">
                       <div className="p-3 rounded-xl bg-blue-500 text-white">
                         <Upload size={24} />
@@ -2360,7 +2173,7 @@ export default function App() {
                         <p className="text-sm text-blue-700 mb-3">Got a new computer or lost your data? Select a backup file to restore everything.</p>
                         <button 
                           onClick={() => setModal('restore-wizard')}
-                          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
+                          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:opacity-90 transition-all"
                         >
                           <Upload size={18} />
                           Restore from Backup File
@@ -2416,7 +2229,7 @@ export default function App() {
                   
                   {lastBackupDate && (
                     <p className="text-sm text-slate-500 px-4">
-                      ✔ Last auto-backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
+                      âœ“ Last auto-backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
                     </p>
                   )}
 
@@ -2455,158 +2268,62 @@ export default function App() {
                     </label>
                   </div>
 
-                  {/* Dropbox Cloud Backup */}
-                  <div className={`p-4 rounded-xl border-2 ${dropboxConnected ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}>
+                  {/* Cloud Backup Options (Coming Soon) */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 opacity-75">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-slate-700 flex items-center gap-2">
-                        <Cloud size={16} className={dropboxConnected ? 'text-blue-600' : 'text-slate-500'} />
-                        Dropbox Cloud Backup
-                        {dropboxConnected && (
-                          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full flex items-center gap-1">
-                            <Check size={10} /> Connected
-                          </span>
-                        )}
+                        <Cloud size={16} className="text-slate-500" />
+                        Cloud Backup Options
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-teal-600 rounded-full">Coming Soon</span>
                       </h4>
                     </div>
-                    
-                    {!dropboxConnected ? (
-                      <div className="space-y-3">
-                        <p className="text-sm text-slate-600">Connect to Dropbox to automatically backup your data to the cloud.</p>
-                        <button 
-                          onClick={connectDropbox}
-                          className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all"
-                        >
-                          <span className="text-lg">📦</span>
-                          Connect Dropbox
-                        </button>
-                        <p className="text-xs text-slate-400 text-center">Your data stays private in your own Dropbox account</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {dropboxLastSync && (
-                          <p className="text-xs text-blue-600 flex items-center gap-1">
-                            <Check size={12} />
-                            Last synced: {new Date(dropboxLastSync).toLocaleDateString()} at {new Date(dropboxLastSync).toLocaleTimeString()}
-                          </p>
-                        )}
-                        
-                        {dropboxError && (
-                          <div className="p-2 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-xs text-red-600 flex items-center gap-1">
-                              <AlertTriangle size={12} />
-                              {dropboxError}
-                            </p>
-                          </div>
-                        )}
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          <button 
-                            onClick={() => syncToDropbox()}
-                            disabled={dropboxSyncing}
-                            className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all"
-                          >
-                            {dropboxSyncing ? (
-                              <><Loader2 size={14} className="animate-spin" /> Syncing...</>
-                            ) : (
-                              <><Cloud size={14} /> Sync Now</>
-                            )}
-                          </button>
-                          <button 
-                            onClick={restoreFromDropbox}
-                            disabled={dropboxSyncing}
-                            className="flex items-center justify-center gap-2 py-2.5 bg-white text-blue-700 border-2 border-blue-300 rounded-lg font-medium hover:bg-blue-50 disabled:opacity-50 transition-all"
-                          >
-                            <Download size={14} /> Restore
-                          </button>
-                        </div>
-                        
-                        <button 
-                          onClick={disconnectDropbox}
-                          className="w-full flex items-center justify-center gap-1 py-2 text-slate-500 text-xs hover:text-red-600 transition-colors"
-                        >
-                          <Unlink size={12} /> Disconnect Dropbox
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Other Cloud Options (Coming Soon) */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <button disabled className="flex items-center justify-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                      <span className="text-lg">📁</span>
-                      <span className="text-xs text-slate-500">Google Drive (Soon)</span>
-                    </button>
-                    <button disabled className="flex items-center justify-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                      <span className="text-lg">☁️</span>
-                      <span className="text-xs text-slate-500">OneDrive (Soon)</span>
-                    </button>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
+                        <span className="text-2xl">📁</span>
+                        <span className="text-xs text-slate-500">Google Drive</span>
+                      </button>
+                      <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
+                        <span className="text-2xl">📦</span>
+                        <span className="text-xs text-slate-500">Dropbox</span>
+                      </button>
+                      <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
+                        <span className="text-2xl">â˜ï¸</span>
+                        <span className="text-xs text-slate-500">OneDrive</span>
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-2 text-center">Sync across devices while keeping your data private</p>
                   </div>
 
-                  {/* Email Backup - Quick Win Feature */}
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-200">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-                        <Mail size={24} />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-purple-800 mb-1">📧 Email Backup to Yourself</h4>
-                        <p className="text-sm text-purple-700 mb-3">Download your backup then email it to yourself for safekeeping in Gmail, Outlook, or any email.</p>
-                        <button 
-                          onClick={() => {
-                            // Generate backup
-                            const dateStr = new Date().toISOString().split('T')[0];
-                            const backup = {
-                              appName: 'BalanceBooks Pro',
-                              version: __APP_VERSION__,
-                              exportDate: new Date().toISOString(),
-                              summary: {
-                                transactions: transactions.length,
-                                recurringBills: recurringExpenses.length,
-                                debts: debts.length
-                              },
-                              data: { transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts }
-                            };
-                            
-                            // Download the backup file
-                            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-                            const a = document.createElement('a');
-                            a.href = URL.createObjectURL(blob);
-                            a.download = `BalanceBooks-Backup-${dateStr}.json`;
-                            a.click();
-                            URL.revokeObjectURL(a.href);
-                            
-                            // Open email client with pre-filled message
-                            const subject = encodeURIComponent(`BalanceBooks Backup - ${dateStr}`);
-                            const body = encodeURIComponent(
-                              `BalanceBooks Pro Backup\n` +
-                              `========================\n\n` +
-                              `Date: ${new Date().toLocaleDateString()}\n` +
-                              `Transactions: ${transactions.length}\n` +
-                              `Recurring Bills: ${recurringExpenses.length}\n` +
-                              `Debts Tracked: ${debts.length}\n\n` +
-                              `IMPORTANT: Attach the downloaded backup file to this email!\n\n` +
-                              `The file should be named: BalanceBooks-Backup-${dateStr}.json\n\n` +
-                              `To restore: Go to Settings > Restore from Backup in BalanceBooks Pro.`
-                            );
-                            
-                            // Small delay to ensure download starts first
-                            setTimeout(() => {
-                              window.location.href = `mailto:?subject=${subject}&body=${body}`;
-                            }, 500);
-                            
-                            setLastBackupDate(new Date().toISOString());
-                          }}
-                          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all"
-                        >
-                          <Mail size={18} />
-                          Download & Email Backup
-                        </button>
-                        <p className="text-xs text-purple-500 mt-2 text-center">
-                          Downloads file → Opens email → You attach & send!
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Email Backup */}
+                  <button 
+                    onClick={() => {
+                      const backup = {
+                        version: '1.6.0',
+                        exportDate: new Date().toISOString(),
+                        transactions,
+                        recurringExpenses,
+                        monthlyBalances,
+                        savingsGoal,
+                        budgetGoals,
+                        debts
+                      };
+                      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `balance-books-backup-${new Date().toISOString().split('T')[0]}.json`;
+                      a.click();
+                      URL.revokeObjectURL(a.href);
+                      alert('💡 Tip: Email this backup file to yourself for safekeeping!\n\nYour backup has been downloaded.');
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-medium hover:from-indigo-600 hover:to-purple-600 shadow-md"
+                  >
+                    <Mail size={18} />
+                    Download Backup for Email
+                  </button>
+                  
+                  <p className="text-xs text-slate-400 text-center">
+                    💡 Pro tip: Email your backup to yourself regularly for off-device protection
+                  </p>
                 </div>
               </div>
               
@@ -2658,10 +2375,10 @@ export default function App() {
               </div>
               
               {/* About */}
-              <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4">About</h3>
-                <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Version:</span> {__APP_VERSION__}</p>
-                <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
+                <p className="text-sm text-slate-600"><span className="font-medium text-teal-600">Version:</span> {__APP_VERSION__}</p>
+                <p className="text-sm text-slate-600"><span className="font-medium text-teal-600">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
                 <p className="text-sm text-slate-600"><span className="font-medium text-purple-600">Storage:</span> Local (your data stays on your device)</p>
               </div>
             </div>
@@ -2669,13 +2386,13 @@ export default function App() {
         </div>
       </main>
 
-      {isMobile && <button onClick={() => setModal('add')} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:from-blue-700 hover:to-green-600"><Plus size={24} /></button>}
+      {isMobile && <button onClick={() => setModal('add')} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:opacity-90"><Plus size={24} /></button>}
 
       {/* Edit Beginning Balance Modal */}
       {modal === 'edit-beginning' && (
         <Modal title="Edit Beginning Balance" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-xl p-4 border border-[#1e3a5f]/20">
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
               <p className="text-sm text-slate-600">Set the starting balance for <strong>{FULL_MONTHS[month]} {year}</strong>. This is carried over from the previous month's ending balance by default.</p>
             </div>
             <div>
@@ -2684,13 +2401,13 @@ export default function App() {
                 type="number" 
                 defaultValue={stats.beginning}
                 onChange={(e) => setBeginningBalance(e.target.value)}
-                className="w-full px-4 py-4 bg-white border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-[#14b8a6]"
+                className="w-full px-4 py-4 bg-white border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-teal-600"
                 autoFocus
               />
             </div>
             <div className="flex gap-3">
               <button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Close</button>
-              <button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-green-600">Save</button>
+              <button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:opacity-90">Save</button>
             </div>
           </div>
         </Modal>
@@ -2700,7 +2417,7 @@ export default function App() {
       {modal === 'edit-ending' && (
         <Modal title="Edit Ending Balance" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-[#14b8a6]/20">
+            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-teal-200">
               <p className="text-sm text-slate-600">Override the ending balance for <strong>{FULL_MONTHS[month]} {year}</strong>. This will carry over to next month's beginning balance.</p>
               <p className="text-xs text-slate-400 mt-2">Calculated value: {currency(stats.calculatedEnding)}</p>
             </div>
@@ -2710,13 +2427,13 @@ export default function App() {
                 type="number" 
                 defaultValue={stats.ending}
                 onChange={(e) => setEndingBalance(e.target.value)}
-                className="w-full px-4 py-4 bg-white border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-[#14b8a6]"
+                className="w-full px-4 py-4 bg-white border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-teal-600"
                 autoFocus
               />
             </div>
             <div className="flex gap-3">
               <button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Close</button>
-              <button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-blue-500 text-white rounded-xl font-semibold shadow-lg hover:from-green-700 hover:to-blue-600">Save</button>
+              <button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:opacity-90">Save</button>
             </div>
           </div>
         </Modal>
@@ -2726,20 +2443,20 @@ export default function App() {
       {modal === 'edit-income' && (
         <Modal title="Add/Adjust Income" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-[#14b8a6]/20">
-              <p className="text-sm text-slate-600">Current income for <strong>{FULL_MONTHS[month]} {year}</strong>: <span className="font-bold text-[#14b8a6]">{currency(stats.income)}</span></p>
+            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-teal-200">
+              <p className="text-sm text-slate-600">Current income for <strong>{FULL_MONTHS[month]} {year}</strong>: <span className="font-bold text-teal-600">{currency(stats.income)}</span></p>
               <p className="text-xs text-slate-400 mt-2">Add a new income transaction or view all income in Transactions.</p>
             </div>
             <div className="space-y-3">
               <button 
                 onClick={() => { setModal('add'); }}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-600 to-[#14b8a6]/50 text-white rounded-xl font-semibold shadow-lg hover:from-green-700 hover:to-green-600"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:opacity-90"
               >
                 <Plus size={18} />Add Income Transaction
               </button>
               <button 
                 onClick={() => { setView('transactions'); setFilterCat('income'); setModal(null); }}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-[#14b8a6]/5 text-green-700 rounded-xl font-medium hover:bg-[#14b8a6]/10 border border-[#14b8a6]/20"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-teal-50 text-green-700 rounded-xl font-medium hover:bg-[#14b8a6]/10 border border-teal-200"
               >
                 <Receipt size={18} />View All Income Transactions
               </button>
@@ -2755,7 +2472,7 @@ export default function App() {
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-rose-50 to-orange-50 rounded-xl p-4 border border-rose-200">
               <p className="text-sm text-slate-600">Current expenses for <strong>{FULL_MONTHS[month]} {year}</strong>: <span className="font-bold text-rose-600">{currency(stats.expenses)}</span></p>
-              {stats.unpaidCount > 0 && <p className="text-xs text-amber-600 mt-2 font-medium">⚠ ï¸ {stats.unpaidCount} transactions marked as unpaid</p>}
+              {stats.unpaidCount > 0 && <p className="text-xs text-amber-600 mt-2 font-medium">⚠️ {stats.unpaidCount} transactions marked as unpaid</p>}
             </div>
             <div className="space-y-3">
               <button 
@@ -2786,7 +2503,7 @@ export default function App() {
       {modal === 'edit-goal' && (
         <Modal title="Edit Savings Goal" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-[#14b8a6]/20">
+            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-teal-200">
               <p className="text-sm text-slate-600">Set your monthly savings target. Experts recommend saving at least 20% of your income.</p>
             </div>
             <div>
@@ -2795,11 +2512,11 @@ export default function App() {
                 type="number" 
                 defaultValue={savingsGoal}
                 onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)}
-                className="w-full px-4 py-4 bg-white border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-[#14b8a6]"
+                className="w-full px-4 py-4 bg-white border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-teal-600"
                 autoFocus
               />
             </div>
-            <button onClick={() => setModal(null)} className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-blue-500 text-white rounded-xl font-semibold shadow-lg">Save</button>
+            <button onClick={() => setModal(null)} className="w-full px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold shadow-lg">Save</button>
           </div>
         </Modal>
       )}
@@ -2813,7 +2530,7 @@ export default function App() {
         <Modal title="Import Expenses" onClose={() => setModal(null)}>
           <div className="space-y-6">
             <div className="text-center py-4"><div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center mx-auto mb-4 shadow-lg"><FileSpreadsheet size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Bulk Import</h3><p className="text-slate-500 text-sm">Import from CSV/Excel template</p></div>
-            <button onClick={downloadTemplate} className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 text-slate-700 rounded-xl font-medium hover:from-[#1e3a5f]/10 hover:to-[#14b8a6]/10 border-2 border-[#1e3a5f]/20"><Download size={18} className="text-[#14b8a6]" />Download Template</button>
+            <button onClick={downloadTemplate} className="w-full flex items-center justify-center gap-2 py-4 bg-slate-50 text-slate-700 rounded-xl font-medium hover:from-[#1e3a5f]/10 hover:to-[#14b8a6]/10 border-2 border-slate-200"><Download size={18} className="text-teal-600" />Download Template</button>
             <div className="relative"><input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileImport} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><div className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg"><Upload size={18} />Select File</div></div>
             <button onClick={() => setModal(null)} className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 border border-slate-200"><X size={18} />Close</button>
           </div>
@@ -2824,9 +2541,9 @@ export default function App() {
         <Modal title="Confirm Import" onClose={() => { setImportData(null); setModal(null); }}>
           <div className="space-y-4">
             {/* Success Summary */}
-            <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-xl p-4 border border-[#14b8a6]/20">
+            <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-xl p-4 border border-teal-200">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#14b8a6]/50 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center">
                   <CheckCircle size={20} className="text-white" />
                 </div>
                 <div>
@@ -2839,8 +2556,8 @@ export default function App() {
             {/* Financial Summary */}
             {importData.summary && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#14b8a6]/5 rounded-lg p-3 border border-[#14b8a6]/20">
-                  <p className="text-xs text-[#14b8a6] font-medium">Total Income</p>
+                <div className="bg-teal-50 rounded-lg p-3 border border-teal-200">
+                  <p className="text-xs text-teal-600 font-medium">Total Income</p>
                   <p className="text-lg font-bold text-green-700">{currency(importData.summary.income)}</p>
                 </div>
                 <div className="bg-red-50 rounded-lg p-3 border border-red-200">
@@ -2881,7 +2598,7 @@ export default function App() {
                           <p className="text-xs text-slate-500">{tx.date} • {cat?.name || 'Other'}</p>
                         </div>
                       </div>
-                      <span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>
+                      <span className={`font-bold text-sm ${tx.amount > 0 ? 'text-teal-600' : 'text-slate-900'}`}>
                         {tx.amount > 0 ? '+' : ''}{currency(tx.amount)}
                       </span>
                     </div>
@@ -2905,7 +2622,7 @@ export default function App() {
               </button>
               <button 
                 onClick={confirmImport} 
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-semibold shadow-lg hover:from-green-700 hover:to-[#0f172a]"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:opacity-90"
               >
                 Import {importData.transactions.length} Transactions
               </button>
@@ -2925,23 +2642,23 @@ export default function App() {
               <p className="text-slate-500 text-sm">Connect your bank to automatically track when bills are paid</p>
             </div>
             
-            <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 border-2 border-[#1e3a5f]/20 rounded-xl p-4">
+            <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-4">
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <Shield size={16} className="text-[#14b8a6]" />
+                <Shield size={16} className="text-teal-600" />
                 What We Access & Why
               </h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-start gap-2">
-                  <Check size={14} className="text-[#14b8a6] mt-0.5 shrink-0" />
-                  <span className="text-slate-600"><strong>Transaction history</strong> – To auto-match and mark your bills as paid</span>
+                  <Check size={14} className="text-teal-600 mt-0.5 shrink-0" />
+                  <span className="text-slate-600"><strong>Transaction history</strong> — To auto-match and mark your bills as paid</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Check size={14} className="text-[#14b8a6] mt-0.5 shrink-0" />
-                  <span className="text-slate-600"><strong>Account balances</strong> – To show your current financial status</span>
+                  <Check size={14} className="text-teal-600 mt-0.5 shrink-0" />
+                  <span className="text-slate-600"><strong>Account balances</strong> — To show your current financial status</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Check size={14} className="text-[#14b8a6] mt-0.5 shrink-0" />
-                  <span className="text-slate-600"><strong>Account names</strong> – To identify checking vs savings accounts</span>
+                  <Check size={14} className="text-teal-600 mt-0.5 shrink-0" />
+                  <span className="text-slate-600"><strong>Account names</strong> — To identify checking vs savings accounts</span>
                 </div>
               </div>
             </div>
@@ -2965,7 +2682,7 @@ export default function App() {
             <button 
               onClick={connectBank} 
               disabled={plaidLoading} 
-              className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-600 to-[#14b8a6]/50 text-white rounded-xl font-semibold disabled:opacity-50 shadow-lg hover:from-green-700 hover:to-green-600 transition-all"
+              className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold disabled:opacity-50 shadow-lg hover:opacity-90 transition-all"
             >
               {plaidLoading ? (
                 <>
@@ -2988,7 +2705,7 @@ export default function App() {
       {modal === 'set-budgets' && (
         <Modal title="Set Budget Goals" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-xl p-4 border border-[#1e3a5f]/20">
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
               <p className="text-sm text-slate-600">Set monthly spending limits for each category. Leave blank for no limit.</p>
             </div>
             <div className="max-h-96 overflow-y-auto space-y-3">
@@ -3048,14 +2765,14 @@ export default function App() {
               // Step 1: Select file
               <div className="space-y-4">
                 <div className="text-center py-6">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0f172a]/50 to-indigo-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
                     <Upload size={36} className="text-white" />
                   </div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">Select Your Backup File</h3>
                   <p className="text-sm text-slate-500">Choose the backup file you previously saved to restore your data.</p>
                 </div>
                 
-                <div className="bg-blue-50 rounded-xl p-4 border border-[#1e3a5f]/20">
+                <div className="bg-blue-50 rounded-xl p-4 border border-slate-200">
                   <p className="text-sm text-blue-800 mb-2 font-medium">📁 Where to find your backup:</p>
                   <ul className="text-sm text-blue-700 space-y-1">
                     <li>• Check your <strong>Downloads</strong> folder</li>
@@ -3093,10 +2810,10 @@ export default function App() {
                               raw: parsed
                             });
                           } else {
-                            alert('❌ This doesn\'t look like a Balance Books backup file.\n\nPlease select a file that was created using the "Save Backup" button.');
+                            alert('âŒ This doesn\'t look like a Balance Books backup file.\n\nPlease select a file that was created using the "Save Backup" button.');
                           }
                         } catch (err) {
-                          alert('❌ Could not read this file.\n\nMake sure you\'re selecting a Balance Books backup file.');
+                          alert('âŒ Could not read this file.\n\nMake sure you\'re selecting a Balance Books backup file.');
                         }
                       };
                       reader.readAsText(file);
@@ -3104,7 +2821,7 @@ export default function App() {
                     }}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-                  <div className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg cursor-pointer hover:from-blue-700 hover:to-indigo-700">
+                  <div className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg cursor-pointer hover:opacity-90">
                     <Upload size={18} />
                     Choose Backup File
                   </div>
@@ -3128,9 +2845,9 @@ export default function App() {
                 </div>
 
                 {/* Backup Details */}
-                <div className="bg-gradient-to-r from-[#14b8a6]/5 to-emerald-50 rounded-xl p-4 border border-[#14b8a6]/20">
+                <div className="bg-gradient-to-r from-[#14b8a6]/5 to-emerald-50 rounded-xl p-4 border border-teal-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <FileSpreadsheet size={18} className="text-[#14b8a6]" />
+                    <FileSpreadsheet size={18} className="text-teal-600" />
                     <span className="font-medium text-green-800">{restoreData.filename}</span>
                   </div>
                   <div className="text-sm text-green-700 space-y-1">
@@ -3140,15 +2857,15 @@ export default function App() {
                 </div>
 
                 {/* What will be restored */}
-                <div className="bg-blue-50 rounded-xl p-4 border border-[#1e3a5f]/20">
+                <div className="bg-blue-50 rounded-xl p-4 border border-slate-200">
                   <p className="font-medium text-blue-800 mb-3">📦 This backup contains:</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white rounded-lg p-3 text-center">
-                      <p className="text-2xl font-bold text-[#14b8a6]">{restoreData.summary.transactions}</p>
+                      <p className="text-2xl font-bold text-teal-600">{restoreData.summary.transactions}</p>
                       <p className="text-xs text-slate-500">Transactions</p>
                     </div>
                     <div className="bg-white rounded-lg p-3 text-center">
-                      <p className="text-2xl font-bold text-[#14b8a6]">{restoreData.summary.recurringBills}</p>
+                      <p className="text-2xl font-bold text-teal-600">{restoreData.summary.recurringBills}</p>
                       <p className="text-xs text-slate-500">Recurring Bills</p>
                     </div>
                     <div className="bg-white rounded-lg p-3 text-center">
@@ -3176,7 +2893,7 @@ export default function App() {
                     onClick={() => setRestoreData(null)}
                     className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200"
                   >
-                    ← Back
+                    â† Back
                   </button>
                   <button 
                     onClick={() => {
@@ -3197,16 +2914,16 @@ export default function App() {
                       
                       // Show success message
                       setTimeout(() => {
-                        alert('✅ Restore Complete!\n\nYour data has been successfully restored from the backup.\n\n' + 
+                        alert('✓ Restore Complete!\n\nYour data has been successfully restored from the backup.\n\n' + 
                           `• ${restoreData.summary.transactions} transactions\n` +
                           `• ${restoreData.summary.recurringBills} recurring bills\n` +
                           `• ${restoreData.summary.debts} debts\n` +
                           `• ${restoreData.summary.budgetGoals} budget goals`);
                       }, 100);
                     }}
-                    className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:from-green-700 hover:to-emerald-700"
+                    className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:opacity-90"
                   >
-                    ✔ Restore My Data
+                    âœ“ Restore My Data
                   </button>
                 </div>
               </div>
@@ -3217,7 +2934,7 @@ export default function App() {
 
       {/* Import Success Notification Toast */}
       {importNotification && (
-        <div className="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 animate-pulse max-w-sm">
+        <div className="fixed bottom-6 right-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 animate-pulse max-w-sm">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
               <CheckCircle size={24} />
@@ -3250,7 +2967,7 @@ export default function App() {
 }
 
 function Modal({ title, children, onClose }) {
-  return (<div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"><div className="w-full max-w-md rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto"><div className="flex items-center justify-between p-6 border-b border-[#1e3a5f]/10 bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5"><h3 className="text-lg font-bold text-slate-900">{title}</h3><button onClick={onClose} className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors"><X size={18} /></button></div><div className="p-6">{children}</div></div></div>);
+  return (<div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"><div className="w-full max-w-md rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto"><div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white"><h3 className="text-lg font-bold text-slate-900">{title}</h3><button onClick={onClose} className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors"><X size={18} /></button></div><div className="p-6">{children}</div></div></div>);
 }
 
 function TxForm({ tx, onSubmit, onCancel, showPaid }) {
@@ -3258,13 +2975,13 @@ function TxForm({ tx, onSubmit, onCancel, showPaid }) {
   const handle = (e) => { e.preventDefault(); const amt = form.type === 'income' ? Math.abs(parseFloat(form.amount)) : -Math.abs(parseFloat(form.amount)); onSubmit({ ...tx, date: form.date, desc: form.desc, amount: amt, category: form.category, paid: form.paid }); };
   return (
     <form onSubmit={handle} className="space-y-4">
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Date</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Description</label><input type="text" value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} placeholder="Enter description" className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Amount</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value, category: e.target.value === 'income' ? 'income' : form.category })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]"><option value="expense">Expense</option><option value="income">Income</option></select></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => form.type === 'income' ? c.id === 'income' : c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
-      {showPaid && <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 border-2 border-[#14b8a6]/20"><input type="checkbox" checked={form.paid} onChange={(e) => setForm({ ...form, paid: e.target.checked })} className="w-5 h-5 rounded border-green-300 text-[#14b8a6] focus:ring-[#14b8a6]" /><span className="text-slate-700 font-medium">Mark as paid</span></label>}
-      <div className="flex gap-3 pt-4"><button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-green-600">{tx ? 'Update' : 'Add'}</button></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Date</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Description</label><input type="text" value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} placeholder="Enter description" className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Amount</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value, category: e.target.value === 'income' ? 'income' : form.category })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]"><option value="expense">Expense</option><option value="income">Income</option></select></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => form.type === 'income' ? c.id === 'income' : c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
+      {showPaid && <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 border-2 border-teal-200"><input type="checkbox" checked={form.paid} onChange={(e) => setForm({ ...form, paid: e.target.checked })} className="w-5 h-5 rounded border-green-300 text-teal-600 focus:ring-[#14b8a6]" /><span className="text-slate-700 font-medium">Mark as paid</span></label>}
+      <div className="flex gap-3 pt-4"><button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:opacity-90">{tx ? 'Update' : 'Add'}</button></div>
     </form>
   );
 }
@@ -3274,12 +2991,12 @@ function RecurringForm({ recurring, onSubmit, onCancel }) {
   const handle = (e) => { e.preventDefault(); onSubmit({ ...recurring, ...form, amount: parseFloat(form.amount), dueDay: parseInt(form.dueDay) }); };
   return (
     <form onSubmit={handle} className="space-y-4">
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Name</label><input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Netflix, Rent" className="w-full px-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Amount</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
-      <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-slate-600 font-medium mb-2">Frequency</label><select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{FREQUENCY_OPTIONS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></div><div><label className="block text-sm text-slate-600 font-medium mb-2">Due Day</label><input type="number" min="1" max="31" value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div></div>
-      <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 border-2 border-[#14b8a6]/20"><input type="checkbox" checked={form.autoPay} onChange={(e) => setForm({ ...form, autoPay: e.target.checked })} className="w-5 h-5 rounded border-green-300 text-[#14b8a6] focus:ring-[#14b8a6]" /><span className="text-slate-700 font-medium">Auto-pay (auto-marks as paid)</span></label>
-      <div className="flex gap-3 pt-4"><button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-green-600">{recurring ? 'Update' : 'Add'}</button></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Name</label><input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Netflix, Rent" className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Amount</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
+      <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-slate-600 font-medium mb-2">Frequency</label><select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{FREQUENCY_OPTIONS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></div><div><label className="block text-sm text-slate-600 font-medium mb-2">Due Day</label><input type="number" min="1" max="31" value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div></div>
+      <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 border-2 border-teal-200"><input type="checkbox" checked={form.autoPay} onChange={(e) => setForm({ ...form, autoPay: e.target.checked })} className="w-5 h-5 rounded border-green-300 text-teal-600 focus:ring-[#14b8a6]" /><span className="text-slate-700 font-medium">Auto-pay (auto-marks as paid)</span></label>
+      <div className="flex gap-3 pt-4"><button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:opacity-90">{recurring ? 'Update' : 'Add'}</button></div>
     </form>
   );
 }
@@ -3310,10 +3027,10 @@ function DebtForm({ debt, onSubmit, onCancel }) {
       </div>
       <div>
         <label className="block text-sm text-slate-600 font-medium mb-2">Debt Type</label>
-        <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">
+        <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">
           <option value="credit-card">💳 Credit Card</option>
           <option value="car-loan">🚗 Car Loan</option>
-          <option value="student-loan">🎓 Student Loan</option>
+          <option value="student-loan">🎁“ Student Loan</option>
           <option value="mortgage">🏠 Mortgage</option>
           <option value="personal-loan">💰 Personal Loan</option>
           <option value="medical">🏥 Medical Debt</option>
@@ -3331,7 +3048,7 @@ function DebtForm({ debt, onSubmit, onCancel }) {
         </div>
         <div>
           <label className="block text-sm text-slate-600 font-medium mb-2">Min Payment</label>
-          <input type="number" step="0.01" min="0" value={form.minPayment} onChange={(e) => setForm({ ...form, minPayment: e.target.value })} placeholder="50.00" className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required />
+          <input type="number" step="0.01" min="0" value={form.minPayment} onChange={(e) => setForm({ ...form, minPayment: e.target.value })} placeholder="50.00" className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required />
         </div>
       </div>
       <div className="flex gap-3 pt-4">
