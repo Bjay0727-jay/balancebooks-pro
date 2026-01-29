@@ -90,6 +90,17 @@ export default function App() {
   const [editDebt, setEditDebt] = useState(null);
   const [editBudget, setEditBudget] = useState(null);
   const [restoreData, setRestoreData] = useState(null); // For restore wizard
+  
+  // Dropbox Cloud Backup States
+  const [dropboxConnected, setDropboxConnected] = useState(() => loadData('dropboxConnected', false));
+  const [dropboxToken, setDropboxToken] = useState(() => loadData('dropboxToken', null));
+  const [dropboxSyncing, setDropboxSyncing] = useState(false);
+  const [dropboxLastSync, setDropboxLastSync] = useState(() => loadData('dropboxLastSync', null));
+  const [dropboxError, setDropboxError] = useState(null);
+  
+  // Dropbox App Key - Replace with your own from https://www.dropbox.com/developers/apps
+  const DROPBOX_APP_KEY = 'YOUR_APP_KEY_HERE';
+  const DROPBOX_REDIRECT_URI = window.location.origin;
 
   useEffect(() => { saveData('transactions', transactions); }, [transactions]);
   useEffect(() => { saveData('recurring', recurringExpenses); }, [recurringExpenses]);
@@ -100,6 +111,30 @@ export default function App() {
   useEffect(() => { saveData('autoBackup', autoBackupEnabled); }, [autoBackupEnabled]);
   useEffect(() => { saveData('lastBackup', lastBackupDate); }, [lastBackupDate]);
   useEffect(() => { saveData('notifications', notificationsEnabled); }, [notificationsEnabled]);
+
+  // Save Dropbox state
+  useEffect(() => { saveData('dropboxConnected', dropboxConnected); }, [dropboxConnected]);
+  useEffect(() => { saveData('dropboxToken', dropboxToken); }, [dropboxToken]);
+  useEffect(() => { saveData('dropboxLastSync', dropboxLastSync); }, [dropboxLastSync]);
+
+  // Handle Dropbox OAuth callback
+  useEffect(() => {
+    const handleDropboxCallback = () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        const params = new URLSearchParams(hash.substring(1));
+        const token = params.get('access_token');
+        if (token) {
+          setDropboxToken(token);
+          setDropboxConnected(true);
+          setDropboxError(null);
+          // Clean URL
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      }
+    };
+    handleDropboxCallback();
+  }, []);
 
   // Auto-backup every 24 hours
   useEffect(() => {
@@ -155,6 +190,135 @@ export default function App() {
     a.click();
     setLastBackupDate(new Date().toISOString());
   }, [transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts]);
+
+  // Dropbox: Connect (OAuth)
+  const connectDropbox = () => {
+    const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(DROPBOX_REDIRECT_URI)}`;
+    window.location.href = authUrl;
+  };
+
+  // Dropbox: Disconnect
+  const disconnectDropbox = () => {
+    setDropboxToken(null);
+    setDropboxConnected(false);
+    setDropboxLastSync(null);
+    setDropboxError(null);
+    localStorage.removeItem('bb_dropboxToken');
+    localStorage.removeItem('bb_dropboxConnected');
+    localStorage.removeItem('bb_dropboxLastSync');
+  };
+
+  // Dropbox: Sync backup to cloud
+  const syncToDropbox = async (token = dropboxToken) => {
+    if (!token) {
+      setDropboxError('Not connected to Dropbox');
+      return;
+    }
+    
+    setDropboxSyncing(true);
+    setDropboxError(null);
+    
+    try {
+      const backup = {
+        appName: 'BalanceBooks Pro',
+        version: __APP_VERSION__,
+        exportDate: new Date().toISOString(),
+        syncedFrom: window.location.hostname,
+        data: {
+          transactions,
+          recurringExpenses,
+          monthlyBalances,
+          savingsGoal,
+          budgetGoals,
+          debts
+        }
+      };
+      
+      const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/octet-stream',
+          'Dropbox-API-Arg': JSON.stringify({
+            path: '/balancebooks-backup.json',
+            mode: 'overwrite',
+            autorename: false,
+            mute: false
+          })
+        },
+        body: JSON.stringify(backup, null, 2)
+      });
+      
+      if (response.ok) {
+        const now = new Date().toISOString();
+        setDropboxLastSync(now);
+        setLastBackupDate(now);
+        setDropboxError(null);
+      } else if (response.status === 401) {
+        disconnectDropbox();
+        setDropboxError('Session expired. Please reconnect.');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error_summary || 'Upload failed');
+      }
+    } catch (err) {
+      console.error('Dropbox sync error:', err);
+      setDropboxError(err.message || 'Sync failed. Please try again.');
+    } finally {
+      setDropboxSyncing(false);
+    }
+  };
+
+  // Dropbox: Restore from cloud
+  const restoreFromDropbox = async () => {
+    if (!dropboxToken) {
+      setDropboxError('Not connected to Dropbox');
+      return;
+    }
+    
+    setDropboxSyncing(true);
+    setDropboxError(null);
+    
+    try {
+      const response = await fetch('https://content.dropboxapi.com/2/files/download', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${dropboxToken}`,
+          'Dropbox-API-Arg': JSON.stringify({ path: '/balancebooks-backup.json' })
+        }
+      });
+      
+      if (response.ok) {
+        const backup = await response.json();
+        setRestoreData({
+          filename: 'Dropbox Cloud Backup',
+          date: backup.exportDate,
+          version: backup.version || '1.0',
+          summary: {
+            transactions: backup.data?.transactions?.length || 0,
+            recurringBills: backup.data?.recurringExpenses?.length || 0,
+            debts: backup.data?.debts?.length || 0,
+            budgetGoals: Object.keys(backup.data?.budgetGoals || {}).filter(k => backup.data.budgetGoals[k] > 0).length
+          },
+          raw: backup,
+          source: 'dropbox'
+        });
+        setModal('restore-wizard');
+      } else if (response.status === 409) {
+        setDropboxError('No backup found in Dropbox. Sync your data first!');
+      } else if (response.status === 401) {
+        disconnectDropbox();
+        setDropboxError('Session expired. Please reconnect.');
+      } else {
+        throw new Error('Download failed');
+      }
+    } catch (err) {
+      console.error('Dropbox restore error:', err);
+      setDropboxError(err.message || 'Restore failed. Please try again.');
+    } finally {
+      setDropboxSyncing(false);
+    }
+  };
 
   // Get the key for monthly balance storage
   const getMonthKey = (m, y) => `${y}-${String(m).padStart(2, '0')}`;
@@ -629,7 +793,11 @@ export default function App() {
         ['01/12/2026', 'Netflix & Spotify', '-25.99', 'Subscriptions', 'Expense', 'Yes', 'Monthly'],
         ['01/10/2026', 'Church Tithe', '-350', 'Tithes & Offerings', 'Expense', 'Yes', '10% of income'],
         ['01/08/2026', 'Family Dinner', '-78.50', 'Dining', 'Expense', 'Yes', 'Birthday celebration'],
+        ['01/07/2026', 'Chase Visa Payment', '-500', 'Credit Card Payment', 'Expense', 'Yes', 'Monthly payment'],
+        ['01/06/2026', 'Car Insurance', '-125', 'Insurance', 'Expense', 'Yes', 'Monthly premium'],
         ['01/05/2026', 'Side Gig Payment', '500', 'Income', 'Income', 'Yes', 'Freelance work'],
+        ['01/03/2026', 'Doctor Visit Copay', '-35', 'Healthcare', 'Expense', 'Yes', 'Annual checkup'],
+        ['01/02/2026', 'Amazon Purchase', '-67.99', 'Shopping', 'Expense', 'Yes', 'Household items'],
         ['01/01/2026', 'Mortgage/Rent', '-1850', 'Housing', 'Expense', 'Yes', 'Monthly payment'],
         ['01/01/2026', 'Savings Transfer', '-200', 'Savings', 'Expense', 'Yes', 'Emergency fund']
       ];
@@ -643,26 +811,29 @@ export default function App() {
       return;
     }
 
-    // Create professionally formatted Excel workbook
+    // Create professionally formatted Excel workbook matching official template
     const wb = XLSX.utils.book_new();
+    
+    // Category list for dropdown validation
+    const categoryList = 'Income,Groceries,Utilities,Transportation,Healthcare,Insurance,Entertainment,Dining,Shopping,Subscriptions,Education,Tithes & Offerings,Savings,Investment,Debt Payment,Childcare,Pets,Personal Care,Gifts & Donations,Housing,Credit Card Payment,Other';
     
     // Build template data with header, instructions, balance summary, and sample transactions
     const wsData = [
-      ['📊 Balance Books Pro - Import Template'],
-      ['Fill in transactions below. Expenses should be negative amounts, Income should be positive. Categories must match exactly.'],
-      [],
-      ['Beginning Balance:', 0, '', 'Ending Balance:', { t: 'n', f: 'B4+SUMIF(E7:E100,"Income",C7:C100)+SUMIF(E7:E100,"Expense",C7:C100)' }],
-      [],
+      ['📊 Balance Books Pro - Import Template', null, null, null, null, null, null],
+      ['Fill in transactions below. Use dropdowns for Category, Type, and Paid. Expenses = negative amounts, Income = positive.', null, null, null, null, null, null],
+      [null, null, null, null, null, null, null],
+      ['Beginning Balance:', 0, null, 'Ending Balance:', { t: 'n', f: 'B4+SUMIF(E7:E100,"Income",C7:C100)+SUMIF(E7:E100,"Expense",C7:C100)' }, null, null],
+      [null, null, null, null, null, null, null],
       ['Date', 'Description', 'Amount', 'Category', 'Type', 'Paid', 'Notes'],
       // Sample transactions showing realistic usage
       ['01/20/2026', 'January Paycheck', 3500, 'Income', 'Income', 'Yes', 'Direct deposit'],
       ['01/18/2026', 'Grocery Shopping', -125.50, 'Groceries', 'Expense', 'Yes', 'Weekly groceries'],
       ['01/15/2026', 'Electric Bill', -145, 'Utilities', 'Expense', 'No', 'Due on the 20th'],
-      ['01/14/2026', 'Gas Station', -52, 'Transportation', 'Expense', 'Yes', ''],
+      ['01/14/2026', 'Gas Station', -52, 'Transportation', 'Expense', 'Yes', null],
       ['01/12/2026', 'Netflix & Spotify', -25.99, 'Subscriptions', 'Expense', 'Yes', 'Monthly'],
       ['01/10/2026', 'Church Tithe', -350, 'Tithes & Offerings', 'Expense', 'Yes', '10% of income'],
       ['01/08/2026', 'Family Dinner', -78.50, 'Dining', 'Expense', 'Yes', 'Birthday celebration'],
-      ['01/07/2026', 'Chase Visa Payment', -500, 'Debt Payment', 'Expense', 'Yes', 'Monthly payment'],
+      ['01/07/2026', 'Chase Visa Payment', -500, 'Credit Card Payment', 'Expense', 'Yes', 'Monthly payment'],
       ['01/06/2026', 'Car Insurance', -125, 'Insurance', 'Expense', 'Yes', 'Monthly premium'],
       ['01/05/2026', 'Side Gig Payment', 500, 'Income', 'Income', 'Yes', 'Freelance work'],
       ['01/03/2026', 'Doctor Visit Copay', -35, 'Healthcare', 'Expense', 'Yes', 'Annual checkup'],
@@ -671,9 +842,9 @@ export default function App() {
       ['01/01/2026', 'Savings Transfer', -200, 'Savings', 'Expense', 'Yes', 'Emergency fund']
     ];
 
-    // Add empty rows for user input (30 more rows)
-    for (let i = 0; i < 30; i++) {
-      wsData.push(['', '', '', '', '', '', '']);
+    // Add empty rows for user input (36 more rows to reach row 56)
+    for (let i = 0; i < 36; i++) {
+      wsData.push([null, null, null, null, null, null, null]);
     }
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -695,40 +866,48 @@ export default function App() {
       { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }   // Instructions row
     ];
 
+    // Add data validations for dropdown columns (D7:D56, E7:E56, F7:F56)
+    if (!ws['!dataValidations']) ws['!dataValidations'] = [];
+    ws['!dataValidations'].push(
+      { sqref: 'D7:D56', type: 'list', formula1: '"' + categoryList + '"' },
+      { sqref: 'E7:E56', type: 'list', formula1: '"Income,Expense"' },
+      { sqref: 'F7:F56', type: 'list', formula1: '"Yes,No"' }
+    );
+
     XLSX.utils.book_append_sheet(wb, ws, 'Import Template');
 
     // Create Instructions sheet with detailed help
     const instData = [
       ['📘 How to Use This Template'],
-      [],
+      [null],
       ['1. FILL IN YOUR DATA'],
-      ['   • Date: Enter dates in MM/DD/YYYY or YYYY-MM-DD format'],
+      ['   • Date: Enter dates in MM/DD/YYYY format'],
       ['   • Description: Brief description of the transaction'],
-      ['   • Amount: POSITIVE for income, NEGATIVE for expenses (e.g., -125.50)'],
-      ['   • Category: Must match one of the supported categories below'],
-      ['   • Type: "Income" or "Expense"'],
-      ['   • Paid: "Yes" or "No"'],
+      ['   • Amount: Positive for income, negative for expenses'],
+      ['   • Category: Select from dropdown (required for import)'],
+      ['   • Type: Income or Expense'],
+      ['   • Paid: Yes or No'],
       ['   • Notes: Optional additional details'],
-      [],
+      [null],
       ['2. IMPORT TO BALANCE BOOKS'],
-      ['   • Save this file (File → Save)'],
-      ['   • In Balance Books Pro, click the Import button'],
+      ['   • Save this file as .xlsx or .csv'],
+      ['   • In Balance Books Pro, click Import button'],
       ['   • Select this file'],
       ['   • Review the preview and confirm import'],
-      [],
+      [null],
       ['3. SUPPORTED CATEGORIES'],
-      ['   Income, Housing, Utilities, Groceries, Transportation,'],
-      ['   Healthcare, Insurance, Entertainment, Dining, Shopping,'],
-      ['   Subscriptions, Education, Tithes & Offerings, Savings,'],
-      ['   Investment, Debt Payment, Childcare, Pets, Personal Care,'],
-      ['   Gifts & Donations, Transfer, Other'],
-      [],
+      ['   Income, Groceries, Utilities, Transportation, Healthcare,'],
+      ['   Insurance, Entertainment, Dining, Shopping, Subscriptions,'],
+      ['   Education, Tithes & Offerings, Savings, Investment,'],
+      ['   Debt Payment, Childcare, Pets, Personal Care,'],
+      ['   Gifts & Donations, Housing, Credit Card Payment, Other'],
+      [null],
       ['4. TIPS'],
       ['   • Set your Beginning Balance in cell B4 before importing'],
       ['   • Delete sample rows and replace with your own data'],
       ['   • The Ending Balance formula will auto-calculate'],
       ['   • You can import multiple months at once'],
-      [],
+      [null],
       ['📞 Support: help@balancebooksapp.com'],
       ['🌐 Web: https://balancebooksapp.com']
     ];
@@ -890,6 +1069,12 @@ export default function App() {
       'paycheck': 'income',
       'wages': 'income',
       'freelance': 'income',
+      'credit card': 'debt',
+      'credit card payment': 'debt',
+      'visa': 'debt',
+      'mastercard': 'debt',
+      'loan': 'debt',
+      'payment': 'debt',
     };
     
     // Check aliases
@@ -2270,30 +2455,91 @@ export default function App() {
                     </label>
                   </div>
 
-                  {/* Cloud Backup Options (Coming Soon) */}
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 opacity-75">
+                  {/* Dropbox Cloud Backup */}
+                  <div className={`p-4 rounded-xl border-2 ${dropboxConnected ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-slate-700 flex items-center gap-2">
-                        <Cloud size={16} className="text-slate-500" />
-                        Cloud Backup Options
-                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-[#14b8a6] rounded-full">Coming Soon</span>
+                        <Cloud size={16} className={dropboxConnected ? 'text-blue-600' : 'text-slate-500'} />
+                        Dropbox Cloud Backup
+                        {dropboxConnected && (
+                          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full flex items-center gap-1">
+                            <Check size={10} /> Connected
+                          </span>
+                        )}
                       </h4>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                        <span className="text-2xl">📁</span>
-                        <span className="text-xs text-slate-500">Google Drive</span>
-                      </button>
-                      <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                        <span className="text-2xl">📦</span>
-                        <span className="text-xs text-slate-500">Dropbox</span>
-                      </button>
-                      <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                        <span className="text-2xl">☁️</span>
-                        <span className="text-xs text-slate-500">OneDrive</span>
-                      </button>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-2 text-center">Sync across devices while keeping your data private</p>
+                    
+                    {!dropboxConnected ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-slate-600">Connect to Dropbox to automatically backup your data to the cloud.</p>
+                        <button 
+                          onClick={connectDropbox}
+                          className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all"
+                        >
+                          <span className="text-lg">📦</span>
+                          Connect Dropbox
+                        </button>
+                        <p className="text-xs text-slate-400 text-center">Your data stays private in your own Dropbox account</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {dropboxLastSync && (
+                          <p className="text-xs text-blue-600 flex items-center gap-1">
+                            <Check size={12} />
+                            Last synced: {new Date(dropboxLastSync).toLocaleDateString()} at {new Date(dropboxLastSync).toLocaleTimeString()}
+                          </p>
+                        )}
+                        
+                        {dropboxError && (
+                          <div className="p-2 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-xs text-red-600 flex items-center gap-1">
+                              <AlertTriangle size={12} />
+                              {dropboxError}
+                            </p>
+                          </div>
+                        )}
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <button 
+                            onClick={() => syncToDropbox()}
+                            disabled={dropboxSyncing}
+                            className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all"
+                          >
+                            {dropboxSyncing ? (
+                              <><Loader2 size={14} className="animate-spin" /> Syncing...</>
+                            ) : (
+                              <><Cloud size={14} /> Sync Now</>
+                            )}
+                          </button>
+                          <button 
+                            onClick={restoreFromDropbox}
+                            disabled={dropboxSyncing}
+                            className="flex items-center justify-center gap-2 py-2.5 bg-white text-blue-700 border-2 border-blue-300 rounded-lg font-medium hover:bg-blue-50 disabled:opacity-50 transition-all"
+                          >
+                            <Download size={14} /> Restore
+                          </button>
+                        </div>
+                        
+                        <button 
+                          onClick={disconnectDropbox}
+                          className="w-full flex items-center justify-center gap-1 py-2 text-slate-500 text-xs hover:text-red-600 transition-colors"
+                        >
+                          <Unlink size={12} /> Disconnect Dropbox
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Other Cloud Options (Coming Soon) */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button disabled className="flex items-center justify-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
+                      <span className="text-lg">📁</span>
+                      <span className="text-xs text-slate-500">Google Drive (Soon)</span>
+                    </button>
+                    <button disabled className="flex items-center justify-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
+                      <span className="text-lg">☁️</span>
+                      <span className="text-xs text-slate-500">OneDrive (Soon)</span>
+                    </button>
                   </div>
 
                   {/* Email Backup - Quick Win Feature */}
