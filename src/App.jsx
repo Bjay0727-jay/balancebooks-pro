@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save } from 'lucide-react';
+import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save, Sun, Moon } from 'lucide-react';
 
 // Categories
 const CATEGORIES = [
@@ -9,7 +9,7 @@ const CATEGORIES = [
   { id: 'groceries', name: 'Groceries', color: '#16a34a', bg: '#f0fdf4', icon: '🛒' },
   { id: 'transportation', name: 'Transportation', color: '#d97706', bg: '#fffbeb', icon: '🚗' },
   { id: 'healthcare', name: 'Healthcare', color: '#dc2626', bg: '#fef2f2', icon: '🏥' },
-  { id: 'insurance', name: 'Insurance', color: '#0284c7', bg: '#f0f9ff', icon: '🛡️' },
+  { id: 'insurance', name: 'Insurance', color: '#0284c7', bg: '#f0f9ff', icon: '🛡️' },
   { id: 'entertainment', name: 'Entertainment', color: '#db2777', bg: '#fdf2f8', icon: '🎬' },
   { id: 'dining', name: 'Dining', color: '#ea580c', bg: '#fff7ed', icon: '🍽️' },
   { id: 'shopping', name: 'Shopping', color: '#9333ea', bg: '#faf5ff', icon: '🛍️' },
@@ -22,7 +22,7 @@ const CATEGORIES = [
   { id: 'childcare', name: 'Childcare', color: '#f472b6', bg: '#fdf2f8', icon: '👶' },
   { id: 'pets', name: 'Pets', color: '#f59e0b', bg: '#fffbeb', icon: '🐾' },
   { id: 'personal', name: 'Personal Care', color: '#ec4899', bg: '#fdf2f8', icon: '💇' },
-  { id: 'gifts', name: 'Gifts & Donations', color: '#8b5cf6', bg: '#f5f3ff', icon: '🎁' },
+  { id: 'gifts', name: 'Gifts & Donations', color: '#8b5cf6', bg: '#f5f3ff', icon: '🎁' },
   { id: 'transfer', name: 'Transfer', color: '#475569', bg: '#f8fafc', icon: '🔄' },
   { id: 'other', name: 'Other', color: '#64748b', bg: '#f8fafc', icon: '📦' },
 ];
@@ -90,6 +90,38 @@ export default function App() {
   const [editDebt, setEditDebt] = useState(null);
   const [editBudget, setEditBudget] = useState(null);
   const [restoreData, setRestoreData] = useState(null); // For restore wizard
+  const [darkMode, setDarkMode] = useState(() => loadData('darkMode', false));
+
+  // Theme configuration for v3 design
+  const theme = darkMode ? {
+    bg: 'bg-[#0f0f0f]',
+    bgSecondary: 'bg-[#1a1a1a]',
+    bgCard: 'bg-[#1f1f1f]',
+    bgSidebar: 'bg-[#1a1a1a]',
+    bgHover: 'hover:bg-[#2a2a2a]',
+    border: 'border-[#454545]',
+    borderLight: 'border-[#3a3a3a]',
+    text: 'text-white',
+    textSecondary: 'text-[#a0a0a0]',
+    textMuted: 'text-[#6b6b6b]',
+    cardBorder: 'border-2 border-[#454545]',
+    inputBg: 'bg-[#2a2a2a]',
+    inputBorder: 'border-[#454545]',
+  } : {
+    bg: 'bg-[#f5f5f5]',
+    bgSecondary: 'bg-[#fafafa]',
+    bgCard: 'bg-white',
+    bgSidebar: 'bg-[#f0f0f0]',
+    bgHover: 'hover:bg-[#e8e8e8]',
+    border: 'border-[#d4d4d4]',
+    borderLight: 'border-[#e5e5e5]',
+    text: 'text-[#171717]',
+    textSecondary: 'text-[#525252]',
+    textMuted: 'text-[#a3a3a3]',
+    cardBorder: 'border-2 border-[#b0b0b0]',
+    inputBg: 'bg-white',
+    inputBorder: 'border-[#d4d4d4]',
+  };
 
   useEffect(() => { saveData('transactions', transactions); }, [transactions]);
   useEffect(() => { saveData('recurring', recurringExpenses); }, [recurringExpenses]);
@@ -100,6 +132,7 @@ export default function App() {
   useEffect(() => { saveData('autoBackup', autoBackupEnabled); }, [autoBackupEnabled]);
   useEffect(() => { saveData('lastBackup', lastBackupDate); }, [lastBackupDate]);
   useEffect(() => { saveData('notifications', notificationsEnabled); }, [notificationsEnabled]);
+  useEffect(() => { saveData('darkMode', darkMode); }, [darkMode]);
 
   // Auto-backup every 24 hours
   useEffect(() => {
@@ -511,7 +544,7 @@ export default function App() {
     if (savingsRate >= 20) {
       recs.push({ 
         id: 5, type: 'success', priority: 'low',
-        title: '🎉 Excellent Savings Rate!', 
+        title: '🎁‰ Excellent Savings Rate!', 
         description: `You're saving ${savingsRate.toFixed(1)}% of your income - above the recommended 20%! You're building real wealth.`, 
         potential: 0,
         tips: ['Consider maxing out retirement accounts', 'Look into index fund investing', 'Keep up the amazing work!'],
@@ -1245,8 +1278,8 @@ export default function App() {
   };
 
   const NavItem = ({ id, icon: Icon, label, badge }) => (
-    <button onClick={() => { setView(id); if (isMobile) setSidebarOpen(false); }} className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all ${view === id ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'}`}>
-      <div className="flex items-center gap-3"><Icon size={20} /><span className="font-medium">{label}</span></div>
+    <button onClick={() => { setView(id); if (isMobile) setSidebarOpen(false); }} className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all ${view === id ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white shadow-lg' : `${theme.text} ${theme.bgHover}`}`}>
+      <div className="flex items-center gap-3"><Icon size={20} /><span className="font-semibold">{label}</span></div>
       {badge && <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${view === id ? 'bg-white/20' : 'bg-teal-100 text-teal-700'}`}>{badge}</span>}
     </button>
   );
@@ -1270,10 +1303,10 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className={`min-h-screen ${theme.bg} transition-colors duration-200`} style={{ fontFamily: "'Inter', sans-serif" }}>
       {isMobile && sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-200 p-6 flex flex-col z-50 transition-transform duration-300 shadow-lg ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed left-0 top-0 bottom-0 w-64 ${theme.bgSidebar} ${theme.border} border-r p-6 flex flex-col z-50 transition-all duration-300 shadow-lg ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center shadow-lg overflow-hidden">
             <svg viewBox="0 0 100 100" className="w-8 h-8">
@@ -1308,10 +1341,23 @@ export default function App() {
           <NavItem id="recommendations" icon={Lightbulb} label="Smart Tips" badge={savingsRecommendations.filter(r => r.priority === 'high').length || null} />
           <NavItem id="settings" icon={Settings} label="Settings" />
         </nav>
-        <div className="pt-6 border-t border-slate-200 space-y-2">
+        <div className={`pt-6 ${theme.border} border-t space-y-2`}>
+          {/* Dark Mode Toggle */}
+          <div className={`flex items-center justify-between px-4 py-3 rounded-xl ${theme.bgCard} ${theme.cardBorder}`}>
+            <div className="flex items-center gap-3">
+              {darkMode ? <Moon size={20} className="text-[#14b8a6]" /> : <Sun size={20} className="text-amber-500" />}
+              <span className={`font-semibold ${theme.text}`}>{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+            </div>
+            <button 
+              onClick={() => setDarkMode(!darkMode)}
+              className={`relative w-12 h-6 rounded-full transition-colors ${darkMode ? 'bg-[#14b8a6]' : 'bg-slate-300'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${darkMode ? 'translate-x-7' : 'translate-x-1'}`} />
+            </button>
+          </div>
           <button onClick={() => setModal('connect')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#14b8a6] to-[#0d9488] text-white font-medium hover:shadow-lg transition-all"><Link2 size={20} /><span>Connect Bank</span></button>
           <button onClick={() => setModal('import')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white font-medium hover:shadow-lg transition-all"><Upload size={20} /><span>Import</span></button>
-          <button onClick={exportCSV} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200 transition-all"><Download size={20} /><span className="font-medium">Export</span></button>
+          <button onClick={exportCSV} className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl ${theme.text} ${theme.bgHover} ${theme.border} border transition-all`}><Download size={20} /><span className="font-medium">Export</span></button>
         </div>
       </aside>
 
@@ -1406,8 +1452,8 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white rounded-2xl p-5 border-2 border-slate-200 shadow-sm"><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Net Change</span><div className="p-2 rounded-xl bg-slate-100"><TrendingUp size={16} className={stats.net >= 0 ? "text-teal-600" : "text-rose-600"} /></div></div><p className={`font-bold text-2xl ${stats.net >= 0 ? 'text-teal-600' : 'text-rose-600'}`}>{stats.net >= 0 ? '+' : ''}{currency(stats.net)}</p></div>
-                <div className="bg-white rounded-2xl p-5 border-2 border-slate-200 shadow-sm"><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Monthly Recurring</span><div className="p-2 rounded-xl bg-slate-100"><RefreshCw size={16} className="text-teal-600" /></div></div><p className="font-bold text-teal-600 text-2xl">{currency(totalMonthlyRecurring)}</p><p className="text-xs text-slate-500 mt-1">/month committed</p></div>
+                <div className="bg-white rounded-2xl p-5 border-2 border-[#b0b0b0] shadow-sm"><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Net Change</span><div className="p-2 rounded-xl bg-slate-100"><TrendingUp size={16} className={stats.net >= 0 ? "text-teal-600" : "text-rose-600"} /></div></div><p className={`font-bold text-2xl ${stats.net >= 0 ? 'text-teal-600' : 'text-rose-600'}`}>{stats.net >= 0 ? '+' : ''}{currency(stats.net)}</p></div>
+                <div className="bg-white rounded-2xl p-5 border-2 border-[#b0b0b0] shadow-sm"><div className="flex items-center justify-between mb-3"><span className="text-slate-500 text-sm font-medium">Monthly Recurring</span><div className="p-2 rounded-xl bg-slate-100"><RefreshCw size={16} className="text-teal-600" /></div></div><p className="font-bold text-teal-600 text-2xl">{currency(totalMonthlyRecurring)}</p><p className="text-xs text-slate-500 mt-1">/month committed</p></div>
               </div>
 
               {savingsRecommendations.filter(r => r.priority === 'high').length > 0 && (
@@ -1417,9 +1463,7 @@ export default function App() {
                 </div>
               )}
 
-              <div className="bg-white rounded-2xl p-6 border-2 border-slate-200 shadow-sm"><h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><CreditCard size={18} className="text-teal-600" />Spending by Category</h3><div className="space-y-4">{catBreakdown.slice(0, 5).map(cat => (<div key={cat.id}><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><span>{cat.icon}</span><span className="font-medium text-slate-700 text-sm">{cat.name}</span></div><span className="font-bold text-slate-900 text-sm">{currency(cat.total)}</span></div><div className="h-3 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${cat.pct}%`, backgroundColor: cat.color }} /></div></div>))}</div></div>
-              
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50"><h3 className="font-semibold text-slate-900 flex items-center gap-2"><Receipt size={18} className="text-teal-600" />Recent Transactions</h3><button onClick={() => setView('transactions')} className="text-sm text-teal-600 font-medium hover:text-green-700 bg-teal-50 px-3 py-1 rounded-full">View All →</button></div>
                 <div className="divide-y divide-slate-100">{monthTx.slice(0, 6).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (<div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div><div><div className="flex items-center gap-2"><p className="font-medium text-slate-900 text-sm">{tx.desc}</p>{tx.paid ? <Check size={14} className="text-green-500" /> : <Clock size={14} className="text-amber-500" />}</div><p className="text-xs text-slate-500">{shortDate(tx.date)}</p></div></div><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-teal-600' : 'text-slate-900'}`}>{tx.amount > 0 ? '+' : ''}{currency(tx.amount)}</span></div>); })}</div>
               </div>
@@ -1430,9 +1474,9 @@ export default function App() {
             <div className="space-y-4">
               {/* Filters Row */}
               <div className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-600" size={18} /><input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]" /></div>
-                <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
-                <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Status</option><option value="paid">âœ“ Paid</option><option value="unpaid">â—‹ Unpaid</option></select>
+                <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-600" size={18} /><input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]" /></div>
+                <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
+                <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Status</option><option value="paid">✓ Paid</option><option value="unpaid">○ Unpaid</option></select>
               </div>
               
               {/* Action Buttons Row */}
@@ -1508,7 +1552,7 @@ export default function App() {
               </div>
               
               {/* Transactions List */}
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm divide-y divide-slate-100">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm divide-y divide-slate-100">
                 {filtered.length > 0 ? filtered.slice(0, 50).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (
                   <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1546,7 +1590,7 @@ export default function App() {
           {view === 'recurring' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between p-6 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] rounded-2xl text-white shadow-xl"><div><h3 className="text-lg font-semibold">Monthly Recurring</h3><p className="text-3xl font-bold">{currency(totalMonthlyRecurring)}</p></div><button onClick={() => setModal('add-recurring')} className="flex items-center gap-2 px-4 py-3 bg-white text-[#1e3a5f] rounded-xl font-semibold hover:bg-slate-50 shadow-lg"><Plus size={18} />Add</button></div>
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm divide-y divide-slate-100">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm divide-y divide-slate-100">
                 {recurringExpenses.map(r => { const cat = CATEGORIES.find(c => c.id === r.category); const freq = FREQUENCY_OPTIONS.find(f => f.id === r.frequency); return (
                   <div key={r.id} className={`flex items-center justify-between px-4 py-4 hover:bg-slate-50 ${!r.active ? 'opacity-50' : ''}`}>
                     <div className="flex items-center gap-3">
@@ -1568,14 +1612,14 @@ export default function App() {
 
           {view === 'accounts' && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-white border-2 border-slate-200 shadow-sm"><div className="flex items-start gap-4"><div className="p-3 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] shadow-lg"><Shield size={24} className="text-white" /></div><div><h3 className="font-semibold text-lg text-slate-900 mb-2">Secure Bank Connection</h3><p className="text-slate-500 text-sm">Transactions auto-marked as paid when cleared</p></div></div></div>
+              <div className="p-6 rounded-2xl bg-white border-2 border-[#b0b0b0] shadow-sm"><div className="flex items-start gap-4"><div className="p-3 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] shadow-lg"><Shield size={24} className="text-white" /></div><div><h3 className="font-semibold text-lg text-slate-900 mb-2">Secure Bank Connection</h3><p className="text-slate-500 text-sm">Transactions auto-marked as paid when cleared</p></div></div></div>
               {linkedAccounts.length > 0 ? linkedAccounts.map(acc => (
                 <div key={acc.id} className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-teal-200 shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center text-white font-bold text-xl shadow-lg">{acc.institution.charAt(0)}</div><div><h4 className="font-bold text-slate-900">{acc.institution}</h4><p className="text-xs text-teal-600 font-medium">âœ“ Auto-marking enabled</p></div></div><button onClick={() => setLinkedAccounts([])} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200"><Unlink size={14} /></button></div>
-                  <div className="grid grid-cols-2 gap-2">{acc.accounts.map(a => (<div key={a.id} className="p-3 rounded-xl bg-white border-2 border-slate-200"><p className="text-sm font-medium text-slate-700">{a.subtype}</p><p className="text-xs text-slate-400">••••{a.mask}</p></div>))}</div>
+                  <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center text-white font-bold text-xl shadow-lg">{acc.institution.charAt(0)}</div><div><h4 className="font-bold text-slate-900">{acc.institution}</h4><p className="text-xs text-teal-600 font-medium">✓ Auto-marking enabled</p></div></div><button onClick={() => setLinkedAccounts([])} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-200"><Unlink size={14} /></button></div>
+                  <div className="grid grid-cols-2 gap-2">{acc.accounts.map(a => (<div key={a.id} className="p-3 rounded-xl bg-white border-2 border-[#b0b0b0]"><p className="text-sm font-medium text-slate-700">{a.subtype}</p><p className="text-xs text-slate-400">••••{a.mask}</p></div>))}</div>
                 </div>
               )) : (
-                <div className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-slate-200 shadow-sm p-8 text-center">
+                <div className="bg-gradient-to-r from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-8 text-center">
                   <Building2 className="mx-auto text-blue-300 mb-4" size={48} />
                   <h3 className="font-bold text-slate-900 mb-2">No Banks Connected</h3>
                   <p className="text-slate-500 text-sm mb-4">Connect your bank to auto-track payments</p>
@@ -1588,7 +1632,7 @@ export default function App() {
           )}
 
           {view === 'cycle' && (
-            <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-x-auto">
+            <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm overflow-x-auto">
               <table className="w-full text-sm"><thead className="bg-gradient-to-r from-[#1e3a5f]/10 via-white to-[#14b8a6]/10 border-b border-slate-200"><tr><th className="px-4 py-4 text-left font-bold text-slate-700">Month</th><th className="px-4 py-4 text-right font-bold text-teal-600">Beginning</th><th className="px-4 py-4 text-right font-bold text-teal-600">Income</th><th className="px-4 py-4 text-right font-bold text-rose-600">Expenses</th><th className="px-4 py-4 text-right font-bold text-slate-600">Net</th><th className="px-4 py-4 text-right font-bold text-teal-600">Ending</th></tr></thead>
               <tbody className="divide-y divide-slate-100">{cycleData.map((row, i) => (<tr key={i} className="hover:bg-slate-50"><td className="px-4 py-3 font-medium text-slate-900">{row.month} {row.year}</td><td className="px-4 py-3 text-right text-teal-600">{currency(row.beginning)}</td><td className="px-4 py-3 text-right text-teal-600 font-medium">{currency(row.income)}</td><td className="px-4 py-3 text-right text-rose-600">{currency(row.expenses)}</td><td className={`px-4 py-3 text-right font-bold ${row.net >= 0 ? 'text-teal-600' : 'text-rose-600'}`}>{row.net >= 0 ? '+' : ''}{currency(row.net)}</td><td className="px-4 py-3 text-right font-bold text-teal-600">{currency(row.ending)}</td></tr>))}</tbody></table>
             </div>
@@ -1598,8 +1642,8 @@ export default function App() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-slate-50 rounded-2xl border-2 border-teal-200 shadow-sm p-6"><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">This Month</span><div className="p-2 rounded-xl bg-gradient-to-br from-green-100 to-green-200"><PiggyBank size={20} className="text-teal-600" /></div></div><p className="text-3xl font-bold text-teal-600">{currency(stats.saved)}</p><div className="mt-4"><div className="h-3 bg-gradient-to-r from-[#1e3a5f]/10 to-[#14b8a6]/10 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#14b8a6]/50 to-green-400 rounded-full" style={{ width: `${Math.min(100, (stats.saved / savingsGoal * 100))}%` }} /></div><p className="text-xs text-slate-500 mt-2">{Math.min(100, (stats.saved / savingsGoal * 100)).toFixed(0)}% of {currency(savingsGoal)} goal</p></div></div>
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6"><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">Year to Date</span><div className="p-2 rounded-xl bg-gradient-to-br from-[#1e3a5f]/10 to-blue-200"><TrendingUp size={20} className="text-teal-600" /></div></div><p className="text-3xl font-bold text-teal-600">{currency(transactions.filter(t => t.category === 'savings' && new Date(t.date).getFullYear() === year).reduce((s, t) => s + Math.abs(t.amount), 0))}</p></div>
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setModal('edit-goal')}><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">Monthly Goal</span><div className="p-2 rounded-xl bg-teal-100"><Target size={20} className="text-teal-600" /></div></div><p className="text-3xl font-bold text-teal-600">{currency(savingsGoal)}</p><p className="text-xs text-slate-400 mt-2 flex items-center gap-1"><Edit2 size={12} /> Click to edit</p></div>
+                <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6"><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">Year to Date</span><div className="p-2 rounded-xl bg-gradient-to-br from-[#1e3a5f]/10 to-blue-200"><TrendingUp size={20} className="text-teal-600" /></div></div><p className="text-3xl font-bold text-teal-600">{currency(transactions.filter(t => t.category === 'savings' && new Date(t.date).getFullYear() === year).reduce((s, t) => s + Math.abs(t.amount), 0))}</p></div>
+                <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setModal('edit-goal')}><div className="flex items-center justify-between mb-4"><span className="text-slate-500 text-sm">Monthly Goal</span><div className="p-2 rounded-xl bg-teal-100"><Target size={20} className="text-teal-600" /></div></div><p className="text-3xl font-bold text-teal-600">{currency(savingsGoal)}</p><p className="text-xs text-slate-400 mt-2 flex items-center gap-1"><Edit2 size={12} /> Click to edit</p></div>
               </div>
             </div>
           )}
@@ -1655,7 +1699,7 @@ export default function App() {
             <div className="space-y-6 max-w-4xl">
               {/* Budget Overview Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl p-5 border-2 border-slate-200 shadow-sm">
+                <div className="bg-white rounded-2xl p-5 border-2 border-[#b0b0b0] shadow-sm">
                   <p className="text-slate-500 text-sm font-medium mb-1">Total Budget</p>
                   <p className="text-2xl font-bold text-teal-600">{currency(budgetStats.totalBudget)}</p>
                 </div>
@@ -1691,7 +1735,7 @@ export default function App() {
               )}
 
               {/* Set Budget Goals */}
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                     <Target size={18} className="text-teal-600" />
@@ -1769,7 +1813,7 @@ export default function App() {
               </div>
 
               {/* Spending Trends Chart */}
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <TrendingUp size={18} className="text-teal-600" />
                   6-Month Spending Trends
@@ -1812,7 +1856,7 @@ export default function App() {
               </div>
 
               {/* Category Breakdown Pie Chart */}
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <PieChart size={18} className="text-purple-600" />
                   Spending by Category ({FULL_MONTHS[month]})
@@ -1935,7 +1979,7 @@ export default function App() {
                     <p className="text-slate-500 text-sm font-medium mb-1">Min. Payments</p>
                     <p className="text-2xl font-bold text-amber-600">{currency(debtPayoffPlan.totalMinPayment)}/mo</p>
                   </div>
-                  <div className="bg-white rounded-2xl p-5 border-2 border-slate-200 shadow-sm">
+                  <div className="bg-white rounded-2xl p-5 border-2 border-[#b0b0b0] shadow-sm">
                     <p className="text-slate-500 text-sm font-medium mb-1">Payoff Time</p>
                     <p className="text-2xl font-bold text-teal-600">{Math.ceil(debtPayoffPlan.avalancheMonths / 12)} years</p>
                   </div>
@@ -1948,7 +1992,7 @@ export default function App() {
               )}
 
               {/* Debt List */}
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <CreditCard size={18} className="text-rose-600" />
                   Your Debts
@@ -2002,7 +2046,7 @@ export default function App() {
               {debts.length > 1 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Snowball Method */}
-                  <div className="bg-blue-50 rounded-2xl border-2 border-slate-200 p-6">
+                  <div className="bg-blue-50 rounded-2xl border-2 border-[#b0b0b0] p-6">
                     <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
                       â„ï¸ Debt Snowball
                     </h4>
@@ -2051,12 +2095,12 @@ export default function App() {
 
           {view === 'settings' && (
             <div className="space-y-4 max-w-2xl">
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Calculator size={18} className="text-teal-600" />Balance Settings</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-slate-600 mb-2 font-medium">Beginning Balance ({FULL_MONTHS[month]} {year})</label>
-                    <input type="number" value={stats.beginning} onChange={(e) => setBeginningBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
+                    <input type="number" value={stats.beginning} onChange={(e) => setBeginningBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
                   </div>
                   <div>
                     <label className="block text-sm text-slate-600 mb-2 font-medium">Ending Balance Override</label>
@@ -2074,7 +2118,7 @@ export default function App() {
               </div>
               
               {/* Backup & Restore Section - User Friendly */}
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
                   <Save size={18} className="text-teal-600" />
                   Save & Restore Your Data
@@ -2155,7 +2199,7 @@ export default function App() {
                         </button>
                         {lastBackupDate && (
                           <p className="text-xs text-teal-600 mt-2 text-center">
-                            âœ“ Last backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
+                            ✓ Last backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
                           </p>
                         )}
                       </div>
@@ -2163,7 +2207,7 @@ export default function App() {
                   </div>
 
                   {/* Restore Backup - Visual & Friendly */}
-                  <div className="bg-indigo-50 rounded-xl p-5 border-2 border-slate-200">
+                  <div className="bg-indigo-50 rounded-xl p-5 border-2 border-[#b0b0b0]">
                     <div className="flex items-start gap-4">
                       <div className="p-3 rounded-xl bg-blue-500 text-white">
                         <Upload size={24} />
@@ -2229,7 +2273,7 @@ export default function App() {
                   
                   {lastBackupDate && (
                     <p className="text-sm text-slate-500 px-4">
-                      âœ“ Last auto-backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
+                      ✓ Last auto-backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
                     </p>
                   )}
 
@@ -2287,7 +2331,7 @@ export default function App() {
                         <span className="text-xs text-slate-500">Dropbox</span>
                       </button>
                       <button disabled className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-slate-200 opacity-50 cursor-not-allowed">
-                        <span className="text-2xl">â˜ï¸</span>
+                        <span className="text-2xl">☁️</span>
                         <span className="text-xs text-slate-500">OneDrive</span>
                       </button>
                     </div>
@@ -2375,7 +2419,7 @@ export default function App() {
               </div>
               
               {/* About */}
-              <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border-2 border-[#b0b0b0] shadow-sm p-6">
                 <h3 className="font-semibold text-slate-900 mb-4">About</h3>
                 <p className="text-sm text-slate-600"><span className="font-medium text-teal-600">Version:</span> {__APP_VERSION__}</p>
                 <p className="text-sm text-slate-600"><span className="font-medium text-teal-600">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
@@ -2530,7 +2574,7 @@ export default function App() {
         <Modal title="Import Expenses" onClose={() => setModal(null)}>
           <div className="space-y-6">
             <div className="text-center py-4"><div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center mx-auto mb-4 shadow-lg"><FileSpreadsheet size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Bulk Import</h3><p className="text-slate-500 text-sm">Import from CSV/Excel template</p></div>
-            <button onClick={downloadTemplate} className="w-full flex items-center justify-center gap-2 py-4 bg-slate-50 text-slate-700 rounded-xl font-medium hover:from-[#1e3a5f]/10 hover:to-[#14b8a6]/10 border-2 border-slate-200"><Download size={18} className="text-teal-600" />Download Template</button>
+            <button onClick={downloadTemplate} className="w-full flex items-center justify-center gap-2 py-4 bg-slate-50 text-slate-700 rounded-xl font-medium hover:from-[#1e3a5f]/10 hover:to-[#14b8a6]/10 border-2 border-[#b0b0b0]"><Download size={18} className="text-teal-600" />Download Template</button>
             <div className="relative"><input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileImport} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><div className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg"><Upload size={18} />Select File</div></div>
             <button onClick={() => setModal(null)} className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 border border-slate-200"><X size={18} />Close</button>
           </div>
@@ -2642,7 +2686,7 @@ export default function App() {
               <p className="text-slate-500 text-sm">Connect your bank to automatically track when bills are paid</p>
             </div>
             
-            <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-4">
+            <div className="bg-slate-50 border-2 border-[#b0b0b0] rounded-xl p-4">
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <Shield size={16} className="text-teal-600" />
                 What We Access & Why
@@ -2923,7 +2967,7 @@ export default function App() {
                     }}
                     className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:opacity-90"
                   >
-                    âœ“ Restore My Data
+                    ✓ Restore My Data
                   </button>
                 </div>
               </div>
@@ -2975,11 +3019,11 @@ function TxForm({ tx, onSubmit, onCancel, showPaid }) {
   const handle = (e) => { e.preventDefault(); const amt = form.type === 'income' ? Math.abs(parseFloat(form.amount)) : -Math.abs(parseFloat(form.amount)); onSubmit({ ...tx, date: form.date, desc: form.desc, amount: amt, category: form.category, paid: form.paid }); };
   return (
     <form onSubmit={handle} className="space-y-4">
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Date</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Description</label><input type="text" value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} placeholder="Enter description" className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Date</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Description</label><input type="text" value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} placeholder="Enter description" className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
       <div><label className="block text-sm text-slate-600 font-medium mb-2">Amount</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value, category: e.target.value === 'income' ? 'income' : form.category })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]"><option value="expense">Expense</option><option value="income">Income</option></select></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => form.type === 'income' ? c.id === 'income' : c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value, category: e.target.value === 'income' ? 'income' : form.category })} className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]"><option value="expense">Expense</option><option value="income">Income</option></select></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => form.type === 'income' ? c.id === 'income' : c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
       {showPaid && <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 border-2 border-teal-200"><input type="checkbox" checked={form.paid} onChange={(e) => setForm({ ...form, paid: e.target.checked })} className="w-5 h-5 rounded border-green-300 text-teal-600 focus:ring-[#14b8a6]" /><span className="text-slate-700 font-medium">Mark as paid</span></label>}
       <div className="flex gap-3 pt-4"><button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:opacity-90">{tx ? 'Update' : 'Add'}</button></div>
     </form>
@@ -2991,10 +3035,10 @@ function RecurringForm({ recurring, onSubmit, onCancel }) {
   const handle = (e) => { e.preventDefault(); onSubmit({ ...recurring, ...form, amount: parseFloat(form.amount), dueDay: parseInt(form.dueDay) }); };
   return (
     <form onSubmit={handle} className="space-y-4">
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Name</label><input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Netflix, Rent" className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Name</label><input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Netflix, Rent" className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
       <div><label className="block text-sm text-slate-600 font-medium mb-2">Amount</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
-      <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-slate-600 font-medium mb-2">Frequency</label><select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{FREQUENCY_OPTIONS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></div><div><label className="block text-sm text-slate-600 font-medium mb-2">Due Day</label><input type="number" min="1" max="31" value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
+      <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-slate-600 font-medium mb-2">Frequency</label><select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{FREQUENCY_OPTIONS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></div><div><label className="block text-sm text-slate-600 font-medium mb-2">Due Day</label><input type="number" min="1" max="31" value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-teal-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div></div>
       <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 border-2 border-teal-200"><input type="checkbox" checked={form.autoPay} onChange={(e) => setForm({ ...form, autoPay: e.target.checked })} className="w-5 h-5 rounded border-green-300 text-teal-600 focus:ring-[#14b8a6]" /><span className="text-slate-700 font-medium">Auto-pay (auto-marks as paid)</span></label>
       <div className="flex gap-3 pt-4"><button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:opacity-90">{recurring ? 'Update' : 'Add'}</button></div>
     </form>
@@ -3027,7 +3071,7 @@ function DebtForm({ debt, onSubmit, onCancel }) {
       </div>
       <div>
         <label className="block text-sm text-slate-600 font-medium mb-2">Debt Type</label>
-        <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">
+        <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]">
           <option value="credit-card">💳 Credit Card</option>
           <option value="car-loan">🚗 Car Loan</option>
           <option value="student-loan">🎁“ Student Loan</option>
@@ -3048,7 +3092,7 @@ function DebtForm({ debt, onSubmit, onCancel }) {
         </div>
         <div>
           <label className="block text-sm text-slate-600 font-medium mb-2">Min Payment</label>
-          <input type="number" step="0.01" min="0" value={form.minPayment} onChange={(e) => setForm({ ...form, minPayment: e.target.value })} placeholder="50.00" className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required />
+          <input type="number" step="0.01" min="0" value={form.minPayment} onChange={(e) => setForm({ ...form, minPayment: e.target.value })} placeholder="50.00" className="w-full px-4 py-3 bg-white border-2 border-[#b0b0b0] rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required />
         </div>
       </div>
       <div className="flex gap-3 pt-4">
