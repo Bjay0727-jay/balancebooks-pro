@@ -1414,7 +1414,7 @@ export default function App() {
                     <Calculator size={24} />
                     <h3 className="font-bold text-lg">Monthly Balance Overview</h3>
                   </div>
-                  <span className="text-[#14b8a6]/70 text-sm bg-white/10 px-3 py-1 rounded-full">Click any card to edit</span>
+                  <span className="text-white text-sm bg-white/20 px-3 py-1 rounded-full font-medium">Click any card to edit</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white/15 backdrop-blur rounded-xl p-4 cursor-pointer hover:bg-white/25 transition-all border border-white/20" onClick={() => setModal('edit-beginning')}>
