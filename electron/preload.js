@@ -19,8 +19,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onRestoreData: (callback) => ipcRenderer.on('restore-data', (event, filePath) => callback(filePath)),
   onCheckUpdates: (callback) => ipcRenderer.on('check-updates', callback),
   
-  // Remove listeners
-  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+  // Remove listeners (scoped to known safe channels only)
+  removeAllListeners: (channel) => {
+    const allowed = ['menu-import', 'menu-export', 'navigate', 'backup-data', 'restore-data', 'check-updates'];
+    if (allowed.includes(channel)) {
+      ipcRenderer.removeAllListeners(channel);
+    }
+  },
   
   // Platform info
   platform: process.platform,

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -39,6 +39,20 @@ function createWindow() {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
   });
 
+  // Set Content Security Policy for production
+  if (!isDev) {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://content.dropboxapi.com https://api.dropboxapi.com; img-src 'self' data: blob:;"
+          ]
+        }
+      });
+    });
+  }
+
   // Load the app
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
@@ -78,6 +92,48 @@ function createWindow() {
 
 // Create application menu
 function createMenu() {
+  const viewSubmenu = [
+    {
+      label: 'Dashboard',
+      accelerator: 'CmdOrCtrl+1',
+      click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('navigate', 'dashboard'); },
+    },
+    {
+      label: 'Transactions',
+      accelerator: 'CmdOrCtrl+2',
+      click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('navigate', 'transactions'); },
+    },
+    {
+      label: 'Bank Accounts',
+      accelerator: 'CmdOrCtrl+3',
+      click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('navigate', 'accounts'); },
+    },
+    {
+      label: '12-Month Cycle',
+      accelerator: 'CmdOrCtrl+4',
+      click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('navigate', 'cycle'); },
+    },
+    {
+      label: 'Savings',
+      accelerator: 'CmdOrCtrl+5',
+      click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('navigate', 'savings'); },
+    },
+    { type: 'separator' },
+    { role: 'reload' },
+    { role: 'forceReload' },
+    { type: 'separator' },
+    { role: 'resetZoom' },
+    { role: 'zoomIn' },
+    { role: 'zoomOut' },
+    { type: 'separator' },
+    { role: 'togglefullscreen' },
+  ];
+
+  // Only include DevTools in development builds
+  if (isDev) {
+    viewSubmenu.splice(7, 0, { role: 'toggleDevTools' });
+  }
+
   const template = [
     {
       label: 'File',
@@ -85,21 +141,18 @@ function createMenu() {
         {
           label: 'Import Transactions',
           accelerator: 'CmdOrCtrl+I',
-          click: () => {
-            mainWindow.webContents.send('menu-import');
-          },
+          click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('menu-import'); },
         },
         {
           label: 'Export Data',
           accelerator: 'CmdOrCtrl+E',
-          click: () => {
-            mainWindow.webContents.send('menu-export');
-          },
+          click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('menu-export'); },
         },
         { type: 'separator' },
         {
           label: 'Backup Data',
           click: async () => {
+            if (!mainWindow || mainWindow.isDestroyed()) return;
             const { filePath } = await dialog.showSaveDialog(mainWindow, {
               title: 'Backup Data',
               defaultPath: `balance-books-backup-${new Date().toISOString().split('T')[0]}.json`,
@@ -113,6 +166,7 @@ function createMenu() {
         {
           label: 'Restore Data',
           click: async () => {
+            if (!mainWindow || mainWindow.isDestroyed()) return;
             const { filePaths } = await dialog.showOpenDialog(mainWindow, {
               title: 'Restore Data',
               filters: [{ name: 'JSON', extensions: ['json'] }],
@@ -141,43 +195,7 @@ function createMenu() {
     },
     {
       label: 'View',
-      submenu: [
-        {
-          label: 'Dashboard',
-          accelerator: 'CmdOrCtrl+1',
-          click: () => mainWindow.webContents.send('navigate', 'dashboard'),
-        },
-        {
-          label: 'Transactions',
-          accelerator: 'CmdOrCtrl+2',
-          click: () => mainWindow.webContents.send('navigate', 'transactions'),
-        },
-        {
-          label: 'Bank Accounts',
-          accelerator: 'CmdOrCtrl+3',
-          click: () => mainWindow.webContents.send('navigate', 'accounts'),
-        },
-        {
-          label: '12-Month Cycle',
-          accelerator: 'CmdOrCtrl+4',
-          click: () => mainWindow.webContents.send('navigate', 'cycle'),
-        },
-        {
-          label: 'Savings',
-          accelerator: 'CmdOrCtrl+5',
-          click: () => mainWindow.webContents.send('navigate', 'savings'),
-        },
-        { type: 'separator' },
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
+      submenu: viewSubmenu,
     },
     {
       label: 'Window',
@@ -208,17 +226,18 @@ function createMenu() {
         { type: 'separator' },
         {
           label: 'Check for Updates',
-          click: () => mainWindow.webContents.send('check-updates'),
+          click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('check-updates'); },
         },
         { type: 'separator' },
         {
           label: 'About Balance Books Pro',
           click: () => {
+            if (!mainWindow || mainWindow.isDestroyed()) return;
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'About Balance Books Pro',
               message: 'Balance Books Pro',
-              detail: `Version: ${app.getVersion()}\nLicense: $13.99 Commercial\n\n© 2025 Balance Books Pro. All rights reserved.`,
+              detail: `Version: ${app.getVersion()}\nLicense: $13.99 Commercial\n\n\u00A9 2025 Balance Books Pro. All rights reserved.`,
             });
           },
         },
@@ -236,7 +255,7 @@ function createMenu() {
         {
           label: 'Preferences',
           accelerator: 'Cmd+,',
-          click: () => mainWindow.webContents.send('navigate', 'settings'),
+          click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('navigate', 'settings'); },
         },
         { type: 'separator' },
         { role: 'services' },
@@ -277,12 +296,13 @@ ipcMain.handle('load-data', async () => {
 });
 
 ipcMain.handle('export-csv', async (event, csvContent) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return { success: false, cancelled: true };
   const { filePath } = await dialog.showSaveDialog(mainWindow, {
     title: 'Export Transactions',
     defaultPath: `balance-books-${new Date().toISOString().split('T')[0]}.csv`,
     filters: [{ name: 'CSV', extensions: ['csv'] }],
   });
-  
+
   if (filePath) {
     try {
       fs.writeFileSync(filePath, csvContent);
@@ -295,12 +315,13 @@ ipcMain.handle('export-csv', async (event, csvContent) => {
 });
 
 ipcMain.handle('import-csv', async () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return { success: false, cancelled: true };
   const { filePaths } = await dialog.showOpenDialog(mainWindow, {
     title: 'Import Transactions',
     filters: [{ name: 'CSV', extensions: ['csv'] }],
     properties: ['openFile'],
   });
-  
+
   if (filePaths && filePaths[0]) {
     try {
       const content = fs.readFileSync(filePaths[0], 'utf8');
@@ -348,22 +369,11 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Force exit after quit
+// Cleanup on quit - let Electron handle process termination naturally
 app.on('quit', () => {
-  // Ensure all processes are terminated
-  if (mainWindow) {
-    mainWindow.destroy();
-    mainWindow = null;
-  }
-  // Force exit to ensure no hanging processes
-  process.exit(0);
-});
-
-// Handle will-quit to cleanup
-app.on('will-quit', (event) => {
-  // Cleanup any remaining resources
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.destroy();
+    mainWindow = null;
   }
 });
 

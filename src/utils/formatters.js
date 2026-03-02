@@ -1,9 +1,17 @@
 // src/utils/formatters.js
-export const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+export const uid = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 9) + '-' + Math.random().toString(36).substr(2, 9);
+};
+
+export const roundCents = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export const currency = (n) => {
   if (n === null || n === undefined || isNaN(n)) return '$0.00';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(roundCents(n));
 };
 
 export const shortDate = (dateStr) => {
@@ -25,4 +33,15 @@ export const getDateParts = (dateStr) => {
   return null;
 };
 
+// month is 0-indexed (from Date.getMonth()), output is ISO YYYY-MM (1-indexed)
 export const getMonthKey = (month, year) => `${year}-${String(month + 1).padStart(2, '0')}`;
+
+export const escapeCSVField = (s) => {
+  const str = String(s == null ? '' : s);
+  const escaped = str.replace(/"/g, '""');
+  // Prevent CSV formula injection
+  if (/^[=+\-@\t\r]/.test(escaped)) {
+    return `"'${escaped}"`;
+  }
+  return `"${escaped}"`;
+};

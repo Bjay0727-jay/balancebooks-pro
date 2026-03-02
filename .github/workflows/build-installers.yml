@@ -9,18 +9,37 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (e.g., 1.7.1)'
+        description: 'Version number (e.g., 2.0.3)'
         required: false
-        default: '1.7.1'
+        default: '2.0.3'
 
 permissions:
   contents: write
 
 jobs:
   # ============================================
+  # VALIDATE (lint & build web)
+  # ============================================
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+  # ============================================
   # BUILD WINDOWS INSTALLER (.exe)
   # ============================================
   build-windows:
+    needs: [validate]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +52,7 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="${{ github.event.inputs.version || '1.7.1' }}"
+            VERSION="${{ github.event.inputs.version || '2.0.3' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
@@ -46,6 +65,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - run: npm install
 
@@ -69,6 +89,7 @@ jobs:
   # BUILD MAC INSTALLERS (.dmg for Intel & ARM)
   # ============================================
   build-mac:
+    needs: [validate]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -80,7 +101,7 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="${{ github.event.inputs.version || '1.7.1' }}"
+            VERSION="${{ github.event.inputs.version || '2.0.3' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
@@ -92,6 +113,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - run: npm install
 
@@ -114,6 +136,7 @@ jobs:
   # BUILD LINUX INSTALLER (.AppImage)
   # ============================================
   build-linux:
+    needs: [validate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -125,7 +148,7 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION="${{ github.event.inputs.version || '1.7.1' }}"
+            VERSION="${{ github.event.inputs.version || '2.0.3' }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
@@ -137,6 +160,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - run: npm install
 
@@ -168,23 +192,23 @@ jobs:
       - name: List artifacts
         run: find . -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" \)
 
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
         with:
           tag_name: ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
           name: Balance Books Pro ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
           body: |
-            ## 📥 Downloads
-            
+            ## Downloads
+
             | Platform | File | Notes |
             |----------|------|-------|
             | **Windows** | `.exe` installer | Standard Windows installer |
             | **Mac (Intel)** | `.dmg` | For Intel-based Macs |
             | **Mac (Apple Silicon)** | `-arm64.dmg` | For M1/M2/M3/M4 Macs |
             | **Linux** | `.AppImage` | Universal Linux package |
-            
-            ## 🌐 Web App
+
+            ## Web App
             Use instantly at: https://app.balancebooksapp.com
-            
+
             ## What's New
             - Professional Excel template for importing transactions
             - Improved user interface
