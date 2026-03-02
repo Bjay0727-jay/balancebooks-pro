@@ -1,67 +1,26 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save } from 'lucide-react';
-
-// Categories
-const CATEGORIES = [
-  { id: 'income', name: 'Income', color: '#059669', bg: '#ecfdf5', icon: '💵' },
-  { id: 'housing', name: 'Housing', color: '#4f46e5', bg: '#eef2ff', icon: '🏠' },
-  { id: 'utilities', name: 'Utilities', color: '#7c3aed', bg: '#f5f3ff', icon: '💡' },
-  { id: 'groceries', name: 'Groceries', color: '#16a34a', bg: '#f0fdf4', icon: '🛒' },
-  { id: 'transportation', name: 'Transportation', color: '#d97706', bg: '#fffbeb', icon: '🚗' },
-  { id: 'healthcare', name: 'Healthcare', color: '#dc2626', bg: '#fef2f2', icon: '🏥' },
-  { id: 'insurance', name: 'Insurance', color: '#0284c7', bg: '#f0f9ff', icon: '🛡️' },
-  { id: 'entertainment', name: 'Entertainment', color: '#db2777', bg: '#fdf2f8', icon: '🎬' },
-  { id: 'dining', name: 'Dining', color: '#ea580c', bg: '#fff7ed', icon: '🍽️' },
-  { id: 'shopping', name: 'Shopping', color: '#9333ea', bg: '#faf5ff', icon: '🛍️' },
-  { id: 'subscriptions', name: 'Subscriptions', color: '#0d9488', bg: '#f0fdfa', icon: '📱' },
-  { id: 'education', name: 'Education', color: '#2563eb', bg: '#eff6ff', icon: '📚' },
-  { id: 'tithes', name: 'Tithes & Offerings', color: '#7c3aed', bg: '#f5f3ff', icon: '⛪' },
-  { id: 'savings', name: 'Savings', color: '#047857', bg: '#ecfdf5', icon: '💰' },
-  { id: 'investment', name: 'Investment', color: '#065f46', bg: '#ecfdf5', icon: '📈' },
-  { id: 'debt', name: 'Debt Payment', color: '#b91c1c', bg: '#fef2f2', icon: '💳' },
-  { id: 'childcare', name: 'Childcare', color: '#f472b6', bg: '#fdf2f8', icon: '👶' },
-  { id: 'pets', name: 'Pets', color: '#f59e0b', bg: '#fffbeb', icon: '🐾' },
-  { id: 'personal', name: 'Personal Care', color: '#ec4899', bg: '#fdf2f8', icon: '💇' },
-  { id: 'gifts', name: 'Gifts & Donations', color: '#8b5cf6', bg: '#f5f3ff', icon: '🎁' },
-  { id: 'transfer', name: 'Transfer', color: '#475569', bg: '#f8fafc', icon: '🔄' },
-  { id: 'other', name: 'Other', color: '#64748b', bg: '#f8fafc', icon: '📦' },
-];
-
-const FREQUENCY_OPTIONS = [
-  { id: 'weekly', name: 'Weekly', days: 7 },
-  { id: 'biweekly', name: 'Bi-Weekly', days: 14 },
-  { id: 'monthly', name: 'Monthly', days: 30 },
-  { id: 'quarterly', name: 'Quarterly', days: 90 },
-  { id: 'yearly', name: 'Yearly', days: 365 },
-];
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
-const currency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
-
-// Fixed shortDate to handle YYYY-MM-DD strings without timezone shifting
-const shortDate = (dateStr) => {
-  if (!dateStr) return '';
-  // Parse YYYY-MM-DD directly to avoid timezone issues
-  const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (match) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[parseInt(match[2]) - 1]} ${parseInt(match[3])}`;
-  }
-  // Fallback
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
+import { CATEGORIES, FREQUENCY_OPTIONS, MONTHS, FULL_MONTHS } from './utils/constants';
+import { uid, currency, shortDate, getDateParts as _getDateParts, getMonthKey as _getMonthKey, roundCents, escapeCSVField } from './utils/formatters';
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
-const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const handler = (e) => setMatches(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [query]);
+  return matches;
+}
 
 const saveData = (key, data) => { try { localStorage.setItem('bb_' + key, JSON.stringify(data)); } catch {} };
 const loadData = (key, defaultValue) => { try { const saved = localStorage.getItem('bb_' + key); return saved ? JSON.parse(saved) : defaultValue; } catch { return defaultValue; } };
 
 export default function App() {
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [view, setView] = useState('dashboard');
   const [transactions, setTransactions] = useState(() => loadData('transactions', []));
   const [recurringExpenses, setRecurringExpenses] = useState(() => loadData('recurring', []));
@@ -75,11 +34,13 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterPaid, setFilterPaid] = useState('all');
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 768);
   const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [plaidLoading, setPlaidLoading] = useState(false);
   const [importData, setImportData] = useState(null);
   const [importNotification, setImportNotification] = useState(null);
+  const [txPage, setTxPage] = useState(0);
+  const TX_PAGE_SIZE = 50;
   
   // New Feature States
   const [budgetGoals, setBudgetGoals] = useState(() => loadData('budgetGoals', {}));
@@ -99,8 +60,10 @@ export default function App() {
   const [dropboxLastSync, setDropboxLastSync] = useState(() => loadData('dropboxLastSync', null));
   const [dropboxError, setDropboxError] = useState(null);
   
-  // Dropbox App Key - Replace with your own from https://www.dropbox.com/developers/apps
-  const DROPBOX_APP_KEY = 'YOUR_APP_KEY_HERE';
+  // Dropbox App Key - MUST be set via environment variable VITE_DROPBOX_APP_KEY
+  // WARNING: The implicit OAuth flow (response_type=token) is deprecated.
+  // TODO: Migrate to Authorization Code flow with PKCE when Dropbox SDK is integrated.
+  const DROPBOX_APP_KEY = typeof import.meta !== 'undefined' ? (import.meta.env?.VITE_DROPBOX_APP_KEY || '') : '';
   const DROPBOX_REDIRECT_URI = window.location.origin;
 
   useEffect(() => { saveData('transactions', transactions); }, [transactions]);
@@ -161,40 +124,56 @@ export default function App() {
     }
   }, [notificationsEnabled]);
 
-  // Bill reminder notifications
+  // Bill reminder notifications (deduplicated: only fire once per day per bill)
   useEffect(() => {
     if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+      const todayKey = new Date().toISOString().split('T')[0];
+      const shownKey = 'bb_notified_' + todayKey;
+      const alreadyShown = new Set(JSON.parse(localStorage.getItem(shownKey) || '[]'));
       const today = new Date();
       const day = today.getDate();
+      const newlyShown = [];
       recurringExpenses.filter(r => r.active).forEach(r => {
+        if (alreadyShown.has(r.id)) return;
         const daysUntil = r.dueDay >= day ? r.dueDay - day : (30 - day) + r.dueDay;
         if (daysUntil <= 3 && daysUntil >= 0) {
-          new Notification('💰 Bill Reminder', {
+          new Notification('Bill Reminder', {
             body: `${r.name} (${currency(r.amount)}) is due ${daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`}`,
             icon: '/icon.svg'
           });
+          newlyShown.push(r.id);
         }
       });
+      if (newlyShown.length > 0) {
+        const all = [...alreadyShown, ...newlyShown];
+        try { localStorage.setItem(shownKey, JSON.stringify(all)); } catch {}
+      }
     }
   }, [notificationsEnabled, recurringExpenses]);
 
   const performAutoBackup = useCallback(() => {
+    // Store auto-backup in localStorage instead of triggering silent file downloads
+    // (browsers block programmatic downloads without user gesture)
     const backup = {
-      version: '1.6.0',
+      version: __APP_VERSION__,
       exportDate: new Date().toISOString(),
       autoBackup: true,
       data: { transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts }
     };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `balance-books-auto-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    setLastBackupDate(new Date().toISOString());
+    try {
+      localStorage.setItem('bb_autoBackup', JSON.stringify(backup));
+      setLastBackupDate(new Date().toISOString());
+    } catch {
+      // localStorage full - ignore silently, user can do manual backups
+    }
   }, [transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts]);
 
   // Dropbox: Connect (OAuth)
   const connectDropbox = () => {
+    if (!DROPBOX_APP_KEY) {
+      alert('Dropbox integration is not configured.\n\nTo enable cloud backup, set the VITE_DROPBOX_APP_KEY environment variable and rebuild the app.');
+      return;
+    }
     const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(DROPBOX_REDIRECT_URI)}`;
     window.location.href = authUrl;
   };
@@ -322,8 +301,9 @@ export default function App() {
     }
   };
 
-  // Get the key for monthly balance storage
-  const getMonthKey = (m, y) => `${y}-${String(m).padStart(2, '0')}`;
+  // Use the canonical getMonthKey from formatters (0-indexed month -> ISO YYYY-MM)
+  const getMonthKey = _getMonthKey;
+  const getDateParts = _getDateParts;
   const currentMonthKey = getMonthKey(month, year);
 
   // Get beginning balance for a month - either manually set or carried over from previous month
@@ -362,29 +342,13 @@ export default function App() {
     }));
   };
 
-  // Helper to extract month/year from a date string without timezone issues
-  const getDateParts = (dateStr) => {
-    if (!dateStr) return null;
-    // Parse YYYY-MM-DD directly to avoid timezone issues
-    const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-      return { year: parseInt(match[1]), month: parseInt(match[2]) - 1, day: parseInt(match[3]) };
-    }
-    // Fallback to Date parsing for other formats
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
-    }
-    return null;
-  };
-
   const monthTx = useMemo(() => transactions.filter(t => { 
     const parts = getDateParts(t.date);
     return parts && parts.month === month && parts.year === year; 
   }), [transactions, month, year]);
 
   const filtered = useMemo(() => {
-    let list = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    let list = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     if (search) list = list.filter(t => t.desc.toLowerCase().includes(search.toLowerCase()));
     if (filterCat !== 'all') list = list.filter(t => t.category === filterCat);
     if (filterPaid === 'paid') list = list.filter(t => t.paid);
@@ -393,12 +357,12 @@ export default function App() {
   }, [transactions, search, filterCat, filterPaid]);
 
   const stats = useMemo(() => {
-    const income = monthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-    const expenses = monthTx.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-    const saved = monthTx.filter(t => t.category === 'savings').reduce((s, t) => s + Math.abs(t.amount), 0);
+    const income = roundCents(monthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0));
+    const expenses = roundCents(monthTx.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0));
+    const saved = roundCents(monthTx.filter(t => t.category === 'savings').reduce((s, t) => s + Math.abs(t.amount), 0));
     const unpaidCount = monthTx.filter(t => !t.paid && t.amount < 0).length;
-    const net = income - expenses;
-    const calculatedEnding = beginningBalance + net;
+    const net = roundCents(income - expenses);
+    const calculatedEnding = roundCents(beginningBalance + net);
     // Use manual override if set, otherwise use calculated
     const ending = monthlyBalances[currentMonthKey]?.ending !== undefined 
       ? monthlyBalances[currentMonthKey].ending 
@@ -761,42 +725,44 @@ export default function App() {
       [''],
       ['Date', 'Description', 'Amount', 'Category', 'Type', 'Status', 'Notes']
     ];
-    
-    // Sort transactions by date (newest first)
-    const sortedTx = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-    
+
+    // Sort transactions by date (newest first) using string comparison to avoid timezone issues
+    const sortedTx = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
     sortedTx.forEach(t => {
       const cat = CATEGORIES.find(c => c.id === t.category);
       rows.push([
         t.date,
-        `"${t.desc}"`,
-        t.amount.toFixed(2),
-        cat ? cat.name : t.category,
+        escapeCSVField(t.desc),
+        roundCents(t.amount).toFixed(2),
+        escapeCSVField(cat ? cat.name : t.category),
         t.amount >= 0 ? 'Income' : 'Expense',
         t.paid ? 'Paid' : 'Unpaid',
         ''
       ]);
     });
-    
+
     // Add summary section
-    const totalIncome = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-    const totalExpenses = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-    const netAmount = totalIncome - totalExpenses;
-    
+    const totalIncome = roundCents(transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0));
+    const totalExpenses = roundCents(transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0));
+    const netAmount = roundCents(totalIncome - totalExpenses);
+
     rows.push(['']);
-    rows.push(['=== SUMMARY ===']);
+    rows.push(['SUMMARY']);
     rows.push(['Total Income', '', totalIncome.toFixed(2)]);
     rows.push(['Total Expenses', '', (-totalExpenses).toFixed(2)]);
     rows.push(['Net Amount', '', netAmount.toFixed(2)]);
     rows.push(['Total Transactions', '', transactions.length]);
     rows.push(['']);
-    rows.push(['Generated by Balance Books Pro v1.3']);
-    
+    rows.push([`Generated by Balance Books Pro ${__APP_VERSION__}`]);
+
     const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
-    const a = document.createElement('a'); 
-    a.href = URL.createObjectURL(blob); 
-    a.download = `balance-books-export-${new Date().toISOString().split('T')[0]}.csv`; 
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `balance-books-export-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   const downloadTemplate = async () => {
@@ -1304,15 +1270,11 @@ export default function App() {
   const toggleRecurringActive = (id) => setRecurringExpenses(recurringExpenses.map(r => r.id === id ? { ...r, active: !r.active } : r));
   const createFromRecurring = (r) => { const today = new Date(); setTransactions([...transactions, { id: uid(), date: today.toISOString().split('T')[0], desc: r.name, amount: -r.amount, category: r.category, paid: r.autoPay }]); };
 
-  const connectBank = () => { 
-    setPlaidLoading(true); 
-    setTimeout(() => { 
-      setLinkedAccounts([{ id: uid(), institution: 'USAA', accounts: [{ id: '1', name: 'Checking', mask: '4523', subtype: 'checking' }, { id: '2', name: 'Savings', mask: '7891', subtype: 'savings' }] }]); 
-      setTransactions(p => p.map(t => ({ ...t, paid: true }))); 
-      setPlaidLoading(false); 
-      setModal(null);
-      setView('accounts');
-    }, 2500); 
+  const connectBank = () => {
+    // Bank connection via Plaid is not yet integrated.
+    // Show a placeholder message instead of modifying real user data.
+    alert('Bank connection is coming soon!\n\nPlaid integration is currently in development. In the meantime, you can import transactions via CSV or Excel from your bank\'s website.');
+    setModal(null);
   };
 
   const NavItem = ({ id, icon: Icon, label, badge }) => (
@@ -1386,7 +1348,7 @@ export default function App() {
         </div>
       </aside>
 
-      <main className={`transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'}`}>
+      <main id="main-content" className={`transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'}`}>
         <header className="sticky top-0 z-30 bg-gradient-to-r from-[#0f172a]/5/95 via-white/95 to-[#14b8a6]/5/95 backdrop-blur-lg border-b border-[#1e3a5f]/20">
           <div className="flex items-center justify-between px-4 md:px-8 py-4">
             <div className="flex items-center gap-4">
@@ -1660,19 +1622,22 @@ export default function App() {
                   <button 
                     onClick={() => {
                       const data = {
-                        version: '1.2',
+                        version: __APP_VERSION__,
                         exportDate: new Date().toISOString(),
                         transactions,
                         recurringExpenses,
                         monthlyBalances,
-                        savingsGoal
+                        savingsGoal,
+                        budgetGoals,
+                        debts
                       };
                       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
                       const a = document.createElement('a');
-                      a.href = URL.createObjectURL(blob);
+                      a.href = url;
                       a.download = `balance-books-backup-${new Date().toISOString().split('T')[0]}.json`;
                       a.click();
-                      URL.revokeObjectURL(a.href);
+                      URL.revokeObjectURL(url);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-lg font-medium hover:from-[#1e3a5f] hover:to-[#0f172a] shadow-sm text-sm"
                   >
@@ -1722,7 +1687,7 @@ export default function App() {
               
               {/* Transactions List */}
               <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm divide-y divide-slate-100">
-                {filtered.length > 0 ? filtered.slice(0, 50).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (
+                {filtered.length > 0 ? filtered.slice(txPage * TX_PAGE_SIZE, (txPage + 1) * TX_PAGE_SIZE).map(tx => { const cat = CATEGORIES.find(c => c.id === tx.category); return (
                   <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-gradient-to-r hover:from-[#0f172a]/5/50 hover:to-[#14b8a6]/5/50">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <button onClick={() => togglePaid(tx.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${tx.paid ? 'bg-gradient-to-r from-[#14b8a6]/50 to-green-400 border-green-500' : 'border-blue-300 hover:border-green-400'}`}>{tx.paid && <Check size={14} className="text-white" />}</button>
@@ -1747,9 +1712,30 @@ export default function App() {
                     )}
                   </div>
                 )}
-                {filtered.length > 50 && (
-                  <div className="p-4 text-center text-sm text-slate-500 bg-slate-50">
-                    Showing first 50 of {filtered.length} transactions. Use filters to narrow results.
+                {filtered.length > TX_PAGE_SIZE && (
+                  <div className="p-4 flex items-center justify-between bg-slate-50">
+                    <span className="text-sm text-slate-500">
+                      Showing {txPage * TX_PAGE_SIZE + 1}-{Math.min((txPage + 1) * TX_PAGE_SIZE, filtered.length)} of {filtered.length}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setTxPage(p => Math.max(0, p - 1))}
+                        disabled={txPage === 0}
+                        className="px-3 py-1 rounded-lg text-sm font-medium bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40"
+                      >
+                        <ChevronLeft size={16} className="inline" /> Prev
+                      </button>
+                      <span className="text-sm text-slate-600 font-medium">
+                        Page {txPage + 1} of {Math.ceil(filtered.length / TX_PAGE_SIZE)}
+                      </span>
+                      <button
+                        onClick={() => setTxPage(p => Math.min(Math.ceil(filtered.length / TX_PAGE_SIZE) - 1, p + 1))}
+                        disabled={(txPage + 1) * TX_PAGE_SIZE >= filtered.length}
+                        className="px-3 py-1 rounded-lg text-sm font-medium bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40"
+                      >
+                        Next <ChevronRight size={16} className="inline" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2331,7 +2317,7 @@ export default function App() {
                           onClick={() => {
                             const data = {
                               appName: 'Balance Books Pro',
-                              version: '1.6.0',
+                              version: __APP_VERSION__,
                               exportDate: new Date().toISOString(),
                               exportDateFormatted: new Date().toLocaleDateString('en-US', { 
                                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -2667,13 +2653,16 @@ export default function App() {
                     <Trash2 size={18} />Delete Recurring
                   </button>
                   <button 
-                    onClick={() => { 
-                      if (confirm('RESET EVERYTHING?\n\nThis will delete ALL your data including:\n• Transactions\n• Recurring expenses\n• Monthly balances\n• Savings goal\n\nThis cannot be undone!')) { 
-                        setTransactions([]); 
-                        setRecurringExpenses([]); 
-                        setMonthlyBalances({}); 
+                    onClick={() => {
+                      if (confirm('RESET EVERYTHING?\n\nThis will delete ALL your data including:\n• Transactions\n• Recurring expenses\n• Monthly balances\n• Savings goal\n• Budget goals\n• Debts\n\nThis cannot be undone!')) {
+                        setTransactions([]);
+                        setRecurringExpenses([]);
+                        setMonthlyBalances({});
                         setSavingsGoal(500);
-                        localStorage.clear(); 
+                        setBudgetGoals({});
+                        setDebts([]);
+                        // Only clear bb_ prefixed keys, not all localStorage
+                        Object.keys(localStorage).filter(k => k.startsWith('bb_')).forEach(k => localStorage.removeItem(k));
                       }
                     }} 
                     className="flex items-center gap-2 px-4 py-3 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 shadow-md"
@@ -2695,7 +2684,7 @@ export default function App() {
         </div>
       </main>
 
-      {isMobile && <button onClick={() => setModal('add')} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:from-blue-700 hover:to-green-600"><Plus size={24} /></button>}
+      {isMobile && <button onClick={() => setModal('add')} aria-label="Add transaction" className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:from-blue-700 hover:to-green-600"><Plus size={24} /></button>}
 
       {/* Edit Beginning Balance Modal */}
       {modal === 'edit-beginning' && (
@@ -3208,14 +3197,25 @@ export default function App() {
                     onClick={() => {
                       const parsed = restoreData.raw;
                       const data = parsed.data || parsed;
-                      
+
+                      // Validate restored data before applying
+                      const txs = Array.isArray(data.transactions || parsed.transactions) ? (data.transactions || parsed.transactions) : [];
+                      const recs = Array.isArray(data.recurringExpenses || parsed.recurringExpenses) ? (data.recurringExpenses || parsed.recurringExpenses) : [];
+                      const balances = (typeof (data.monthlyBalances || parsed.monthlyBalances) === 'object' && !Array.isArray(data.monthlyBalances || parsed.monthlyBalances)) ? (data.monthlyBalances || parsed.monthlyBalances) : {};
+                      const goal = typeof (data.savingsGoal || parsed.savingsGoal) === 'number' ? (data.savingsGoal || parsed.savingsGoal) : undefined;
+                      const goals = (typeof (data.budgetGoals || parsed.budgetGoals) === 'object' && !Array.isArray(data.budgetGoals || parsed.budgetGoals)) ? (data.budgetGoals || parsed.budgetGoals) : undefined;
+                      const restoredDebts = Array.isArray(data.debts || parsed.debts) ? (data.debts || parsed.debts) : undefined;
+
+                      // Validate each transaction has required fields
+                      const validTxs = txs.filter(t => t && typeof t === 'object' && t.date && typeof t.amount === 'number');
+
                       // Restore all data
-                      setTransactions(data.transactions || parsed.transactions || []);
-                      setRecurringExpenses(data.recurringExpenses || parsed.recurringExpenses || []);
-                      setMonthlyBalances(data.monthlyBalances || parsed.monthlyBalances || {});
-                      if (data.savingsGoal || parsed.savingsGoal) setSavingsGoal(data.savingsGoal || parsed.savingsGoal);
-                      if (data.budgetGoals || parsed.budgetGoals) setBudgetGoals(data.budgetGoals || parsed.budgetGoals);
-                      if (data.debts || parsed.debts) setDebts(data.debts || parsed.debts);
+                      setTransactions(validTxs);
+                      setRecurringExpenses(recs);
+                      setMonthlyBalances(balances);
+                      if (goal !== undefined) setSavingsGoal(goal);
+                      if (goals) setBudgetGoals(goals);
+                      if (restoredDebts) setDebts(restoredDebts);
                       
                       // Close modal and show success
                       setRestoreData(null);
@@ -3276,7 +3276,37 @@ export default function App() {
 }
 
 function Modal({ title, children, onClose }) {
-  return (<div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"><div className="w-full max-w-md rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto"><div className="flex items-center justify-between p-6 border-b border-[#1e3a5f]/10 bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5"><h3 className="text-lg font-bold text-slate-900">{title}</h3><button onClick={onClose} className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors"><X size={18} /></button></div><div className="p-6">{children}</div></div></div>);
+  const dialogRef = React.useRef(null);
+  React.useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    const prev = document.activeElement;
+    // Focus first focusable element inside modal
+    const focusable = el.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length) focusable[0].focus();
+    // Trap focus inside modal
+    const trap = (e) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+      else { if (document.activeElement === last) { e.preventDefault(); first.focus(); } }
+    };
+    el.addEventListener('keydown', trap);
+    return () => { el.removeEventListener('keydown', trap); if (prev) prev.focus(); };
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-md rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-[#1e3a5f]/10 bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5">
+          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+          <button onClick={onClose} aria-label="Close dialog" className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors"><X size={18} /></button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
 }
 
 function TxForm({ tx, onSubmit, onCancel, showPaid }) {
