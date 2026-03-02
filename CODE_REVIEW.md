@@ -356,4 +356,303 @@ Using a mutable tag (`@v1`) for the release action means the action code could c
 
 ---
 
-*Review generated for the `claude/code-review-YquQR` branch.*
+## Part 2: Production-Readiness Audit
+
+The following additional findings focus on data integrity, user safety, accessibility, and runtime edge cases that must be addressed before shipping to paying customers.
+
+---
+
+### Data Integrity & Financial Accuracy
+
+#### 23. Floating-Point Currency Arithmetic
+
+**Severity: Critical | Category: Data Integrity**
+
+All financial calculations use native JavaScript floating-point numbers. In a finance app, this is a correctness risk:
+
+```javascript
+// JavaScript: 0.1 + 0.2 === 0.30000000000000004
+const income = monthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+```
+
+This runs throughout the app: balance calculations, budget comparisons, debt payoff projections, YTD stats, and CSV exports. Over hundreds of transactions, rounding errors accumulate and can produce visible discrepancies (e.g., totals off by a cent, balance sheets that don't reconcile).
+
+**Impact:** Users see balances that don't add up. For a finance app marketed as "pro," this erodes trust.
+
+**Recommendation:** Operate in cents (integers) internally and format to dollars only for display. Alternatively, use a library like `dinero.js` or `currency.js` that handles decimal arithmetic correctly. At minimum, round all intermediate results with `Math.round(value * 100) / 100`.
+
+#### 24. `getMonthKey` Inconsistency Between App.jsx and Formatters
+
+**Severity: High | Category: Data Integrity**
+
+Two different implementations exist with different behavior:
+
+`App.jsx:326` (used):
+```javascript
+const getMonthKey = (m, y) => `${y}-${String(m).padStart(2, '0')}`;
+// January (month=0) produces "2025-00"
+```
+
+`src/utils/formatters.js:28` (unused):
+```javascript
+export const getMonthKey = (month, year) => `${year}-${String(month + 1).padStart(2, '0')}`;
+// January (month=0) produces "2025-01"
+```
+
+The App.jsx version generates non-standard month keys (`2025-00` for January). If the IndexedDB layer is ever integrated, it will use `2025-01`, creating a data format mismatch that silently breaks monthly balance lookups.
+
+**Recommendation:** Standardize on the ISO-style format (`YYYY-MM` with 1-indexed months). Use the formatters.js version and remove the duplicate from App.jsx.
+
+#### 25. Inconsistent Backup Version Strings
+
+**Severity: Medium | Category: Data Integrity**
+
+Different backup functions embed different version identifiers:
+
+| Location | Version String | Context |
+|----------|---------------|---------|
+| `App.jsx:183` | `'1.6.0'` | Auto-backup |
+| `App.jsx:1663` | `'1.2'` | Manual backup (transactions view) |
+| `App.jsx:2334` | `'1.6.0'` | Manual backup (settings) |
+| `App.jsx:226` | `__APP_VERSION__` (2.0.3) | Dropbox sync |
+| `App.jsx:793` | `'v1.3'` | CSV export footer |
+
+**Impact:** If restore logic ever gates on version strings, older-format backups from the same app version will behave inconsistently. Users can't tell which backup is newest by looking at the version field.
+
+**Recommendation:** Use `__APP_VERSION__` consistently across all backup/export functions.
+
+#### 26. No Concurrent Tab Protection
+
+**Severity: Medium | Category: Data Integrity**
+
+If a user opens the app in two browser tabs, both instances read/write the same localStorage keys. There is no locking, versioning, or change detection. Edits in one tab silently overwrite the other.
+
+**Recommendation:** Use the `BroadcastChannel` API or `storage` event listener to detect concurrent tabs and either sync or warn the user. IndexedDB (once integrated) handles concurrent access better than localStorage.
+
+---
+
+### Security Vulnerabilities
+
+#### 27. CSV Injection (Formula Injection)
+
+**Severity: High | Category: Security**
+
+`App.jsx:770-771`:
+```javascript
+rows.push([
+  t.date,
+  `"${t.desc}"`,       // Not escaped for formula injection
+  t.amount.toFixed(2),
+  ...
+]);
+```
+
+If a transaction description starts with `=`, `+`, `-`, or `@`, Excel/Sheets will interpret the cell as a formula. A malicious or accidental description like `=HYPERLINK("http://evil.com","Click")` or `=CMD|'/C calc'!A0` executes when the CSV is opened.
+
+**Recommendation:** Prefix all string cells with a tab character or single quote to prevent formula execution. Also escape double quotes within descriptions (a `"` inside the field produces malformed CSV):
+```javascript
+const escape = (s) => `"${String(s).replace(/"/g, '""').replace(/^([=+\-@\t\r])/, "'$1")}"`;
+```
+
+#### 28. Fake Bank Connection Modifies Real Data
+
+**Severity: High | Category: Functional/Trust**
+
+`App.jsx:1307-1316`:
+```javascript
+const connectBank = () => {
+  setPlaidLoading(true);
+  setTimeout(() => {
+    setLinkedAccounts([{ id: uid(), institution: 'USAA', accounts: [...] }]);
+    setTransactions(p => p.map(t => ({ ...t, paid: true })));  // Marks ALL real transactions as paid!
+    ...
+  }, 2500);
+};
+```
+
+This simulates a bank connection with hardcoded USAA data after a 2.5-second fake loading animation. **Critically, it marks every real user transaction as "paid."** This is not a demo or test mode - it silently modifies production data with no way to undo.
+
+**Impact:** Users who click "Connect Bank" expecting Plaid integration will have all their unpaid bills marked as paid, losing track of what they actually owe. This is a data corruption bug masquerading as a feature.
+
+**Recommendation:** Either implement real Plaid integration or remove the "Connect Bank" feature entirely. If keeping it as a placeholder, it must NOT modify real transaction data. Show a "Coming Soon" message instead.
+
+---
+
+### Accessibility (WCAG Compliance)
+
+#### 29. No Accessibility Support
+
+**Severity: High | Category: Accessibility / Legal**
+
+The application has no accessibility accommodations:
+
+- **`user-scalable=no` in viewport** (`index.html:6`): Prevents pinch-to-zoom, violating WCAG 2.1 Success Criterion 1.4.4 (Resize Text). This is a compliance failure that can expose the business to ADA lawsuits, particularly for a financial product.
+- **No ARIA labels:** Custom buttons, toggle switches, progress bars, and interactive cards have no `aria-label`, `aria-role`, or `aria-describedby` attributes.
+- **No keyboard navigation:** Custom components (paid/unpaid toggles, category selectors, sidebar nav) are only operable via mouse click. Tab order is unmanaged.
+- **No focus management for modals:** When a modal opens, focus is not trapped inside it. Screen readers and keyboard users can tab behind the modal to invisible elements.
+- **Low color contrast in some areas:** Light text on gradient backgrounds (e.g., `text-[#14b8a6]/70` on dark gradients) may not meet WCAG AA 4.5:1 contrast ratio.
+- **No skip-to-content link:** Screen reader users must tab through the entire sidebar on every page load.
+
+**Recommendation:** As a minimum for production:
+1. Remove `user-scalable=no` from the viewport meta tag
+2. Add `aria-label` to all interactive elements without visible text
+3. Implement focus trapping in the `Modal` component
+4. Add `role="dialog"` and `aria-modal="true"` to modals
+5. Ensure all interactive elements are keyboard-accessible
+
+#### 30. Destructive Actions Have No Undo Mechanism
+
+**Severity: Medium | Category: UX / Data Safety**
+
+All delete operations rely solely on `confirm()` dialogs:
+- Delete single transaction (line 1298)
+- Delete filtered transactions (line 1687)
+- Delete all transactions (line 1705 - double confirm)
+- Delete recurring expenses (line 1303, 2660)
+- Factory Reset with `localStorage.clear()` (line 2671)
+
+None offer an undo path. The Factory Reset at line 2676 calls `localStorage.clear()` which wipes ALL localStorage, not just `bb_`-prefixed keys - destroying PWA preferences, Dropbox tokens, and any third-party data.
+
+**Recommendation:** Implement soft-delete with a 30-second undo toast (similar to Gmail). For Factory Reset, only clear `bb_*` keys. Consider requiring the user to type a confirmation phrase for destructive bulk operations.
+
+---
+
+### Runtime Edge Cases
+
+#### 31. Auto-Backup Silently Downloads Files
+
+**Severity: Medium | Category: UX**
+
+`App.jsx:181-194`:
+```javascript
+const performAutoBackup = useCallback(() => {
+  ...
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `balance-books-auto-backup-${...}.json`;
+  a.click();
+  ...
+});
+```
+
+The "auto-backup" feature triggers a browser file download every 24 hours. Most modern browsers block programmatic downloads or require user gesture. Even when it works, files accumulate silently in the Downloads folder with no cleanup.
+
+**Recommendation:** Replace with IndexedDB-based rolling backups (keep last N snapshots internally) or use the Dropbox sync for cloud backup. If file downloads are desired, make them user-initiated with an explicit "Download Backup Now" button.
+
+#### 32. Object URL Memory Leaks
+
+**Severity: Low | Category: Performance**
+
+Several download functions create `URL.createObjectURL()` but don't call `URL.revokeObjectURL()`:
+- `App.jsx:192` (auto-backup) - never revoked
+- `App.jsx:797-799` (CSV export) - never revoked
+
+Others do correctly revoke: lines 818, 2360. In a long-running session (especially on mobile), leaked object URLs consume memory.
+
+**Recommendation:** Always call `URL.revokeObjectURL(url)` after triggering the download, ideally in a `finally` block or `setTimeout`.
+
+#### 33. Transaction List Has No Pagination
+
+**Severity: Medium | Category: UX**
+
+`App.jsx:1725`:
+```javascript
+filtered.slice(0, 50).map(tx => { ... })
+```
+
+The transaction list hard-caps at 50 items with a small note at the bottom. Users with 500+ transactions (common after a year of use) cannot view, edit, or delete transactions beyond position 50 unless they happen to match a filter. There's no "Load More," infinite scroll, or pagination.
+
+**Recommendation:** Add virtual scrolling (e.g., `react-window` or `@tanstack/virtual`) or simple page-based pagination to allow access to all transactions.
+
+#### 34. Timezone Bug in Sorting
+
+**Severity: Medium | Category: Data Integrity**
+
+While `getDateParts()` correctly parses `YYYY-MM-DD` strings without timezone shifting, multiple sort operations still use `new Date()`:
+
+`App.jsx:387`:
+```javascript
+let list = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+```
+
+`new Date('2025-01-15')` is interpreted as UTC midnight. For users in timezones west of UTC (Americas), this shifts to the previous day. Sorting is correct (relative order preserved), but if any code compares sorted dates to `getDateParts()` results, inconsistencies can appear.
+
+**Recommendation:** Use string comparison for `YYYY-MM-DD` dates (lexicographic ordering is correct for this format): `(a, b) => b.date.localeCompare(a.date)`.
+
+#### 35. Hardcoded USD Currency
+
+**Severity: Low | Category: Internationalization**
+
+All currency formatting is locked to USD:
+```javascript
+const currency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+```
+
+There's no way for users in other countries to change the currency symbol or number format.
+
+**Recommendation:** Add a currency preference to settings. Store the ISO currency code (e.g., `'USD'`, `'EUR'`, `'GBP'`) and pass it to `Intl.NumberFormat`.
+
+---
+
+### Electron Production Hardening
+
+#### 36. No Content Security Policy
+
+**Severity: Medium | Category: Security/Electron**
+
+Neither the web app nor the Electron app sets a Content Security Policy (CSP). The CDN script tag, inline scripts in `index.html`, and the lack of CSP headers mean:
+- Any XSS vulnerability has unrestricted access
+- The Dropbox token in localStorage is fully exposed
+- Inline script execution is unrestricted
+
+**Recommendation:** Add a CSP meta tag or HTTP header:
+```html
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://content.dropboxapi.com https://api.dropboxapi.com;">
+```
+
+For Electron, set CSP in the `session` webRequest headers.
+
+#### 37. DevTools Accessible in Production Electron Builds
+
+**Severity: Low | Category: Security/Electron**
+
+`electron/main.js:166-172` exposes DevTools toggle in the View menu for all builds. Additionally, `Ctrl+Shift+I` works by default. End users can inspect localStorage, view Dropbox tokens, and modify application state.
+
+**Recommendation:** Remove the DevTools menu item and keyboard shortcut in production builds. Only enable when `isDev` is true.
+
+---
+
+## Updated Summary: Production Release Blockers
+
+### Release Blockers (Must fix before any production release)
+| # | Issue | Risk |
+|---|-------|------|
+| 23 | Floating-point currency arithmetic | Incorrect financial calculations |
+| 27 | CSV injection vulnerability | Security exploit when users open exports |
+| 28 | Fake bank connection corrupts data | Marks all transactions as paid |
+| 29 | No accessibility (`user-scalable=no`) | ADA/WCAG legal exposure |
+| 1-4 | Monolithic architecture, unused modular code, Dropbox OAuth, missing PWA | From initial review |
+
+### High Priority (Fix within first production sprint)
+| # | Issue | Risk |
+|---|-------|------|
+| 24 | `getMonthKey` format inconsistency | Data corruption on IndexedDB migration |
+| 25 | Inconsistent backup versions | Restore failures |
+| 30 | No undo for destructive actions / `localStorage.clear()` | Data loss |
+| 33 | Transaction list capped at 50 | Users can't access their data |
+| 36 | No Content Security Policy | XSS has full access |
+
+### Should Fix (Before scaling to more users)
+| # | Issue | Risk |
+|---|-------|------|
+| 26 | No concurrent tab protection | Silent data loss |
+| 31 | Auto-backup downloads files silently | Blocked by browsers, confusing UX |
+| 34 | Timezone bug in sorting | Incorrect transaction order |
+| 35 | Hardcoded USD currency | Limits market to US users |
+| 37 | DevTools in production | Token exposure |
+| 32 | Object URL memory leaks | Performance degradation |
+
+---
+
+*Review updated for the `claude/code-review-YquQR` branch.*
