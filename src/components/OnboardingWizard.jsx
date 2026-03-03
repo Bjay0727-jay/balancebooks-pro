@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { ChevronRight, Upload, DollarSign, Target, CheckCircle, X } from 'lucide-react';
+import { ChevronRight, DollarSign, Target, CheckCircle } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
-import { CATEGORIES } from '../utils/constants';
-import { FULL_MONTHS } from '../utils/constants';
+import { CATEGORIES, FULL_MONTHS } from '../utils/constants';
 
 const STEPS = [
   { id: 'welcome', title: 'Welcome' },
@@ -21,15 +20,9 @@ export default function OnboardingWizard() {
   const setBudgetGoals = useAppStore(s => s.setBudgetGoals);
   const budgetGoals = useAppStore(s => s.budgetGoals);
   const setOnboarded = useAppStore(s => s.setOnboarded);
-  const setModal = useAppStore(s => s.setModal);
 
-  const finish = () => {
-    setOnboarded(true);
-  };
-
-  const skip = () => {
-    setOnboarded(true);
-  };
+  const finish = () => setOnboarded(true);
+  const skip = () => setOnboarded(true);
 
   const next = () => {
     if (step === 0) {
@@ -50,7 +43,6 @@ export default function OnboardingWizard() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-        {/* Progress bar */}
         <div className="flex gap-1 p-4 pb-0">
           {STEPS.map((s, i) => (
             <div key={s.id} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= step ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6]' : 'bg-slate-200'}`} />
@@ -58,12 +50,11 @@ export default function OnboardingWizard() {
         </div>
 
         <div className="p-6">
-          {/* Step 0: Welcome */}
           {step === 0 && (
             <div className="text-center space-y-4">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center mx-auto shadow-lg">
                 <svg viewBox="0 0 100 100" className="w-14 h-14">
-                  <defs><linearGradient id="obNavy" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style={{stopColor:'#1e3a5f'}} /><stop offset="100%" style={{stopColor:'#0f172a'}} /></linearGradient><linearGradient id="obTeal" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{stopColor:'#14b8a6'}} /><stop offset="100%" style={{stopColor:'#0d9488'}} /></linearGradient></defs>
+                  <defs><linearGradient id="obTeal" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{stopColor:'#14b8a6'}} /><stop offset="100%" style={{stopColor:'#0d9488'}} /></linearGradient></defs>
                   <circle cx="50" cy="52" r="24" fill="url(#obTeal)"/><path d="M 36 52 L 46 62 L 66 42" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
@@ -71,22 +62,18 @@ export default function OnboardingWizard() {
               <p className="text-slate-500">Let's set up your finances in under a minute. You can always change these later.</p>
               <div className="grid grid-cols-3 gap-3 pt-2">
                 <div className="bg-[#14b8a6]/5 rounded-xl p-3 text-center border border-[#14b8a6]/20">
-                  <DollarSign size={20} className="mx-auto text-[#14b8a6] mb-1" />
-                  <p className="text-xs text-slate-600 font-medium">Track Money</p>
+                  <DollarSign size={20} className="mx-auto text-[#14b8a6] mb-1" /><p className="text-xs text-slate-600 font-medium">Track Money</p>
                 </div>
                 <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-200">
-                  <Target size={20} className="mx-auto text-blue-500 mb-1" />
-                  <p className="text-xs text-slate-600 font-medium">Set Budgets</p>
+                  <Target size={20} className="mx-auto text-blue-500 mb-1" /><p className="text-xs text-slate-600 font-medium">Set Budgets</p>
                 </div>
                 <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-200">
-                  <CheckCircle size={20} className="mx-auto text-emerald-500 mb-1" />
-                  <p className="text-xs text-slate-600 font-medium">Save More</p>
+                  <CheckCircle size={20} className="mx-auto text-emerald-500 mb-1" /><p className="text-xs text-slate-600 font-medium">Save More</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 1: Starting Balance */}
           {step === 1 && (
             <div className="space-y-4">
               <div className="text-center">
@@ -103,11 +90,10 @@ export default function OnboardingWizard() {
                   <input type="number" placeholder="0.00" value={balance} onChange={(e) => setBalance(e.target.value)} className="w-full pl-10 pr-4 py-4 bg-white border-2 border-[#14b8a6]/30 rounded-xl text-2xl font-bold text-[#14b8a6] focus:ring-2 focus:ring-[#14b8a6] focus:outline-none" autoFocus />
                 </div>
               </div>
-              <p className="text-xs text-slate-400">This is the amount in your account at the start of the month. You can adjust it anytime.</p>
+              <p className="text-xs text-slate-400">This is the amount in your account at the start of the month.</p>
             </div>
           )}
 
-          {/* Step 2: First Budget Goal */}
           {step === 2 && (
             <div className="space-y-4">
               <div className="text-center">
@@ -135,17 +121,12 @@ export default function OnboardingWizard() {
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
             <button onClick={skip} className="text-sm text-slate-400 hover:text-slate-600">
               {step === 0 ? 'Skip setup' : 'Skip'}
             </button>
             <button onClick={next} className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-green-600">
-              {step === 2 ? (
-                <><CheckCircle size={18} />Finish</>
-              ) : (
-                <><span>Next</span><ChevronRight size={18} /></>
-              )}
+              {step === 2 ? <><CheckCircle size={18} />Finish</> : <><span>Next</span><ChevronRight size={18} /></>}
             </button>
           </div>
         </div>

@@ -16,12 +16,14 @@ export const useAppStore = create(
     savingsGoal: loadData('savingsGoal', 500),
     budgetGoals: loadData('budgetGoals', {}),
     debts: loadData('debts', []),
+    accounts: loadData('accounts', [{ id: 'primary', name: 'Primary Account', type: 'checking', icon: '🏦', color: '#1e3a5f', initialBalance: 0 }]),
 
     // ── Settings ─────────────────────────────────────────────
     autoBackupEnabled: loadData('autoBackup', false),
     lastBackupDate: loadData('lastBackup', null),
     notificationsEnabled: loadData('notifications', false),
     dashboardWidget: loadData('dashboardWidget', 'ytd'),
+    onboarded: loadData('onboarded', false),
 
     // ── Dropbox ──────────────────────────────────────────────
     dropboxConnected: loadData('dropboxConnected', false),
@@ -47,6 +49,7 @@ export const useAppStore = create(
     filterDateFrom: '',
     filterDateTo: '',
     searchAllMonths: false,
+    filterAccount: 'all',
     txPage: 0,
     sidebarOpen: typeof window !== 'undefined' && window.innerWidth >= 768,
     linkedAccounts: [],
@@ -54,9 +57,6 @@ export const useAppStore = create(
     importData: null,
     importNotification: null,
     restoreData: null,
-
-    // ── Onboarding ──────────────────────────────────────────
-    onboarded: loadData('onboarded', false),
 
     // ── Hydration ────────────────────────────────────────────
     hydrated: false,
@@ -68,6 +68,7 @@ export const useAppStore = create(
     setSavingsGoal: (goal) => set({ savingsGoal: goal }),
     setBudgetGoals: (goals) => set({ budgetGoals: goals }),
     setDebts: (d) => set({ debts: d }),
+    setAccounts: (a) => set({ accounts: a }),
 
     // ── Setters (settings) ───────────────────────────────────
     setOnboarded: (val) => set({ onboarded: val }),
@@ -100,6 +101,7 @@ export const useAppStore = create(
     setFilterDateFrom: (v) => set({ filterDateFrom: v }),
     setFilterDateTo: (v) => set({ filterDateTo: v }),
     setSearchAllMonths: (v) => set({ searchAllMonths: v }),
+    setFilterAccount: (v) => set({ filterAccount: v }),
     setTxPage: (p) => set({ txPage: p }),
     setSidebarOpen: (o) => set({ sidebarOpen: o }),
     setLinkedAccounts: (a) => set({ linkedAccounts: a }),
@@ -131,7 +133,8 @@ export const useAppStore = create(
 
     // ── Transaction CRUD ────────────────────────────────────
     addTx: (tx) => {
-      set(s => ({ transactions: [...s.transactions, { ...tx, id: uid() }], modal: null }));
+      const accountId = tx.accountId || 'primary';
+      set(s => ({ transactions: [...s.transactions, { ...tx, id: uid(), accountId }], modal: null }));
     },
     updateTx: (tx) => set(s => ({ transactions: s.transactions.map(t => t.id === tx.id ? tx : t), editTx: null })),
     deleteTx: (id) => {
@@ -157,6 +160,20 @@ export const useAppStore = create(
     createFromRecurring: (r) => {
       const today = new Date();
       set(s => ({ transactions: [...s.transactions, { id: uid(), date: today.toISOString().split('T')[0], desc: r.name, amount: -r.amount, category: r.category, paid: r.autoPay }] }));
+    },
+
+    // ── Account CRUD ─────────────────────────────────────────
+    addAccount: (account) => {
+      set(s => ({ accounts: [...s.accounts, { ...account, id: uid() }], modal: null }));
+    },
+    updateAccount: (account) => set(s => ({ accounts: s.accounts.map(a => a.id === account.id ? account : a) })),
+    deleteAccount: (id) => {
+      if (id === 'primary') return; // prevent deleting primary
+      // Move transactions from deleted account to primary
+      set(s => ({
+        accounts: s.accounts.filter(a => a.id !== id),
+        transactions: s.transactions.map(t => t.accountId === id ? { ...t, accountId: 'primary' } : t),
+      }));
     },
 
     // ── Balance Setters ──────────────────────────────────────
@@ -214,6 +231,7 @@ const persistLS = (selector, lsKey) => {
   useAppStore.subscribe(selector, (val) => saveData(lsKey, val));
 };
 
+persistLS(s => s.accounts,        'accounts');
 persistLS(s => s.dashboardWidget,  'dashboardWidget');
 persistLS(s => s.dropboxConnected, 'dropboxConnected');
 persistLS(s => s.dropboxToken,     'dropboxToken');

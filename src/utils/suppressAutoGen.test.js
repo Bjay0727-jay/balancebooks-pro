@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { suppressAutoGen } from './suppressAutoGen';
 
 describe('suppressAutoGen', () => {
@@ -7,7 +7,7 @@ describe('suppressAutoGen', () => {
   });
 
   it('adds a suppression key to localStorage', () => {
-    suppressAutoGen('rec-123', 2, 2026); // month is 0-indexed, so month=2 → March
+    suppressAutoGen('rec-123', 2, 2026);
     const stored = JSON.parse(localStorage.getItem('bb_autoGenDeleted'));
     expect(stored).toContain('rec-123_2026-03');
   });
@@ -20,9 +20,9 @@ describe('suppressAutoGen', () => {
   });
 
   it('supports multiple different suppression keys', () => {
-    suppressAutoGen('rec-123', 0, 2026); // January
-    suppressAutoGen('rec-456', 0, 2026); // January
-    suppressAutoGen('rec-123', 1, 2026); // February
+    suppressAutoGen('rec-123', 0, 2026);
+    suppressAutoGen('rec-456', 0, 2026);
+    suppressAutoGen('rec-123', 1, 2026);
     const stored = JSON.parse(localStorage.getItem('bb_autoGenDeleted'));
     expect(stored).toHaveLength(3);
     expect(stored).toContain('rec-123_2026-01');
@@ -37,7 +37,6 @@ describe('suppressAutoGen', () => {
   });
 
   it('handles empty localStorage gracefully', () => {
-    // No prior data
     expect(() => suppressAutoGen('rec-1', 5, 2026)).not.toThrow();
   });
 });

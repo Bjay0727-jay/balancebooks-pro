@@ -61,6 +61,14 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: 'esbuild',
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ['recharts'],
+        },
+      },
+    },
   },
   server: {
     port: 5173,

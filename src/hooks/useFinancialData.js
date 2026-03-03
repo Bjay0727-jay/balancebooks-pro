@@ -20,6 +20,7 @@ export function useFinancialData() {
   const filterDateFrom = useAppStore(s => s.filterDateFrom);
   const filterDateTo = useAppStore(s => s.filterDateTo);
   const searchAllMonths = useAppStore(s => s.searchAllMonths);
+  const filterAccount = useAppStore(s => s.filterAccount);
 
   const currentMonthKey = getMonthKey(month, year);
 
@@ -62,8 +63,9 @@ export function useFinancialData() {
     }
     if (filterDateFrom) list = list.filter(t => t.date >= filterDateFrom);
     if (filterDateTo) list = list.filter(t => t.date <= filterDateTo);
+    if (filterAccount !== 'all') list = list.filter(t => (t.accountId || 'primary') === filterAccount);
     return list;
-  }, [transactions, search, filterCat, filterPaid, filterAmountMin, filterAmountMax, filterDateFrom, filterDateTo, searchAllMonths, month, year]);
+  }, [transactions, search, filterCat, filterPaid, filterAmountMin, filterAmountMax, filterDateFrom, filterDateTo, searchAllMonths, filterAccount, month, year]);
 
   const stats = useMemo(() => {
     const income = roundCents(monthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0));
