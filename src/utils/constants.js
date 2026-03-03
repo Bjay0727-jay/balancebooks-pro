@@ -11,6 +11,8 @@ export const CATEGORIES = [
   { id: 'dining', name: 'Dining', color: '#ea580c', bg: '#fff7ed', icon: '🍽️' },
   { id: 'shopping', name: 'Shopping', color: '#9333ea', bg: '#faf5ff', icon: '🛍️' },
   { id: 'subscriptions', name: 'Subscriptions', color: '#0096b7', bg: '#f0fdfa', icon: '📱' },
+  { id: 'mobile-phone', name: 'Mobile Phone', color: '#6366f1', bg: '#eef2ff', icon: '📲' },
+  { id: 'internet', name: 'Internet', color: '#0891b2', bg: '#ecfeff', icon: '🌐' },
   { id: 'education', name: 'Education', color: '#2563eb', bg: '#eff6ff', icon: '📚' },
   { id: 'tithes', name: 'Tithes & Offerings', color: '#7c3aed', bg: '#f5f3ff', icon: '⛪' },
   { id: 'savings', name: 'Savings', color: '#047857', bg: '#ecfdf5', icon: '💰' },

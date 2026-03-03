@@ -310,7 +310,7 @@ export default function App() {
         </Modal>
       )}
 
-      {modal === 'add' && <Modal title="Add Transaction" onClose={() => setModal(null)}><TxForm onSubmit={addTx} onCancel={() => setModal(null)} showPaid /></Modal>}
+      {modal === 'add' && <Modal title="Add Expense" onClose={() => setModal(null)}><TxForm onSubmit={addTx} onCancel={() => setModal(null)} showPaid onAddRecurring={addRecurring} /></Modal>}
       {editTx && <Modal title="Edit Transaction" onClose={() => setEditTx(null)}><TxForm tx={editTx} onSubmit={updateTx} onCancel={() => setEditTx(null)} showPaid /></Modal>}
       {modal === 'add-recurring' && <Modal title="Add Recurring Expense" onClose={() => setModal(null)}><RecurringForm onSubmit={addRecurring} onCancel={() => setModal(null)} /></Modal>}
       {editRecurring && <Modal title="Edit Recurring Expense" onClose={() => setEditRecurring(null)}><RecurringForm recurring={editRecurring} onSubmit={updateRecurring} onCancel={() => setEditRecurring(null)} /></Modal>}
