@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#12233d" />
+  <meta name="description" content="Download BalanceBooks Pro for Windows, macOS, and Linux. Privacy-first personal finance software." />
+  <title>Download - BalanceBooks Pro</title>
+  <link rel="icon" type="image/svg+xml" href="public/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #00b4d8;
+      --primary-dark: #0096b7;
+      --navy-dark: #0a1628;
+      --navy-mid: #12233d;
+      --navy-light: #1a3154;
+      --gold: #f0c040;
+      --bg: #f8fafc;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --card-bg: rgba(255, 255, 255, 0.06);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --radius: 16px;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: var(--navy-dark);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Nav ────────────────────────────────────────── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 24px;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: white;
+    }
+    .nav-logo svg { width: 38px; height: 38px; }
+    .nav-logo span { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.3px; }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--primary); }
+
+    /* ── Hero ───────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 60px 24px 40px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .hero-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      filter: drop-shadow(0 8px 24px rgba(0, 180, 216, 0.3));
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #fff 30%, var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      line-height: 1.6;
+      max-width: 520px;
+      margin: 0 auto 20px;
+    }
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      background: rgba(0, 180, 216, 0.12);
+      border: 1px solid rgba(0, 180, 216, 0.25);
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .version-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    /* ── Download Grid ─────────────────────────────── */
+    .downloads {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 24px 60px;
+    }
+    .downloads h2 {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 32px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0, 180, 216, 0.3);
+      box-shadow: 0 12px 40px rgba(0, 180, 216, 0.1);
+    }
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 1.6rem;
+    }
+    .card-icon.windows { background: linear-gradient(135deg, #0078d4, #005a9e); }
+    .card-icon.mac      { background: linear-gradient(135deg, #555, #333); }
+    .card-icon.mac-arm  { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+    .card-icon.linux    { background: linear-gradient(135deg, #e95420, #c44218); }
+    .card-icon.web      { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+
+    .card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 4px;
+    }
+    .card .file-name {
+      font-size: 0.78rem;
+      font-family: 'DM Sans', monospace;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.05);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      word-break: break-all;
+    }
+    .card .note {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.45;
+    }
+    .card .features {
+      list-style: none;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+    .card .features li {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card .features li::before {
+      content: '✓';
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: auto;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 180, 216, 0.3);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid rgba(0, 180, 216, 0.4);
+    }
+    .btn-outline:hover {
+      background: rgba(0, 180, 216, 0.08);
+      border-color: var(--primary);
+    }
+    .btn svg { width: 16px; height: 16px; }
+
+    /* ── Requirements Table ─────────────────────────── */
+    .requirements {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+    .requirements h2 {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+    }
+    .req-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .req-table th,
+    .req-table td {
+      padding: 14px 20px;
+      text-align: left;
+      font-size: 0.88rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .req-table th {
+      background: rgba(0, 180, 216, 0.08);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    .req-table td { color: var(--text-muted); }
+    .req-table td:first-child { color: white; font-weight: 600; }
+    .req-table tr:last-child td { border-bottom: none; }
+
+    /* ── Mobile Install ─────────────────────────────── */
+    .mobile-section {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+      text-align: center;
+    }
+    .mobile-section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+    }
+    .mobile-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .mobile-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+    }
+    .mobile-card h3 {
+      font-size: 1rem;
+      color: white;
+      margin-bottom: 12px;
+    }
+    .mobile-card ol {
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      padding-left: 20px;
+    }
+
+    /* ── Features Strip ─────────────────────────────── */
+    .features-strip {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      text-align: center;
+    }
+    .feature-item { padding: 16px; }
+    .feature-item .icon {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+    }
+    .feature-item h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 4px;
+    }
+    .feature-item p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Footer ─────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 1.8rem; }
+      .grid { grid-template-columns: 1fr; }
+      .mobile-cards { grid-template-columns: 1fr; }
+      .features-strip { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#00b4d8"/><stop offset="100%" stop-color="#0096b7"/>
+          </linearGradient>
+        </defs>
+        <rect width="100" height="100" rx="24" fill="url(#lg)"/>
+        <path d="M25 50h50M50 25v50M31 37.5h38M31 62.5h38" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      <span>BalanceBooks Pro</span>
+    </a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="#requirements">Requirements</a>
+      <a href="#mobile">Mobile</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <svg class="hero-icon" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="hlg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#00b4d8"/><stop offset="100%" stop-color="#0096b7"/>
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" rx="24" fill="url(#hlg)"/>
+      <path d="M25 50h50M50 25v50M31 37.5h38M31 62.5h38" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+    <h1>Download BalanceBooks Pro</h1>
+    <p>Privacy-first personal finance management. All your data stays on your device — no accounts, no cloud, no tracking.</p>
+    <span class="version-badge" id="version-badge">Latest: v2.1.0</span>
+  </section>
+
+  <!-- Downloads -->
+  <section class="downloads">
+    <h2>Release Packages</h2>
+    <div class="grid">
+
+      <!-- Web App -->
+      <div class="card">
+        <div class="card-icon web">🌐</div>
+        <h3>Web App</h3>
+        <div class="file-name">app.balancebooks.pro</div>
+        <p class="note">Run directly in your browser — no download needed. Installable as a PWA.</p>
+        <ul class="features">
+          <li>Works in any modern browser</li>
+          <li>Install as desktop/mobile app</li>
+          <li>Automatic updates</li>
+        </ul>
+        <a href="/" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Launch App
+        </a>
+      </div>
+
+      <!-- Windows -->
+      <div class="card">
+        <div class="card-icon windows">
+          <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M3 12V6.75l6-1v6.25H3zm7-7.1L21 3v9h-11V4.9zM3 13h6v6.25l-6-1V13zm7 .1h11v9l-11-1.9V13.1z"/></svg>
+        </div>
+        <h3>Windows</h3>
+        <div class="file-name">BalanceBooks-Pro-Setup.exe</div>
+        <p class="note">Standard Windows installer. Works on Windows 10 and later.</p>
+        <ul class="features">
+          <li>.exe installer</li>
+          <li>Auto-update support</li>
+          <li>64-bit (x64)</li>
+        </ul>
+        <a href="#" class="btn btn-primary" id="dl-windows">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download .exe
+        </a>
+      </div>
+
+      <!-- Mac Intel -->
+      <div class="card">
+        <div class="card-icon mac">
+          <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        </div>
+        <h3>Mac (Intel)</h3>
+        <div class="file-name">BalanceBooks-Pro.dmg</div>
+        <p class="note">For Intel-based Macs. Drag to Applications to install.</p>
+        <ul class="features">
+          <li>.dmg disk image</li>
+          <li>macOS 11+ (Big Sur)</li>
+          <li>Intel x64 processors</li>
+        </ul>
+        <a href="#" class="btn btn-primary" id="dl-mac-intel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download .dmg
+        </a>
+      </div>
+
+      <!-- Mac Apple Silicon -->
+      <div class="card">
+        <div class="card-icon mac-arm">
+          <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        </div>
+        <h3>Mac (Apple Silicon)</h3>
+        <div class="file-name">BalanceBooks-Pro-arm64.dmg</div>
+        <p class="note">For M1, M2, M3, and M4 Macs. Native Apple Silicon performance.</p>
+        <ul class="features">
+          <li>.dmg disk image</li>
+          <li>macOS 11+ (Big Sur)</li>
+          <li>ARM64 native</li>
+        </ul>
+        <a href="#" class="btn btn-primary" id="dl-mac-arm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download .dmg
+        </a>
+      </div>
+
+      <!-- Linux -->
+      <div class="card">
+        <div class="card-icon linux">
+          <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M12.5 2c-1.63 0-2.94 1.31-2.94 2.94v.13c-1.25.46-2.13 1.66-2.13 3.07 0 .84.32 1.6.84 2.18-.34.54-.54 1.17-.54 1.85 0 1.19.61 2.23 1.53 2.84-.07.31-.1.63-.1.97 0 1.35.56 2.57 1.47 3.44-.1.27-.17.55-.17.85 0 1.3 1.05 2.35 2.35 2.35.63 0 1.2-.25 1.62-.66.42.41.99.66 1.62.66 1.3 0 2.35-1.05 2.35-2.35 0-.3-.06-.58-.17-.85.91-.87 1.47-2.09 1.47-3.44 0-.34-.04-.66-.1-.97.92-.61 1.53-1.65 1.53-2.84 0-.68-.2-1.31-.54-1.85.52-.58.84-1.34.84-2.18 0-1.41-.88-2.61-2.13-3.07v-.13C15.44 3.31 14.13 2 12.5 2z"/></svg>
+        </div>
+        <h3>Linux</h3>
+        <div class="file-name">BalanceBooks-Pro.AppImage</div>
+        <p class="note">Universal Linux package. No installation required — just download and run.</p>
+        <ul class="features">
+          <li>AppImage format</li>
+          <li>Works on most distros</li>
+          <li>No root required</li>
+        </ul>
+        <a href="#" class="btn btn-primary" id="dl-linux">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download .AppImage
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- System Requirements -->
+  <section class="requirements" id="requirements">
+    <h2>System Requirements</h2>
+    <table class="req-table">
+      <thead>
+        <tr>
+          <th>Platform</th>
+          <th>File</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Windows</td>
+          <td>.exe installer</td>
+          <td>Standard Windows installer, Windows 10+, 64-bit</td>
+        </tr>
+        <tr>
+          <td>Mac (Intel)</td>
+          <td>.dmg</td>
+          <td>For Intel-based Macs, macOS 11+</td>
+        </tr>
+        <tr>
+          <td>Mac (Apple Silicon)</td>
+          <td>-arm64.dmg</td>
+          <td>For M1/M2/M3/M4 Macs, macOS 11+</td>
+        </tr>
+        <tr>
+          <td>Linux</td>
+          <td>.AppImage</td>
+          <td>Universal Linux package, most distros supported</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Mobile Install -->
+  <section class="mobile-section" id="mobile">
+    <h2>Mobile &amp; Tablet</h2>
+    <div class="mobile-cards">
+      <div class="mobile-card">
+        <h3>iOS (iPhone / iPad)</h3>
+        <ol>
+          <li>Open app in Safari</li>
+          <li>Tap the <strong>Share</strong> button</li>
+          <li>Select <strong>Add to Home Screen</strong></li>
+          <li>Tap <strong>Add</strong> to confirm</li>
+        </ol>
+      </div>
+      <div class="mobile-card">
+        <h3>Android</h3>
+        <ol>
+          <li>Open app in Chrome</li>
+          <li>Tap the <strong>⋮</strong> menu</li>
+          <li>Select <strong>Install app</strong></li>
+          <li>Tap <strong>Install</strong> to confirm</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Strip -->
+  <div class="features-strip">
+    <div class="feature-item">
+      <div class="icon">🔒</div>
+      <h4>100% Private</h4>
+      <p>All data stored locally on your device</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon">💎</div>
+      <h4>Lifetime License</h4>
+      <p>One purchase, yours forever</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon">📡</div>
+      <h4>Works Offline</h4>
+      <p>No internet connection required</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon">⚡</div>
+      <h4>Lightning Fast</h4>
+      <p>Instant load, no server round-trips</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2025 BalanceBooks Pro. All rights reserved. &nbsp;&middot;&nbsp; <a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="#">Privacy Policy</a> &nbsp;&middot;&nbsp; <a href="#">Documentation</a></p>
+  </footer>
+
+  <!-- Auto-fetch latest release from GitHub -->
+  <script>
+    (async function fetchRelease() {
+      try {
+        const res = await fetch('https://api.github.com/repos/Bjay0727-jay/balancebooks-pro/releases/latest');
+        if (!res.ok) return;
+        const release = await res.json();
+        const tag = release.tag_name || '';
+        const version = tag.startsWith('v') ? tag : 'v' + tag;
+
+        // Update version badge
+        const badge = document.getElementById('version-badge');
+        if (badge && tag) badge.textContent = 'Latest: ' + version;
+
+        // Map assets to download buttons
+        const assets = release.assets || [];
+        for (const asset of assets) {
+          const name = asset.name.toLowerCase();
+          const url = asset.browser_download_url;
+          if (name.endsWith('.exe')) {
+            const btn = document.getElementById('dl-windows');
+            if (btn) btn.href = url;
+          } else if (name.endsWith('-arm64.dmg')) {
+            const btn = document.getElementById('dl-mac-arm');
+            if (btn) btn.href = url;
+          } else if (name.endsWith('.dmg')) {
+            const btn = document.getElementById('dl-mac-intel');
+            if (btn) btn.href = url;
+          } else if (name.endsWith('.appimage')) {
+            const btn = document.getElementById('dl-linux');
+            if (btn) btn.href = url;
+          }
+        }
+      } catch (e) {
+        // Silently fail - buttons will just link to #
+      }
+    })();
+  </script>
+
+</body>
+</html>
