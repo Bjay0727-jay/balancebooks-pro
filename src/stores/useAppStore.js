@@ -210,6 +210,8 @@ export const useAppStore = create(
       set(s => ({ transactions: [...s.transactions, { ...tx, id: uid(), date: new Date().toISOString().split('T')[0], paid: tx.amount > 0 }] }));
     },
     togglePaid: (id) => set(s => ({ transactions: s.transactions.map(t => t.id === id ? { ...t, paid: !t.paid } : t) })),
+    bulkSetPaid: (ids, paid) => set(s => ({ transactions: s.transactions.map(t => ids.has(t.id) ? { ...t, paid } : t) })),
+    bulkDeleteTx: (ids) => set(s => ({ transactions: s.transactions.filter(t => !ids.has(t.id)) })),
 
     // ── Recurring CRUD ───────────────────────────────────────
     addRecurring: (r) => {

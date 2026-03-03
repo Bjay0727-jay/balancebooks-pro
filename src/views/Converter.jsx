@@ -1026,7 +1026,7 @@ export default function Converter() {
               onClick={() => setView('transactions')}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg hover:from-[#0a1628] hover:to-[#0096b7]"
             >
-              View Transactions
+              View Expenses
             </button>
           </div>
         </div>

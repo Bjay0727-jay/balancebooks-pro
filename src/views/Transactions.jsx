@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Search, Receipt, Download, Trash2, Plus, Check, Edit2, Copy, ChevronLeft, ChevronRight, SlidersHorizontal, X, Globe, Split } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Receipt, Download, Trash2, Plus, Check, Edit2, Copy, ChevronLeft, ChevronRight, SlidersHorizontal, X, Globe, Split, CheckSquare, Square, MinusSquare, DollarSign, RefreshCw } from 'lucide-react';
 import { CATEGORIES } from '../utils/constants';
 import { useAppStore } from '../stores/useAppStore';
 import { useFinancialData } from '../hooks/useFinancialData';
 import { currency, shortDate } from '../utils/formatters';
+import { uid } from '../utils/formatters';
 
 const TX_PAGE_SIZE = 25;
 
@@ -41,8 +42,14 @@ export default function Transactions() {
   const deleteTx = useAppStore(s => s.deleteTx);
   const duplicateTx = useAppStore(s => s.duplicateTx);
   const togglePaid = useAppStore(s => s.togglePaid);
+  const bulkSetPaid = useAppStore(s => s.bulkSetPaid);
+  const bulkDeleteTx = useAppStore(s => s.bulkDeleteTx);
+  const addRecurring = useAppStore(s => s.addRecurring);
   const { filtered } = useFinancialData();
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Selection state
+  const [selected, setSelected] = useState(new Set());
 
   const hasAdvancedFilters = filterAmountMin !== '' || filterAmountMax !== '' || filterDateFrom || filterDateTo || searchAllMonths || filterAccount !== 'all';
 
@@ -55,10 +62,99 @@ export default function Transactions() {
 
   const isFiltered = filterCat !== 'all' || filterPaid !== 'all' || search || hasAdvancedFilters;
 
+  // Current page items
+  const pageItems = useMemo(() =>
+    filtered.slice(txPage * TX_PAGE_SIZE, (txPage + 1) * TX_PAGE_SIZE),
+    [filtered, txPage]
+  );
+
+  // Selection helpers
+  const allPageSelected = pageItems.length > 0 && pageItems.every(tx => selected.has(tx.id));
+  const somePageSelected = pageItems.some(tx => selected.has(tx.id));
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allPageSelected) {
+      // Deselect all on current page
+      setSelected(prev => {
+        const next = new Set(prev);
+        pageItems.forEach(tx => next.delete(tx.id));
+        return next;
+      });
+    } else {
+      // Select all on current page
+      setSelected(prev => {
+        const next = new Set(prev);
+        pageItems.forEach(tx => next.add(tx.id));
+        return next;
+      });
+    }
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  // Bulk actions
+  const handleBulkMarkPaid = () => {
+    bulkSetPaid(selected, true);
+    clearSelection();
+  };
+
+  const handleBulkMarkUnpaid = () => {
+    bulkSetPaid(selected, false);
+    clearSelection();
+  };
+
+  const handleBulkDelete = () => {
+    if (confirm(`Delete ${selected.size} selected expense(s)?\n\nThis cannot be undone.`)) {
+      bulkDeleteTx(selected);
+      clearSelection();
+    }
+  };
+
+  const handleBulkMarkRecurring = () => {
+    const selectedTxs = transactions.filter(t => selected.has(t.id) && t.amount < 0);
+    if (selectedTxs.length === 0) {
+      alert('Please select expenses (not income) to mark as recurring.');
+      return;
+    }
+    let added = 0;
+    selectedTxs.forEach(tx => {
+      // Check if a recurring with this name already exists
+      const exists = recurringExpenses.some(r =>
+        r.name.toLowerCase() === tx.desc.toLowerCase()
+      );
+      if (!exists) {
+        const day = parseInt(tx.date.split('-')[2]) || 1;
+        addRecurring({
+          name: tx.desc,
+          amount: Math.abs(tx.amount),
+          category: tx.category,
+          dueDay: day,
+          autoPay: tx.paid,
+        });
+        added++;
+      }
+    });
+    clearSelection();
+    if (added > 0) {
+      alert(`${added} expense(s) added as recurring bills.\n\nView them in the Recurring section.`);
+    } else {
+      alert('All selected expenses are already in your recurring list.');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00b4d8]" size={18} /><input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-[#0a1628]/5 to-white border-2 border-[#12233d]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]" /></div>
+        <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00b4d8]" size={18} /><input type="text" placeholder="Search expenses..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-[#0a1628]/5 to-white border-2 border-[#12233d]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]" /></div>
         <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#0a1628]/5 to-white border-2 border-[#12233d]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
         <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#00b4d8]/5 to-white border-2 border-[#00b4d8]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]"><option value="all">All Status</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select>
         <button onClick={() => setShowAdvanced(!showAdvanced)} className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 font-medium transition-colors ${showAdvanced || hasAdvancedFilters ? 'bg-[#00b4d8]/10 border-[#00b4d8] text-[#00b4d8]' : 'border-[#12233d]/20 text-slate-600 hover:border-[#00b4d8]/50'}`}>
@@ -106,10 +202,11 @@ export default function Transactions() {
         </div>
       )}
 
+      {/* Summary bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl border border-slate-200">
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <Receipt size={16} className="text-blue-500" />
-          <span><strong>{filtered.length}</strong> transactions {isFiltered ? '(filtered)' : ''}</span>
+          <span><strong>{filtered.length}</strong> expenses {isFiltered ? '(filtered)' : ''}</span>
           {transactions.length > 0 && <span className="text-slate-400">Total: {transactions.length}</span>}
         </div>
         <div className="flex items-center gap-2">
@@ -131,7 +228,7 @@ export default function Transactions() {
           {isFiltered && filtered.length > 0 && (
             <button
               onClick={() => {
-                if (confirm(`Delete ${filtered.length} filtered transactions?\n\nThis will only delete the currently visible transactions matching your filters.\n\nThis cannot be undone.`)) {
+                if (confirm(`Delete ${filtered.length} filtered expenses?\n\nThis will only delete the currently visible expenses matching your filters.\n\nThis cannot be undone.`)) {
                   const idsToDelete = new Set(filtered.map(t => t.id));
                   setTransactions(transactions.filter(t => !idsToDelete.has(t.id)));
                   clearAllFilters();
@@ -144,7 +241,7 @@ export default function Transactions() {
           )}
           <button
             onClick={() => {
-              if (confirm(`DELETE ALL ${transactions.length} TRANSACTIONS?\n\nThis will permanently remove ALL your transaction data.\n\nTip: Use "Backup All" first to save your data.\n\nThis cannot be undone!`)) {
+              if (confirm(`DELETE ALL ${transactions.length} EXPENSES?\n\nThis will permanently remove ALL your data.\n\nTip: Use "Backup All" first to save your data.\n\nThis cannot be undone!`)) {
                 if (confirm('Are you absolutely sure? Type "yes" in your mind and click OK to confirm.')) {
                   setTransactions([]); clearAllFilters();
                 }
@@ -158,42 +255,121 @@ export default function Transactions() {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar - shown when items selected */}
+      {selected.size > 0 && (
+        <div className="sticky top-[73px] z-20 bg-gradient-to-r from-[#12233d] to-[#00b4d8] rounded-xl p-3 shadow-lg flex flex-wrap items-center gap-3 text-white">
+          <div className="flex items-center gap-2 font-medium text-sm">
+            <CheckSquare size={16} />
+            <span>{selected.size} selected</span>
+          </div>
+          <div className="h-5 w-px bg-white/30" />
+          <button onClick={handleBulkMarkPaid} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors">
+            <DollarSign size={14} /> Mark Paid
+          </button>
+          <button onClick={handleBulkMarkUnpaid} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors">
+            <X size={14} /> Mark Unpaid
+          </button>
+          <button onClick={handleBulkMarkRecurring} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors">
+            <RefreshCw size={14} /> Make Recurring
+          </button>
+          <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/40 rounded-lg text-sm font-medium hover:bg-red-500/60 transition-colors">
+            <Trash2 size={14} /> Delete
+          </button>
+          <button onClick={clearSelection} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
+            <X size={14} /> Clear
+          </button>
+        </div>
+      )}
+
+      {/* Expense List */}
       <div className="bg-white rounded-2xl border-2 border-[#12233d]/10 shadow-sm divide-y divide-slate-100">
-        {filtered.length > 0 ? filtered.slice(txPage * TX_PAGE_SIZE, (txPage + 1) * TX_PAGE_SIZE).map(tx => {
+        {/* Table header with Select All */}
+        {filtered.length > 0 && (
+          <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50/80 border-b border-slate-200">
+            <button
+              onClick={toggleSelectAll}
+              className="p-0.5 text-slate-400 hover:text-[#00b4d8] transition-colors"
+              aria-label={allPageSelected ? 'Deselect all' : 'Select all on page'}
+            >
+              {allPageSelected ? (
+                <CheckSquare size={18} className="text-[#00b4d8]" />
+              ) : somePageSelected ? (
+                <MinusSquare size={18} className="text-[#00b4d8]" />
+              ) : (
+                <Square size={18} />
+              )}
+            </button>
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide flex-1">Expense</span>
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-20 text-center">Status</span>
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-24 text-right">Amount</span>
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-28 text-right">Actions</span>
+          </div>
+        )}
+
+        {filtered.length > 0 ? pageItems.map(tx => {
           const cat = CATEGORIES.find(c => c.id === tx.category);
           const acct = accounts.length > 1 ? accounts.find(a => a.id === (tx.accountId || 'primary')) : null;
+          const isSelected = selected.has(tx.id);
           return (
-            <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-gradient-to-r hover:from-[#0a1628]/5/50 hover:to-[#00b4d8]/5/50">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <button onClick={() => togglePaid(tx.id)} aria-label={tx.paid ? 'Mark as unpaid' : 'Mark as paid'} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${tx.paid ? 'bg-gradient-to-r from-[#00b4d8]/50 to-green-400 border-green-500' : 'border-blue-300 hover:border-green-400'}`}>{tx.paid && <Check size={14} className="text-white" />}</button>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div>
-                <div className="min-w-0">
-                  <p className={`font-medium text-sm truncate ${tx.paid ? 'text-slate-900' : 'text-slate-600'}`}>
-                    {tx.desc}
-                    {tx.autoGenerated && <span className="ml-1.5 text-[10px] text-[#00b4d8] bg-[#00b4d8]/10 px-1.5 py-0.5 rounded-full font-medium">auto</span>}
-                    {tx.splits?.length > 0 && <span className="inline-flex items-center gap-0.5 ml-1.5 px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded text-[10px] font-semibold align-middle" title={`Split across ${tx.splits.length} categories`}><Split size={10} />{tx.splits.length}</span>}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {shortDate(tx.date)}
-                    {acct && <span className="ml-1.5 text-[10px] text-slate-400">{acct.icon} {acct.name}</span>}
-                  </p>
-                </div>
+            <div key={tx.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-gradient-to-r hover:from-[#0a1628]/5/50 hover:to-[#00b4d8]/5/50 transition-colors ${isSelected ? 'bg-[#00b4d8]/5' : ''}`}>
+              {/* Selection checkbox */}
+              <button
+                onClick={() => toggleSelect(tx.id)}
+                className="p-0.5 shrink-0 text-slate-400 hover:text-[#00b4d8] transition-colors"
+                aria-label={isSelected ? 'Deselect' : 'Select'}
+              >
+                {isSelected ? (
+                  <CheckSquare size={18} className="text-[#00b4d8]" />
+                ) : (
+                  <Square size={18} />
+                )}
+              </button>
+
+              {/* Category icon + Description */}
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-sm truncate text-slate-900">
+                  {tx.desc}
+                  {tx.autoGenerated && <span className="ml-1.5 text-[10px] text-[#00b4d8] bg-[#00b4d8]/10 px-1.5 py-0.5 rounded-full font-medium">auto</span>}
+                  {tx.splits?.length > 0 && <span className="inline-flex items-center gap-0.5 ml-1.5 px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded text-[10px] font-semibold align-middle" title={`Split across ${tx.splits.length} categories`}><Split size={10} />{tx.splits.length}</span>}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {shortDate(tx.date)}
+                  {acct && <span className="ml-1.5 text-[10px] text-slate-400">{acct.icon} {acct.name}</span>}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#00b4d8]' : 'text-slate-900'}`}>{currency(tx.amount)}</span>
-                <button onClick={() => duplicateTx(tx)} title="Duplicate" aria-label="Duplicate transaction" className="p-2 rounded-lg hover:bg-blue-100 text-slate-400 hover:text-blue-600"><Copy size={14} /></button>
-                <button onClick={() => setEditTx(tx)} title="Edit" aria-label="Edit transaction" className="p-2 rounded-lg hover:bg-[#00b4d8]/10 text-[#00b4d8]"><Edit2 size={14} /></button>
-                <button onClick={() => deleteTx(tx.id)} title="Delete" aria-label="Delete transaction" className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
+
+              {/* Paid/Unpaid status badge - clickable to toggle */}
+              <button
+                onClick={() => togglePaid(tx.id)}
+                className={`w-20 text-center shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                  tx.paid
+                    ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
+                    : 'bg-amber-100 text-amber-700 border border-amber-300 hover:bg-amber-200'
+                }`}
+                title={tx.paid ? 'Click to mark as unpaid' : 'Click to mark as paid'}
+              >
+                {tx.paid ? 'Paid' : 'Unpaid'}
+              </button>
+
+              {/* Amount */}
+              <span className={`font-bold text-sm w-24 text-right tabular-nums ${tx.amount > 0 ? 'text-[#00b4d8]' : 'text-slate-900'}`}>{currency(tx.amount)}</span>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-1 w-28 justify-end">
+                <button onClick={() => duplicateTx(tx)} title="Duplicate" aria-label="Duplicate" className="p-2 rounded-lg hover:bg-blue-100 text-slate-400 hover:text-blue-600"><Copy size={14} /></button>
+                <button onClick={() => setEditTx(tx)} title="Edit" aria-label="Edit" className="p-2 rounded-lg hover:bg-[#00b4d8]/10 text-[#00b4d8]"><Edit2 size={14} /></button>
+                <button onClick={() => deleteTx(tx.id)} title="Delete" aria-label="Delete" className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
               </div>
             </div>
           );
         }) : (
           <div className="p-12 text-center">
             <Receipt className="mx-auto text-slate-300 mb-4" size={48} />
-            <h3 className="font-semibold text-slate-600 mb-2">No transactions found</h3>
-            <p className="text-sm text-slate-400 mb-4">{isFiltered ? 'Try adjusting your filters' : 'Add your first transaction to get started'}</p>
+            <h3 className="font-semibold text-slate-600 mb-2">No expenses found</h3>
+            <p className="text-sm text-slate-400 mb-4">{isFiltered ? 'Try adjusting your filters' : 'Add your first expense to get started'}</p>
             {!isFiltered && (
-              <button onClick={() => setModal('add')} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-lg font-medium hover:shadow-lg"><Plus size={16} />Add Transaction</button>
+              <button onClick={() => setModal('add')} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-lg font-medium hover:shadow-lg"><Plus size={16} />Add Expense</button>
             )}
           </div>
         )}
@@ -201,9 +377,9 @@ export default function Transactions() {
           <div className="p-4 flex items-center justify-between bg-slate-50">
             <span className="text-sm text-slate-500">Showing {txPage * TX_PAGE_SIZE + 1}-{Math.min((txPage + 1) * TX_PAGE_SIZE, filtered.length)} of {filtered.length}</span>
             <div className="flex items-center gap-2">
-              <button onClick={() => setTxPage(Math.max(0, txPage - 1))} disabled={txPage === 0} aria-label="Previous page" className="px-3 py-1 rounded-lg text-sm font-medium bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40"><ChevronLeft size={16} className="inline" /> Prev</button>
+              <button onClick={() => { setTxPage(Math.max(0, txPage - 1)); clearSelection(); }} disabled={txPage === 0} aria-label="Previous page" className="px-3 py-1 rounded-lg text-sm font-medium bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40"><ChevronLeft size={16} className="inline" /> Prev</button>
               <span className="text-sm text-slate-600 font-medium">Page {txPage + 1} of {Math.ceil(filtered.length / TX_PAGE_SIZE)}</span>
-              <button onClick={() => setTxPage(Math.min(Math.ceil(filtered.length / TX_PAGE_SIZE) - 1, txPage + 1))} disabled={(txPage + 1) * TX_PAGE_SIZE >= filtered.length} aria-label="Next page" className="px-3 py-1 rounded-lg text-sm font-medium bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40">Next <ChevronRight size={16} className="inline" /></button>
+              <button onClick={() => { setTxPage(Math.min(Math.ceil(filtered.length / TX_PAGE_SIZE) - 1, txPage + 1)); clearSelection(); }} disabled={(txPage + 1) * TX_PAGE_SIZE >= filtered.length} aria-label="Next page" className="px-3 py-1 rounded-lg text-sm font-medium bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40">Next <ChevronRight size={16} className="inline" /></button>
             </div>
           </div>
         )}

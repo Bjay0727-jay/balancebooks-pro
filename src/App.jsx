@@ -191,7 +191,7 @@ export default function App() {
         </div>
         <nav className="space-y-1 flex-1 overflow-y-auto">
           <NavItem id="dashboard" icon={LayoutGrid} label="Dashboard" />
-          <NavItem id="transactions" icon={Receipt} label="Transactions" badge={stats.unpaidCount || null} />
+          <NavItem id="transactions" icon={Receipt} label="Expenses" badge={stats.unpaidCount || null} />
           <NavItem id="budget" icon={Target} label="Budget Goals" badge={budgetStats.categoriesOverBudget || null} />
           <NavItem id="analytics" icon={PieChart} label="Analytics" />
           <NavItem id="debts" icon={CreditCard} label="Debt Payoff" badge={debts.length || null} />
@@ -216,7 +216,7 @@ export default function App() {
           <div className="flex items-center justify-between px-4 md:px-8 py-4">
             <div className="flex items-center gap-4">
               <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'} className="p-2 rounded-lg hover:bg-[#00b4d8]/10 text-[#00b4d8]"><Menu size={20} /></button>
-              <div><h2 className="font-bold text-slate-900 text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view === 'converter' ? 'Spreadsheet Converter' : view}</h2><p className="text-sm text-[#00b4d8] font-medium">{FULL_MONTHS[month]} {year}</p></div>
+              <div><h2 className="font-bold text-slate-900 text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view === 'converter' ? 'Spreadsheet Converter' : view === 'transactions' ? 'Expenses' : view}</h2><p className="text-sm text-[#00b4d8] font-medium">{FULL_MONTHS[month]} {year}</p></div>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 border-2 border-[#12233d]/20 rounded-xl overflow-hidden shadow-sm">
@@ -316,7 +316,7 @@ export default function App() {
       {editRecurring && <Modal title="Edit Recurring Expense" onClose={() => setEditRecurring(null)}><RecurringForm recurring={editRecurring} onSubmit={updateRecurring} onCancel={() => setEditRecurring(null)} /></Modal>}
 
       {modal === 'import' && (
-        <Modal title="Import Expenses" onClose={() => setModal(null)}>
+        <Modal title="Import Data" onClose={() => setModal(null)}>
           <div className="space-y-6">
             <div className="text-center py-4"><div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#12233d] to-[#00b4d8] flex items-center justify-center mx-auto mb-4 shadow-lg"><FileSpreadsheet size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Bulk Import</h3><p className="text-slate-500 text-sm">Import from CSV/Excel template</p></div>
             <button onClick={downloadTemplate} className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 text-slate-700 rounded-xl font-medium border-2 border-[#12233d]/20"><Download size={18} className="text-[#00b4d8]" />Download Template</button>
