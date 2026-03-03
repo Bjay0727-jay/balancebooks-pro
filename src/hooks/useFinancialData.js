@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { CATEGORIES, FREQUENCY_OPTIONS, MONTHS } from '../utils/constants';
-import { getDateParts, getMonthKey, roundCents, currency } from '../utils/formatters';
+import { getDateParts, getMonthKey, roundCents, currency, buildCategoryMap } from '../utils/formatters';
 
 export function useFinancialData() {
   const transactions = useAppStore(s => s.transactions);
@@ -81,8 +81,7 @@ export function useFinancialData() {
   }, [monthTx, beginningBalance, monthlyBalances, currentMonthKey]);
 
   const catBreakdown = useMemo(() => {
-    const map = {};
-    monthTx.filter(t => t.amount < 0 && t.category !== 'savings').forEach(t => { map[t.category] = (map[t.category] || 0) + Math.abs(t.amount); });
+    const map = buildCategoryMap(monthTx);
     return Object.entries(map).map(([id, total]) => ({ ...CATEGORIES.find(c => c.id === id), total, pct: stats.expenses > 0 ? (total / stats.expenses) * 100 : 0 })).sort((a, b) => b.total - a.total);
   }, [monthTx, stats.expenses]);
 

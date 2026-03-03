@@ -36,6 +36,26 @@ export const getDateParts = (dateStr) => {
 // month is 0-indexed (from Date.getMonth()), output is ISO YYYY-MM (1-indexed)
 export const getMonthKey = (month, year) => `${year}-${String(month + 1).padStart(2, '0')}`;
 
+/**
+ * Build a category → total spending map from transactions.
+ * Supports split transactions: if tx.splits exists, allocates by split categories.
+ */
+export const buildCategoryMap = (transactions) => {
+  const map = {};
+  transactions.filter(t => t.amount < 0 && t.category !== 'savings').forEach(t => {
+    if (t.splits?.length > 0) {
+      t.splits.forEach(s => {
+        if (s.category !== 'savings') {
+          map[s.category] = roundCents((map[s.category] || 0) + Math.abs(s.amount));
+        }
+      });
+    } else {
+      map[t.category] = roundCents((map[t.category] || 0) + Math.abs(t.amount));
+    }
+  });
+  return map;
+};
+
 export const escapeCSVField = (s) => {
   const str = String(s == null ? '' : s);
   const escaped = str.replace(/"/g, '""');

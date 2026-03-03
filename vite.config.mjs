@@ -15,12 +15,16 @@ export default defineConfig({
       manifest: {
         name: 'Balance Books Pro',
         short_name: 'BalanceBooks',
-        description: 'Personal finance management with privacy-first design.',
+        description: 'Personal finance management with privacy-first design. Track expenses, budgets, debts, and savings — all data stays on your device.',
         theme_color: '#1e3a5f',
         background_color: '#f8fafc',
         display: 'standalone',
+        orientation: 'any',
         start_url: './',
         scope: './',
+        categories: ['finance', 'productivity'],
+        lang: 'en',
+        dir: 'ltr',
         icons: [
           {
             src: 'icon.svg',
@@ -29,9 +33,22 @@ export default defineConfig({
             purpose: 'any maskable',
           },
         ],
+        shortcuts: [
+          {
+            name: 'Add Transaction',
+            short_name: 'Add',
+            url: './?action=add',
+            icons: [{ src: 'icon.svg', sizes: 'any' }],
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: false,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
@@ -39,6 +56,7 @@ export default defineConfig({
             options: {
               cacheName: 'google-fonts',
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
@@ -47,6 +65,7 @@ export default defineConfig({
             options: {
               cacheName: 'cdn-libs',
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],

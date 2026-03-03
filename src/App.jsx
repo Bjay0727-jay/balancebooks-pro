@@ -19,6 +19,7 @@ import AnalyticsConsentModal from './components/AnalyticsConsentModal';
 import { useRecurringAutoGen } from './hooks/useRecurringAutoGen';
 import { useLicenseManager } from './hooks/useLicenseManager';
 import { useAnalytics } from './hooks/useAnalytics';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import Dashboard from './views/Dashboard';
 import Transactions from './views/Transactions';
 import Recurring from './views/Recurring';
@@ -108,6 +109,9 @@ export default function App() {
   const { trackPageView } = useAnalytics();
   const analyticsConsent = useAppStore(s => s.analyticsConsent);
 
+  // Global keyboard shortcuts
+  useKeyboardShortcuts();
+
   // Hydrate from IndexedDB
   useEffect(() => { if (dbReady && dbData && !hydrated) hydrate(dbData); }, [dbReady, dbData, hydrated, hydrate]);
 
@@ -174,7 +178,7 @@ export default function App() {
       {isMobile && sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 border-r border-[#1e3a5f]/20 p-6 flex flex-col z-50 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside role="navigation" aria-label="Main navigation" className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 border-r border-[#1e3a5f]/20 p-6 flex flex-col z-50 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#0f172a] flex items-center justify-center shadow-lg overflow-hidden">
             <svg viewBox="0 0 100 100" className="w-8 h-8">
@@ -209,16 +213,16 @@ export default function App() {
         <header className="sticky top-0 z-30 bg-gradient-to-r from-[#0f172a]/5/95 via-white/95 to-[#14b8a6]/5/95 backdrop-blur-lg border-b border-[#1e3a5f]/20">
           <div className="flex items-center justify-between px-4 md:px-8 py-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6]"><Menu size={20} /></button>
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6]"><Menu size={20} /></button>
               <div><h2 className="font-bold text-slate-900 text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view}</h2><p className="text-sm text-[#14b8a6] font-medium">{FULL_MONTHS[month]} {year}</p></div>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 border-2 border-[#1e3a5f]/20 rounded-xl overflow-hidden shadow-sm">
-                <button onClick={() => { if (month === 0) { setMonth(11); setYear(year - 1); } else setMonth(month - 1); }} className="p-3 hover:bg-[#14b8a6]/10 text-[#14b8a6]"><ChevronLeft size={18} /></button>
+                <button onClick={() => { if (month === 0) { setMonth(11); setYear(year - 1); } else setMonth(month - 1); }} aria-label="Previous month" className="p-3 hover:bg-[#14b8a6]/10 text-[#14b8a6]"><ChevronLeft size={18} /></button>
                 <span className="px-4 font-semibold text-slate-700 min-w-[60px] text-center">{MONTHS[month]}</span>
-                <button onClick={() => { if (month === 11) { setMonth(0); setYear(year + 1); } else setMonth(month + 1); }} className="p-3 hover:bg-[#14b8a6]/10 text-[#14b8a6]"><ChevronRight size={18} /></button>
+                <button onClick={() => { if (month === 11) { setMonth(0); setYear(year + 1); } else setMonth(month + 1); }} aria-label="Next month" className="p-3 hover:bg-[#14b8a6]/10 text-[#14b8a6]"><ChevronRight size={18} /></button>
               </div>
-              {!isMobile && <button onClick={() => setModal('add')} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium hover:from-blue-700 hover:to-green-600 shadow-lg"><Plus size={18} />Add</button>}
+              {!isMobile && <button onClick={() => setModal('add')} aria-label="Add new transaction" className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium hover:from-blue-700 hover:to-green-600 shadow-lg"><Plus size={18} />Add</button>}
             </div>
           </div>
         </header>
@@ -381,6 +385,26 @@ export default function App() {
       {modal === 'license' && <LicenseModal onClose={() => setModal(null)} />}
       {modal === 'analytics-consent' && <AnalyticsConsentModal onClose={() => setModal(null)} />}
 
+      {modal === 'keyboard-shortcuts' && (
+        <Modal title="Keyboard Shortcuts" onClose={() => setModal(null)}>
+          <div className="space-y-3">
+            {[
+              ['N', 'New transaction'],
+              ['/', 'Search transactions'],
+              ['\u2190 \u2192', 'Previous / next month'],
+              ['1-5', 'Switch view (Dashboard, Transactions, Budget, Analytics, Recurring)'],
+              ['Esc', 'Close modal'],
+              ['?', 'Show this help'],
+            ].map(([key, desc]) => (
+              <div key={key} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                <span className="text-sm text-slate-700">{desc}</span>
+                <kbd className="px-2.5 py-1 bg-slate-100 border border-slate-300 rounded-lg text-xs font-mono font-semibold text-slate-600 shadow-sm">{key}</kbd>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
+
       {/* Onboarding Wizard */}
       {hydrated && !onboarded && <OnboardingWizard />}
 
@@ -390,7 +414,7 @@ export default function App() {
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0"><CheckCircle size={24} /></div>
             <div className="flex-1"><p className="font-bold text-lg">Import Successful!</p><p className="text-sm text-green-100 mt-1">{importNotification.count} transactions imported</p><div className="flex gap-4 mt-2 text-sm"><span className="text-green-200">+{currency(importNotification.income)} income</span><span className="text-red-200">-{currency(importNotification.expenses)} expenses</span></div></div>
-            <button onClick={() => setImportNotification(null)} className="text-white/70 hover:text-white p-1"><X size={18} /></button>
+            <button onClick={() => setImportNotification(null)} aria-label="Dismiss notification" className="text-white/70 hover:text-white p-1"><X size={18} /></button>
           </div>
         </div>
       )}
