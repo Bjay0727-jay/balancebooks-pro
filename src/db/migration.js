@@ -163,11 +163,12 @@ export const loadFromIndexedDB = async () => {
       balancesDB.getAll(),
       budgetDB.getAll(),
       debtsDB.getAll(),
-      settingsDB.getMultiple(['savingsGoal', 'autoBackup', 'lastBackup', 'notifications'], {
+      settingsDB.getMultiple(['savingsGoal', 'autoBackup', 'lastBackup', 'notifications', 'onboarded'], {
         savingsGoal: 500,
         autoBackup: false,
         lastBackup: null,
-        notifications: false
+        notifications: false,
+        onboarded: false
       })
     ]);
 
@@ -180,7 +181,8 @@ export const loadFromIndexedDB = async () => {
       savingsGoal: settings.savingsGoal,
       autoBackup: settings.autoBackup,
       lastBackup: settings.lastBackup,
-      notifications: settings.notifications
+      notifications: settings.notifications,
+      onboarded: settings.onboarded
     };
   } catch (error) {
     console.error('[IndexedDB] Load failed:', error);
