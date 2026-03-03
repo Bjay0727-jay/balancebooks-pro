@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import Modal from './Modal';
 import { useAppStore } from '../stores/useAppStore';
-import { Key, Mail, Check, AlertTriangle, Loader2, Crown, Unlock, ExternalLink } from 'lucide-react';
+import { Check, Crown, ExternalLink } from 'lucide-react';
 
 const PRO_FEATURES = [
   'Unlimited transactions',
@@ -17,23 +16,12 @@ export default function LicenseModal({ onClose }) {
   const licenseStatus = useAppStore(s => s.licenseStatus);
   const licenseEmail = useAppStore(s => s.licenseEmail);
   const licenseExpiry = useAppStore(s => s.licenseExpiry);
-  const licenseError = useAppStore(s => s.licenseError);
-  const licenseActivating = useAppStore(s => s.licenseActivating);
-  const activateLicense = useAppStore(s => s.activateLicense);
   const deactivateLicense = useAppStore(s => s.deactivateLicense);
-
-  const [inputKey, setInputKey] = useState('');
-  const [inputEmail, setInputEmail] = useState('');
 
   const isActive = licenseStatus === 'active';
 
-  const handleActivate = async () => {
-    if (!inputKey.trim() || !inputEmail.trim()) return;
-    await activateLicense(inputKey.trim(), inputEmail.trim());
-  };
-
   return (
-    <Modal title={isActive ? 'License Active' : 'Activate Premium'} onClose={onClose}>
+    <Modal title={isActive ? 'License Active' : 'Get Premium'} onClose={onClose}>
       <div className="space-y-4">
         {!isActive ? (
           <>
@@ -61,60 +49,9 @@ export default function LicenseModal({ onClose }) {
               <ExternalLink size={18} /> Purchase on Stripe
             </a>
 
-            <div className="relative flex items-center gap-3 text-sm text-slate-400">
-              <div className="flex-1 border-t border-slate-200" />
-              Already purchased? Enter your key below
-              <div className="flex-1 border-t border-slate-200" />
-            </div>
-
-            {/* Input fields */}
-            <div>
-              <label className="block text-sm text-slate-600 font-medium mb-1.5 flex items-center gap-1.5">
-                <Key size={14} /> License Key
-              </label>
-              <input
-                type="text"
-                placeholder="XXXX-XXXX-XXXX-XXXX"
-                value={inputKey}
-                onChange={e => setInputKey(e.target.value)}
-                disabled={licenseActivating}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00b4d8] focus:outline-none disabled:bg-slate-100 font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-slate-600 font-medium mb-1.5 flex items-center gap-1.5">
-                <Mail size={14} /> Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={inputEmail}
-                onChange={e => setInputEmail(e.target.value)}
-                disabled={licenseActivating}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00b4d8] focus:outline-none disabled:bg-slate-100"
-              />
-            </div>
-
-            {licenseError && (
-              <div className="bg-rose-50 rounded-xl p-3 border border-rose-200">
-                <p className="text-sm text-rose-600 flex items-center gap-2">
-                  <AlertTriangle size={14} /> {licenseError}
-                </p>
-              </div>
-            )}
-
-            <button
-              onClick={handleActivate}
-              disabled={licenseActivating || !inputKey.trim() || !inputEmail.trim()}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg disabled:opacity-50"
-            >
-              {licenseActivating ? (
-                <><Loader2 size={18} className="animate-spin" /> Activating...</>
-              ) : (
-                <><Unlock size={18} /> Activate License</>
-              )}
-            </button>
+            <p className="text-xs text-center text-slate-400">
+              After purchase you&apos;ll receive download links and instant access.
+            </p>
           </>
         ) : (
           <>
