@@ -16,7 +16,7 @@ export const useAppStore = create(
     savingsGoal: loadData('savingsGoal', 500),
     budgetGoals: loadData('budgetGoals', {}),
     debts: loadData('debts', []),
-    accounts: loadData('accounts', [{ id: 'primary', name: 'Primary Account', type: 'checking', icon: '🏦', color: '#1e3a5f', initialBalance: 0 }]),
+    accounts: loadData('accounts', [{ id: 'primary', name: 'Primary Account', type: 'checking', icon: '🏦', color: '#12233d', initialBalance: 0 }]),
 
     // ── Settings ─────────────────────────────────────────────
     autoBackupEnabled: loadData('autoBackup', false),

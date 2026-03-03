@@ -226,25 +226,25 @@ export default function Settings() {
 
   return (
     <div className="space-y-4 max-w-2xl">
-      <div className="bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5 rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
-        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Calculator size={18} className="text-[#14b8a6]" />Balance Settings</h3>
+      <div className="bg-gradient-to-r from-[#0a1628]/5 via-white to-[#00b4d8]/5 rounded-2xl border-2 border-[#12233d]/20 shadow-sm p-6">
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Calculator size={18} className="text-[#00b4d8]" />Balance Settings</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-slate-600 mb-2 font-medium">Beginning Balance ({FULL_MONTHS[month]} {year})</label>
-            <input type="number" value={stats.beginning} onChange={(e) => setBeginningBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
+            <input type="number" value={stats.beginning} onChange={(e) => setBeginningBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#12233d]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
           </div>
           <div>
             <label className="block text-sm text-slate-600 mb-2 font-medium">Ending Balance Override</label>
-            <input type="number" value={stats.ending} onChange={(e) => setEndingBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
+            <input type="number" value={stats.ending} onChange={(e) => setEndingBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#00b4d8]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
             <p className="text-xs text-slate-400 mt-1">Calculated: {currency(stats.calculatedEnding)}</p>
           </div>
         </div>
       </div>
-      <div className="bg-gradient-to-r from-[#14b8a6]/5 via-white to-blue-50 rounded-2xl border-2 border-[#14b8a6]/20 shadow-sm p-6">
-        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Target size={18} className="text-[#14b8a6]" />Savings Settings</h3>
+      <div className="bg-gradient-to-r from-[#00b4d8]/5 via-white to-blue-50 rounded-2xl border-2 border-[#00b4d8]/20 shadow-sm p-6">
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Target size={18} className="text-[#00b4d8]" />Savings Settings</h3>
         <div>
           <label className="block text-sm text-slate-600 mb-2 font-medium">Monthly Savings Goal</label>
-          <input type="number" value={savingsGoal} onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)} className="w-full px-4 py-3 bg-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
+          <input type="number" value={savingsGoal} onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)} className="w-full px-4 py-3 bg-white border-2 border-[#00b4d8]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
         </div>
       </div>
 
@@ -275,7 +275,7 @@ export default function Settings() {
             <p className="text-sm text-slate-600">
               Upgrade to Premium to unlock unlimited transactions, cloud sync, advanced analytics, and more.
             </p>
-            <button onClick={() => setModal('license')} className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-blue-700">
+            <button onClick={() => setModal('license')} className="w-full px-4 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg hover:from-[#0a1628] hover:to-[#0096b7]">
               Activate Premium License
             </button>
           </div>
@@ -314,23 +314,23 @@ export default function Settings() {
       </div>
 
       {/* Backup & Restore Section - User Friendly */}
-      <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border-2 border-[#12233d]/10 shadow-sm p-6">
         <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
-          <Save size={18} className="text-[#14b8a6]" />
+          <Save size={18} className="text-[#00b4d8]" />
           Save & Restore Your Data
         </h3>
         <p className="text-sm text-slate-500 mb-4">Keep your financial data safe by saving a backup file to your computer.</p>
 
         {/* Your Data Summary */}
-        <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-xl p-4 mb-4 border border-[#1e3a5f]/20">
+        <div className="bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 rounded-xl p-4 mb-4 border border-[#12233d]/20">
           <p className="text-sm font-medium text-slate-700 mb-2">Your Data Summary</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="text-center">
-              <p className="text-xl font-bold text-[#14b8a6]">{transactions.length}</p>
+              <p className="text-xl font-bold text-[#00b4d8]">{transactions.length}</p>
               <p className="text-xs text-slate-500">Transactions</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold text-[#14b8a6]">{recurringExpenses.length}</p>
+              <p className="text-xl font-bold text-[#00b4d8]">{recurringExpenses.length}</p>
               <p className="text-xs text-slate-500">Recurring Bills</p>
             </div>
             <div className="text-center">
@@ -346,9 +346,9 @@ export default function Settings() {
 
         {/* Save Backup - Big Friendly Button */}
         <div className="space-y-4">
-          <div className="bg-gradient-to-r from-[#14b8a6]/5 to-emerald-50 rounded-xl p-5 border-2 border-[#14b8a6]/20">
+          <div className="bg-gradient-to-r from-[#00b4d8]/5 to-emerald-50 rounded-xl p-5 border-2 border-[#00b4d8]/20">
             <div className="flex items-start gap-4">
-              <div className="p-3 rounded-xl bg-[#14b8a6]/50 text-white">
+              <div className="p-3 rounded-xl bg-[#00b4d8]/50 text-white">
                 <Download size={24} />
               </div>
               <div className="flex-1">
@@ -394,7 +394,7 @@ export default function Settings() {
                   Save Backup to Computer
                 </button>
                 {lastBackupDate && (
-                  <p className="text-xs text-[#14b8a6] mt-2 text-center">
+                  <p className="text-xs text-[#00b4d8] mt-2 text-center">
                     Last backup: {new Date(lastBackupDate).toLocaleDateString()} at {new Date(lastBackupDate).toLocaleTimeString()}
                   </p>
                 )}
@@ -403,7 +403,7 @@ export default function Settings() {
           </div>
 
           {/* Restore Backup - Visual & Friendly */}
-          <div className="bg-gradient-to-r from-[#0f172a]/5 to-indigo-50 rounded-xl p-5 border-2 border-[#1e3a5f]/20">
+          <div className="bg-gradient-to-r from-[#0a1628]/5 to-indigo-50 rounded-xl p-5 border-2 border-[#12233d]/20">
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-xl bg-blue-500 text-white">
                 <Upload size={24} />
@@ -413,7 +413,7 @@ export default function Settings() {
                 <p className="text-sm text-blue-700 mb-3">Got a new computer or lost your data? Select a backup file to restore everything.</p>
                 <button
                   onClick={() => setModal('restore-wizard')}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-[#00b4d8] to-[#0096b7] text-white rounded-xl font-semibold shadow-lg hover:from-[#0096b7] hover:to-[#007a96] transition-all"
                 >
                   <Upload size={18} />
                   Restore from Backup File
@@ -527,7 +527,7 @@ export default function Settings() {
                 <p className="text-sm text-slate-600">Connect to Dropbox to automatically backup your data to the cloud.</p>
                 <button
                   onClick={connectDropbox}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all"
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#00b4d8] to-[#0096b7] text-white rounded-xl font-semibold shadow-lg hover:from-[#0096b7] hover:to-[#007a96] transition-all"
                 >
                   <Cloud size={18} />
                   Connect Dropbox
@@ -556,7 +556,7 @@ export default function Settings() {
                   <button
                     onClick={() => syncToDropbox()}
                     disabled={dropboxSyncing}
-                    className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all"
+                    className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-[#00b4d8] to-[#0096b7] text-white rounded-lg font-medium shadow hover:from-[#0096b7] hover:to-[#007a96] disabled:opacity-50 transition-all"
                   >
                     {dropboxSyncing ? (
                       <><Loader2 size={14} className="animate-spin" /> Syncing...</>
@@ -715,10 +715,10 @@ export default function Settings() {
       </div>
 
       {/* About */}
-      <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border-2 border-[#12233d]/10 shadow-sm p-6">
         <h3 className="font-semibold text-slate-900 mb-4">About</h3>
-        <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Version:</span> {__APP_VERSION__}</p>
-        <p className="text-sm text-slate-600"><span className="font-medium text-[#14b8a6]">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
+        <p className="text-sm text-slate-600"><span className="font-medium text-[#00b4d8]">Version:</span> {__APP_VERSION__}</p>
+        <p className="text-sm text-slate-600"><span className="font-medium text-[#00b4d8]">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
         <p className="text-sm text-slate-600"><span className="font-medium text-purple-600">Storage:</span> Local (your data stays on your device)</p>
       </div>
     </div>

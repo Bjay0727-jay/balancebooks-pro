@@ -60,7 +60,7 @@ export default function LicenseModal({ onClose }) {
                 value={inputKey}
                 onChange={e => setInputKey(e.target.value)}
                 disabled={licenseActivating}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6] focus:outline-none disabled:bg-slate-100 font-mono"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00b4d8] focus:outline-none disabled:bg-slate-100 font-mono"
               />
             </div>
 
@@ -74,7 +74,7 @@ export default function LicenseModal({ onClose }) {
                 value={inputEmail}
                 onChange={e => setInputEmail(e.target.value)}
                 disabled={licenseActivating}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#14b8a6] focus:outline-none disabled:bg-slate-100"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#00b4d8] focus:outline-none disabled:bg-slate-100"
               />
             </div>
 
@@ -89,7 +89,7 @@ export default function LicenseModal({ onClose }) {
             <button
               onClick={handleActivate}
               disabled={licenseActivating || !inputKey.trim() || !inputEmail.trim()}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold shadow-lg disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg disabled:opacity-50"
             >
               {licenseActivating ? (
                 <><Loader2 size={18} className="animate-spin" /> Activating...</>

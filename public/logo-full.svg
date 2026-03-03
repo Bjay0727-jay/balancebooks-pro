@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 100" width="420" height="100">
+  <defs>
+    <linearGradient id="logoGrad" x1="0" y1="5" x2="90" y2="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00b4d8"/>
+      <stop offset="100%" stop-color="#0096b7"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(5, 5)">
+    <rect width="90" height="90" rx="22" fill="url(#logoGrad)"/>
+    <path d="M22 45h46M45 22v46M28 33.5h34M28 56.5h34" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+  <text x="112" y="52" font-family="'DM Sans', system-ui, -apple-system, sans-serif" font-size="34" font-weight="700" fill="#0a1628" letter-spacing="-0.5">BalanceBooks</text>
+  <text x="112" y="76" font-family="'DM Sans', system-ui, sans-serif" font-size="13" fill="#64748b" letter-spacing="1.5" font-weight="500">PRIVACY-FIRST FINANCIAL SOFTWARE</text>
+</svg>

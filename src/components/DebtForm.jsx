@@ -26,7 +26,7 @@ export default function DebtForm({ debt, onSubmit, onCancel }) {
       </div>
       <div>
         <label className="block text-sm text-slate-600 font-medium mb-2">Debt Type</label>
-        <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">
+        <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#12233d]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8]">
           <option value="credit-card">Credit Card</option>
           <option value="car-loan">Car Loan</option>
           <option value="student-loan">Student Loan</option>
@@ -47,7 +47,7 @@ export default function DebtForm({ debt, onSubmit, onCancel }) {
         </div>
         <div>
           <label className="block text-sm text-slate-600 font-medium mb-2">Min Payment</label>
-          <input type="number" step="0.01" min="0" value={form.minPayment} onChange={(e) => setForm({ ...form, minPayment: e.target.value })} placeholder="50.00" className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required />
+          <input type="number" step="0.01" min="0" value={form.minPayment} onChange={(e) => setForm({ ...form, minPayment: e.target.value })} placeholder="50.00" className="w-full px-4 py-3 bg-white border-2 border-[#12233d]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8]" required />
         </div>
       </div>
       <div className="flex gap-3 pt-4">

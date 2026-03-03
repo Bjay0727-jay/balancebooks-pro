@@ -5,7 +5,7 @@ import { FULL_MONTHS } from '../utils/constants';
 import { currency } from '../utils/formatters';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const COLORS = ['#14b8a6', '#1e3a5f', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#ec4899'];
+const COLORS = ['#00b4d8', '#12233d', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#ec4899'];
 
 const CurrencyTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -46,20 +46,20 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
+      <div className="bg-gradient-to-r from-[#12233d] to-[#00b4d8] rounded-2xl p-6 text-white shadow-xl">
         <div className="flex items-center gap-3 mb-2"><BarChart3 size={24} /><h3 className="font-bold text-lg">Financial Analytics</h3></div>
         <p className="text-purple-100">Visualize your spending patterns and trends</p>
       </div>
 
       {/* Income vs Expenses Area Chart */}
-      <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
-        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-[#14b8a6]" />6-Month Income vs. Expenses</h3>
+      <div className="bg-white rounded-2xl border-2 border-[#12233d]/20 shadow-sm p-6">
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-[#00b4d8]" />6-Month Income vs. Expenses</h3>
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
             <defs>
               <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+                <stop offset="5%" stopColor="#00b4d8" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#00b4d8" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
@@ -71,14 +71,14 @@ export default function Analytics() {
             <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={v => `$${(v / 1000).toFixed(v >= 1000 ? 1 : 0)}${v >= 1000 ? 'k' : ''}`} />
             <Tooltip content={<CurrencyTooltip />} />
             <Legend wrapperStyle={{ fontSize: 13 }} />
-            <Area type="monotone" dataKey="Income" stroke="#14b8a6" fill="url(#incomeGrad)" strokeWidth={2} />
+            <Area type="monotone" dataKey="Income" stroke="#00b4d8" fill="url(#incomeGrad)" strokeWidth={2} />
             <Area type="monotone" dataKey="Expenses" stroke="#ef4444" fill="url(#expenseGrad)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
       {/* Monthly Net Bar Chart */}
-      <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border-2 border-[#12233d]/20 shadow-sm p-6">
         <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><BarChart3 size={18} className="text-blue-600" />Monthly Net Cash Flow</h3>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={trendData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
@@ -88,7 +88,7 @@ export default function Analytics() {
             <Tooltip content={<CurrencyTooltip />} />
             <Bar dataKey="Net" radius={[4, 4, 0, 0]}>
               {trendData.map((entry, i) => (
-                <Cell key={i} fill={entry.Net >= 0 ? '#14b8a6' : '#ef4444'} />
+                <Cell key={i} fill={entry.Net >= 0 ? '#00b4d8' : '#ef4444'} />
               ))}
             </Bar>
           </BarChart>
@@ -97,7 +97,7 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Category Pie Chart */}
-        <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border-2 border-[#12233d]/20 shadow-sm p-6">
           <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><PieChartIcon size={18} className="text-purple-600" />Spending by Category</h3>
           {pieData.length === 0 ? (
             <div className="text-center py-8 text-slate-500"><PieChartIcon size={48} className="mx-auto mb-3 text-slate-300" /><p>No spending data</p></div>
@@ -124,21 +124,21 @@ export default function Analytics() {
         </div>
 
         {/* Net Worth Trend */}
-        <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border-2 border-[#12233d]/20 shadow-sm p-6">
           <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-emerald-600" />Balance Trend (12 months)</h3>
           <ResponsiveContainer width="100%" height={250}>
             <AreaChart data={netWorthData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
               <defs>
                 <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1e3a5f" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#1e3a5f" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#12233d" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#12233d" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} />
               <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={v => `$${(v / 1000).toFixed(1)}k`} />
               <Tooltip content={<CurrencyTooltip />} />
-              <Area type="monotone" dataKey="Balance" stroke="#1e3a5f" fill="url(#balGrad)" strokeWidth={2} />
+              <Area type="monotone" dataKey="Balance" stroke="#12233d" fill="url(#balGrad)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -146,16 +146,16 @@ export default function Analytics() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-[#14b8a6]/5 to-[#14b8a6]/10 rounded-xl p-4 border border-[#14b8a6]/20">
-          <p className="text-[#14b8a6] text-sm font-medium">Avg Monthly Income</p>
+        <div className="bg-gradient-to-br from-[#00b4d8]/5 to-[#00b4d8]/10 rounded-xl p-4 border border-[#00b4d8]/20">
+          <p className="text-[#00b4d8] text-sm font-medium">Avg Monthly Income</p>
           <p className="text-xl font-bold text-green-700">{currency(spendingTrends.reduce((s, t) => s + t.income, 0) / 6)}</p>
         </div>
         <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl p-4 border border-rose-200">
           <p className="text-rose-600 text-sm font-medium">Avg Monthly Expenses</p>
           <p className="text-xl font-bold text-rose-700">{currency(spendingTrends.reduce((s, t) => s + t.expenses, 0) / 6)}</p>
         </div>
-        <div className="bg-gradient-to-br from-[#0f172a]/5 to-blue-100 rounded-xl p-4 border border-[#1e3a5f]/20">
-          <p className="text-[#14b8a6] text-sm font-medium">Avg Savings</p>
+        <div className="bg-gradient-to-br from-[#0a1628]/5 to-blue-100 rounded-xl p-4 border border-[#12233d]/20">
+          <p className="text-[#00b4d8] text-sm font-medium">Avg Savings</p>
           <p className="text-xl font-bold text-blue-700">{currency(spendingTrends.reduce((s, t) => s + t.net, 0) / 6)}</p>
         </div>
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
