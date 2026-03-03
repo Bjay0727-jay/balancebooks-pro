@@ -11,7 +11,7 @@ const PRO_FEATURES = [
   'Priority support',
 ];
 
-const STRIPE_CHECKOUT_URL = import.meta.env.VITE_STRIPE_CHECKOUT_URL || 'https://buy.stripe.com/balancebooks-pro';
+const STRIPE_CHECKOUT_URL = import.meta.env.VITE_STRIPE_CHECKOUT_URL || 'https://www.balancebooksapp.com/checkout.html?product=pro';
 
 export default function LicenseModal({ onClose }) {
   const licenseStatus = useAppStore(s => s.licenseStatus);
