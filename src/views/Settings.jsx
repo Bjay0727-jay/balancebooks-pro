@@ -286,7 +286,7 @@ export default function Settings() {
               Upgrade to Premium to unlock unlimited transactions, cloud sync, advanced analytics, and more.
             </p>
             <button onClick={() => setModal('license')} className="w-full px-4 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg hover:from-[#0a1628] hover:to-[#0096b7]">
-              Activate Premium License
+              Get Premium
             </button>
           </div>
         )}

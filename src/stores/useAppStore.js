@@ -104,14 +104,16 @@ export const useAppStore = create(
     activateLicense: async (key, email) => {
       set({ licenseActivating: true, licenseError: null });
       try {
-        const res = await fetch('https://api.lemonsqueezy.com/v1/licenses/activate', {
+        // Verify license key via your Stripe-backed verification endpoint
+        const verifyUrl = import.meta.env.VITE_LICENSE_VERIFY_URL || 'https://api.balancebooksapp.com/license/verify';
+        const res = await fetch(verifyUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ license_key: key, instance_name: 'BalanceBooks Pro' }),
+          body: JSON.stringify({ license_key: key, email }),
         });
         const data = await res.json();
-        if (data.activated || data.valid) {
-          set({ licenseKey: key, licenseEmail: email, licenseStatus: 'active', licenseExpiry: data.license_key?.expires_at || null });
+        if (data.valid || data.active) {
+          set({ licenseKey: key, licenseEmail: email, licenseStatus: 'active', licenseExpiry: data.expires_at || null });
           return { success: true };
         }
         const msg = data.error || data.message || 'Invalid license key';

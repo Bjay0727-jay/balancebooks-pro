@@ -200,11 +200,11 @@ src/
 - Add: income vs. expense area chart, category heatmap, net worth trend line
 - Hover tooltips and click-to-filter interactivity
 
-#### 3.6 LemonSqueezy License Activation
+#### 3.6 Stripe License Activation
 
 - Free tier: core tracking (100 tx/month), basic budgets, CSV export
 - Pro tier: unlimited transactions, Dropbox sync, debt planner, analytics, priority support
-- License key validation via LemonSqueezy API on app launch
+- License key validation via Stripe API on app launch
 - Grace period: 7-day trial of Pro features for new users
 - Store license status in IndexedDB settings
 
@@ -223,7 +223,7 @@ src/
 - [ ] Onboarding wizard on first launch
 - [ ] Advanced search with amount range + date range
 - [ ] Interactive charts with tooltips
-- [ ] LemonSqueezy license gate working
+- [ ] Stripe license gate working
 - [ ] Analytics opt-in toggle in Settings
 
 ---
@@ -289,7 +289,7 @@ Q2 2026 (Weeks 1-8)
 Q3 2026 (Weeks 9-14)
 ├── Week 9-10:  Recurring auto-gen + onboarding wizard
 ├── Week 11-12: Multi-account + search enhancements
-└── Week 13-14: Recharts + LemonSqueezy licensing
+└── Week 13-14: Recharts + Stripe licensing
 
 Q4 2026
 └── Analytics, polish, trucking product foundation
