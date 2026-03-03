@@ -199,6 +199,35 @@ jobs:
       - name: List artifacts
         run: find . -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" \)
 
+      - name: Delete existing release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name || format('v{0}', github.event.inputs.version) }}"
+          echo "Looking for existing release with tag: $TAG"
+
+          # Get the release ID for this tag
+          RELEASE_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG" \
+            | jq -r '.id // empty')
+
+          if [ -n "$RELEASE_ID" ] && [ "$RELEASE_ID" != "null" ]; then
+            echo "Found release ID: $RELEASE_ID — deleting existing assets..."
+            # List all assets on this release
+            ASSETS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" \
+              | jq -r '.[].id')
+
+            for ASSET_ID in $ASSETS; do
+              echo "Deleting asset $ASSET_ID..."
+              curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+                "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID"
+            done
+            echo "All existing assets deleted."
+          else
+            echo "No existing release found for tag $TAG — nothing to clean up."
+          fi
+
       - uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
         with:
           tag_name: ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
