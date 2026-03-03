@@ -36,6 +36,11 @@ export const useAppStore = create(
     // ── Analytics ────────────────────────────────────────────
     analyticsConsent: loadData('analyticsConsent', 'not-asked'), // 'not-asked' | 'opted-in' | 'opted-out'
 
+    // ── AI Configuration ───────────────────────────────────────
+    aiApiKey: loadData('aiApiKey', null),
+    aiEnabled: loadData('aiEnabled', false),
+    aiModel: loadData('aiModel', 'gpt-4o-mini'),
+
     // ── Dropbox ──────────────────────────────────────────────
     dropboxConnected: loadData('dropboxConnected', false),
     dropboxToken: loadData('dropboxToken', null),
@@ -127,6 +132,11 @@ export const useAppStore = create(
 
     // ── Setters (analytics) ─────────────────────────────────
     setAnalyticsConsent: (val) => set({ analyticsConsent: val }),
+
+    // ── Setters (AI) ──────────────────────────────────────────
+    setAiApiKey: (key) => set({ aiApiKey: key }),
+    setAiEnabled: (val) => set({ aiEnabled: val }),
+    setAiModel: (model) => set({ aiModel: model }),
 
     // ── Setters (dropbox) ────────────────────────────────────
     setDropboxConnected: (val) => set({ dropboxConnected: val }),
@@ -289,6 +299,9 @@ persistLS(s => s.licenseExpiry,    'licenseExpiry');
 persistLS(s => s.analyticsConsent, 'analyticsConsent');
 persistLS(s => s.accounts,        'accounts');
 persistLS(s => s.dashboardWidget,  'dashboardWidget');
+persistLS(s => s.aiApiKey,         'aiApiKey');
+persistLS(s => s.aiEnabled,        'aiEnabled');
+persistLS(s => s.aiModel,          'aiModel');
 persistLS(s => s.dropboxConnected, 'dropboxConnected');
 persistLS(s => s.dropboxToken,     'dropboxToken');
 persistLS(s => s.dropboxLastSync,  'dropboxLastSync');
