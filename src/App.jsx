@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { Download, PiggyBank, Calendar, Plus, X, Target, ChevronLeft, ChevronRight, Building2, Settings, LayoutGrid, Receipt, Link2, Loader2, Menu, RefreshCw, Upload, Lightbulb, AlertTriangle, CheckCircle, CreditCard, PieChart, FileSpreadsheet, Check, Clock } from 'lucide-react';
+import { Download, PiggyBank, Calendar, Plus, X, Target, ChevronLeft, ChevronRight, Building2, Settings, LayoutGrid, Receipt, Link2, Loader2, Menu, RefreshCw, Upload, Lightbulb, AlertTriangle, CheckCircle, CreditCard, PieChart, FileSpreadsheet, Check, Clock, ArrowRightLeft } from 'lucide-react';
 import { CATEGORIES, MONTHS, FULL_MONTHS } from './utils/constants';
 import { uid, currency } from './utils/formatters';
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -31,6 +31,7 @@ import Budget from './views/Budget';
 import Analytics from './views/Analytics';
 import Debts from './views/Debts';
 import SettingsView from './views/Settings';
+import Converter from './views/Converter';
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 
@@ -199,6 +200,7 @@ export default function App() {
           <NavItem id="cycle" icon={Calendar} label="12-Month Cycle" />
           <NavItem id="savings" icon={PiggyBank} label="Savings" />
           <NavItem id="recommendations" icon={Lightbulb} label="Smart Tips" badge={savingsRecommendations.filter(r => r.priority === 'high').length || null} />
+          <NavItem id="converter" icon={ArrowRightLeft} label="Converter" />
           <NavItem id="settings" icon={Settings} label="Settings" />
         </nav>
         <div className="pt-6 border-t border-[#12233d]/20 space-y-2">
@@ -214,7 +216,7 @@ export default function App() {
           <div className="flex items-center justify-between px-4 md:px-8 py-4">
             <div className="flex items-center gap-4">
               <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'} className="p-2 rounded-lg hover:bg-[#00b4d8]/10 text-[#00b4d8]"><Menu size={20} /></button>
-              <div><h2 className="font-bold text-slate-900 text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view}</h2><p className="text-sm text-[#00b4d8] font-medium">{FULL_MONTHS[month]} {year}</p></div>
+              <div><h2 className="font-bold text-slate-900 text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view === 'converter' ? 'Spreadsheet Converter' : view}</h2><p className="text-sm text-[#00b4d8] font-medium">{FULL_MONTHS[month]} {year}</p></div>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 border-2 border-[#12233d]/20 rounded-xl overflow-hidden shadow-sm">
@@ -238,6 +240,7 @@ export default function App() {
           {view === 'budget' && <Budget />}
           {view === 'analytics' && <Analytics />}
           {view === 'debts' && <Debts />}
+          {view === 'converter' && <Converter />}
           {view === 'settings' && <SettingsView />}
         </div>
       </main>
