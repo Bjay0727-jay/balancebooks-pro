@@ -85,6 +85,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           recharts: ['recharts'],
+          xlsx: ['xlsx'],
         },
       },
     },

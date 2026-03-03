@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import { FileSpreadsheet, Upload, Download, ArrowRight, AlertTriangle, CheckCircle, X, RefreshCw, Eye, ArrowRightLeft, ChevronDown, Trash2, Import } from 'lucide-react';
 import { CATEGORIES } from '../utils/constants';
 import { uid, currency, roundCents, escapeCSVField } from '../utils/formatters';
@@ -218,8 +219,6 @@ export default function Converter() {
         setColumnRoles(autoDetectColumns(rows[0]));
         setStep('map');
       } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
-        const XLSX = window.XLSX;
-        if (!XLSX) { alert('Excel library not loaded. Please save as CSV and try again.'); e.target.value = ''; return; }
         const data = new Uint8Array(await file.arrayBuffer());
         const wb = XLSX.read(data, { type: 'array', cellDates: true, raw: false, dateNF: 'yyyy-mm-dd' });
         const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -369,6 +368,28 @@ export default function Converter() {
     a.download = `${baseName}-balancebooks.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
+  }, [converted, filename]);
+
+  // ── Export as XLS ────────────────────────────────────────────────────────
+  const exportXLS = useCallback(() => {
+    const wsData = [['Date', 'Description', 'Amount', 'Category', 'Type', 'Paid']];
+    converted.forEach(tx => {
+      const cat = CATEGORIES.find(c => c.id === tx.category);
+      wsData.push([
+        tx.date,
+        tx.desc,
+        tx.amount,
+        cat ? cat.name : tx.category,
+        tx.amount >= 0 ? 'Income' : 'Expense',
+        tx.paid ? 'Yes' : 'No',
+      ]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 8 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    const baseName = filename.replace(/\.[^.]+$/, '');
+    XLSX.writeFile(wb, `${baseName}-balancebooks.xlsx`);
   }, [converted, filename]);
 
   // ── Import directly into BalanceBooks ────────────────────────────────────
@@ -786,7 +807,13 @@ export default function Converter() {
               onClick={exportCSV}
               className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#00b4d8] text-[#00b4d8] rounded-xl font-semibold hover:bg-[#00b4d8]/5"
             >
-              <Download size={18} /> Download BalanceBooks CSV
+              <Download size={18} /> Download CSV
+            </button>
+            <button
+              onClick={exportXLS}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-emerald-500 text-emerald-600 rounded-xl font-semibold hover:bg-emerald-50"
+            >
+              <FileSpreadsheet size={18} /> Download XLS
             </button>
             <button
               onClick={importDirectly}
