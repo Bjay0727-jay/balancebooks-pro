@@ -1,0 +1,96 @@
+name: Create Release v2.1.0
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+
+permissions:
+  contents: write
+
+jobs:
+  create-tag-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if tag exists
+        id: check
+        run: |
+          if git rev-parse v2.1.0 >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create v2.1.0 tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a v2.1.0 -m "v2.1.0 - Redesigned UI, split transactions, keyboard shortcuts, PWA hardening"
+          git push origin v2.1.0
+
+      - name: Update existing release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the existing release ID
+          RELEASE_ID=$(gh api /repos/${{ github.repository }}/releases --jq '.[0].id')
+
+          if [ -n "$RELEASE_ID" ]; then
+            gh api --method PATCH \
+              /repos/${{ github.repository }}/releases/$RELEASE_ID \
+              -f name="BalanceBooks Pro v2.1.0" \
+              -f body="$(cat <<'BODY'
+          ## 📥 Downloads
+
+          | Platform | File | Notes |
+          |----------|------|-------|
+          | **Windows** | \`.exe\` installer | Standard Windows installer |
+          | **Mac (Intel)** | \`.dmg\` | For Intel-based Macs |
+          | **Mac (Apple Silicon)** | \`-arm64.dmg\` | For M1/M2/M3/M4 Macs |
+          | **Linux** | \`.AppImage\` | Universal Linux package |
+
+          ## 🌐 Web App
+          Use instantly at: https://app.balancebooksapp.com
+
+          ## What's New in v2.1.0
+
+          ### 🎨 Redesigned Brand & UI
+          - New color scheme matching the BalanceBooks landing page (teal \`#00b4d8\` / navy \`#12233d\`)
+          - New rounded-rect ledger logo replacing the shield icon
+          - DM Sans font replacing Inter across the entire app
+          - Updated PWA manifest, theme colors, and install banner
+          - New download page with platform-specific release packages
+
+          ### ✂️ Split Transactions
+          - Split a single transaction across multiple category allocations
+          - Visual split badge on transactions with category breakdowns
+          - Budget engine updated for accurate split-aware category tracking
+
+          ### ⌨️ Keyboard Shortcuts & Accessibility
+          - Press **N** for new transaction, **/** for search, arrow keys for month navigation
+          - Press **1-5** to switch views, **?** for shortcut help overlay
+          - ARIA labels on all interactive elements for screen reader support
+
+          ### 📡 Offline-First PWA Hardening
+          - Enhanced service worker with navigate fallback and client claims
+          - Outdated cache cleanup for reliable offline behavior
+          - Improved Workbox caching strategies for fonts and CDN resources
+
+          ### 🔑 License & Analytics Infrastructure
+          - LemonSqueezy license activation/deactivation flow
+          - Privacy-respecting analytics opt-in with sendBeacon
+          - Pro feature gating (Dropbox sync, debt planner, analytics, unlimited transactions)
+          BODY
+          )"
+            echo "✓ Release updated to v2.1.0"
+          else
+            echo "No existing release found, creating new one..."
+            gh release create v2.1.0 \
+              --title "BalanceBooks Pro v2.1.0" \
+              --notes "Release v2.1.0 - see workflow for details"
+          fi
