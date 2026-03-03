@@ -103,5 +103,6 @@ jobs:
           echo "Triggering Build Desktop Installers workflow for v2.1.0..."
           gh workflow run build-installers.yml \
             --repo ${{ github.repository }} \
+            --ref ${{ github.ref }} \
             --field version=2.1.0
           echo "✓ Build workflow triggered"
