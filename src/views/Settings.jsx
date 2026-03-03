@@ -4,14 +4,17 @@ import { useFinancialData } from '../hooks/useFinancialData';
 import {
   Download, Upload, Trash2, Target, Calculator, Save, FileSpreadsheet,
   Cloud, HardDrive, Bell, AlertTriangle, Check, Loader2, Unlink, Mail,
-  Crown, BarChart3, Sparkles, Eye, EyeOff, Zap
+  Crown, BarChart3, Sparkles, Eye, EyeOff, Zap, RefreshCw
 } from 'lucide-react';
+import { useUpdateChecker } from '../hooks/useUpdateChecker';
 import { FULL_MONTHS, CATEGORIES } from '../utils/constants';
 import { currency } from '../utils/formatters';
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 
 export default function Settings() {
+  const { updateInfo, checkForUpdate } = useUpdateChecker(__APP_VERSION__);
+  const [checking, setChecking] = React.useState(false);
   const transactions = useAppStore(s => s.transactions);
   const recurringExpenses = useAppStore(s => s.recurringExpenses);
   const monthlyBalances = useAppStore(s => s.monthlyBalances);
@@ -835,9 +838,38 @@ export default function Settings() {
       {/* About */}
       <div className="bg-white rounded-2xl border-2 border-[#12233d]/10 shadow-sm p-6">
         <h3 className="font-semibold text-slate-900 mb-4">About</h3>
-        <p className="text-sm text-slate-600"><span className="font-medium text-[#00b4d8]">Version:</span> {__APP_VERSION__}</p>
-        <p className="text-sm text-slate-600"><span className="font-medium text-[#00b4d8]">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
-        <p className="text-sm text-slate-600"><span className="font-medium text-purple-600">Storage:</span> Local (your data stays on your device)</p>
+        <div className="space-y-2">
+          <p className="text-sm text-slate-600"><span className="font-medium text-[#00b4d8]">Version:</span> {__APP_VERSION__}</p>
+          <p className="text-sm text-slate-600"><span className="font-medium text-[#00b4d8]">Platform:</span> {isElectron ? 'Desktop' : 'Web'}</p>
+          <p className="text-sm text-slate-600"><span className="font-medium text-purple-600">Storage:</span> Local (your data stays on your device)</p>
+        </div>
+        {updateInfo ? (
+          <div className="mt-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-emerald-800 flex items-center gap-2">
+                  <Download size={16} /> Version {updateInfo.version} available
+                </p>
+                {updateInfo.releaseNotes && <p className="text-sm text-emerald-700 mt-1">{updateInfo.releaseNotes}</p>}
+              </div>
+              <a href={updateInfo.downloadUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 shrink-0">
+                Download
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              onClick={async () => { setChecking(true); await checkForUpdate(); setChecking(false); }}
+              disabled={checking}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={checking ? 'animate-spin' : ''} />
+              {checking ? 'Checking...' : 'Check for Updates'}
+            </button>
+            <span className="text-xs text-green-600 flex items-center gap-1"><Check size={12} /> Up to date</span>
+          </div>
+        )}
       </div>
     </div>
   );
