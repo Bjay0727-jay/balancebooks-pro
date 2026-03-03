@@ -1,4 +1,5 @@
 const { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } = require('electron');
+const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,6 +13,7 @@ if (!gotTheLock) {
 // Keep a global reference of the window object
 let mainWindow = null;
 let isQuitting = false;
+let pythonServer = null;
 
 // Determine if we're in development or production
 const isDev = !app.isPackaged;
@@ -19,6 +21,36 @@ const isDev = !app.isPackaged;
 // User data path for storing app data
 const userDataPath = app.getPath('userData');
 const dataFilePath = path.join(userDataPath, 'balance-books-data.json');
+
+// ── AI Python Server Lifecycle ────────────────────────────
+function startAIServer() {
+  const scriptPath = path.join(__dirname, '../tools/ai_converter.py');
+  if (!fs.existsSync(scriptPath)) return;
+
+  // Try python3 first, then python
+  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+  pythonServer = spawn(pythonCmd, [scriptPath, 'serve', '--port', '5555'], {
+    stdio: 'pipe',
+    env: { ...process.env },
+  });
+
+  pythonServer.on('error', (err) => {
+    console.log('AI server failed to start:', err.message);
+    pythonServer = null;
+  });
+
+  pythonServer.on('exit', (code) => {
+    if (!isQuitting) console.log('AI server exited with code', code);
+    pythonServer = null;
+  });
+}
+
+function stopAIServer() {
+  if (pythonServer) {
+    pythonServer.kill();
+    pythonServer = null;
+  }
+}
 
 function createWindow() {
   // Create the browser window
@@ -46,7 +78,7 @@ function createWindow() {
         responseHeaders: {
           ...details.responseHeaders,
           'Content-Security-Policy': [
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://content.dropboxapi.com https://api.dropboxapi.com; img-src 'self' data: blob:;"
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' http://localhost:5555 https://content.dropboxapi.com https://api.dropboxapi.com; img-src 'self' data: blob:;"
           ]
         }
       });
@@ -337,6 +369,7 @@ ipcMain.handle('import-csv', async () => {
 app.whenReady().then(() => {
   createWindow();
   createMenu();
+  startAIServer();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -369,8 +402,9 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Cleanup on quit - let Electron handle process termination naturally
+// Cleanup on quit - stop AI server and let Electron handle process termination
 app.on('quit', () => {
+  stopAIServer();
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.destroy();
     mainWindow = null;

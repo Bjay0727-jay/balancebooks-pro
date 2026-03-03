@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Platform info
   platform: process.platform,
   isElectron: true,
+
+  // AI server URL (Python companion)
+  aiServerUrl: 'http://localhost:5555',
 });
 
 // Expose app version

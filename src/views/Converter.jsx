@@ -1,9 +1,11 @@
 import { useState, useRef, useMemo, useCallback } from 'react';
 import * as XLSX from 'xlsx';
-import { FileSpreadsheet, Upload, Download, ArrowRight, AlertTriangle, CheckCircle, X, RefreshCw, Eye, ArrowRightLeft, ChevronDown, Trash2, Import } from 'lucide-react';
+import { FileSpreadsheet, Upload, Download, ArrowRight, AlertTriangle, CheckCircle, X, RefreshCw, Eye, ArrowRightLeft, ChevronDown, Trash2, Import, Sparkles, Loader2 } from 'lucide-react';
 import { CATEGORIES } from '../utils/constants';
 import { uid, currency, roundCents, escapeCSVField } from '../utils/formatters';
 import { useAppStore } from '../stores/useAppStore';
+
+const AI_SERVER = 'http://localhost:5555';
 
 // ── Date parsing (same robust logic as useImportExport) ────────────────────
 const parseDate = (dateValue) => {
@@ -181,6 +183,9 @@ export default function Converter() {
   const setMonth = useAppStore(s => s.setMonth);
   const setYear = useAppStore(s => s.setYear);
   const setImportNotification = useAppStore(s => s.setImportNotification);
+  const aiEnabled = useAppStore(s => s.aiEnabled);
+  const aiApiKey = useAppStore(s => s.aiApiKey);
+  const aiModel = useAppStore(s => s.aiModel);
 
   // File state
   const [step, setStep] = useState('upload'); // upload | map | preview | done
@@ -195,17 +200,96 @@ export default function Converter() {
   const [showAllErrors, setShowAllErrors] = useState(false);
   const fileRef = useRef(null);
 
+  // AI state
+  const [aiMode, setAiMode] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiColumnConfidence, setAiColumnConfidence] = useState(null); // [{index, role, confidence}]
+  const [aiCategoryResults, setAiCategoryResults] = useState(null); // [{index, category, confidence}]
+  const [aiError, setAiError] = useState(null);
+
+  // AI helper: call /analyze endpoint
+  const aiAnalyzeColumns = useCallback(async (hdrs, sampleRows) => {
+    try {
+      setAiLoading(true);
+      setAiError(null);
+      const res = await fetch(`${AI_SERVER}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          headers: hdrs,
+          sample_rows: sampleRows.slice(0, 3),
+          api_key: aiApiKey,
+          model: aiModel,
+        }),
+      });
+      if (!res.ok) throw new Error('AI server returned ' + res.status);
+      const data = await res.json();
+      if (data.columns) {
+        // Apply AI-detected column roles
+        const newRoles = hdrs.map(() => 'skip');
+        data.columns.forEach(col => {
+          if (col.index >= 0 && col.index < newRoles.length && col.role !== 'skip') {
+            newRoles[col.index] = col.role;
+          }
+        });
+        setColumnRoles(newRoles);
+        setAiColumnConfidence(data.columns);
+        if (data.sign_convention) {
+          setSignConvention(data.sign_convention);
+        }
+      }
+    } catch (err) {
+      setAiError('AI analysis unavailable: ' + err.message);
+      // Fall back to heuristic
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiApiKey, aiModel]);
+
+  // AI helper: call /categorize endpoint
+  const aiCategorize = useCallback(async (descriptions) => {
+    try {
+      setAiLoading(true);
+      setAiError(null);
+      const res = await fetch(`${AI_SERVER}/categorize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descriptions,
+          api_key: aiApiKey,
+          model: aiModel,
+        }),
+      });
+      if (!res.ok) throw new Error('AI server returned ' + res.status);
+      const data = await res.json();
+      if (data.results) {
+        setAiCategoryResults(data.results);
+        return data.results;
+      }
+    } catch (err) {
+      setAiError('AI categorization unavailable: ' + err.message);
+    } finally {
+      setAiLoading(false);
+    }
+    return null;
+  }, [aiApiKey, aiModel]);
+
   // ── Step 1: File upload & parse ─────────────────────────────────────────
   const handleFile = useCallback(async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const name = file.name.toLowerCase();
     setFilename(file.name);
+    setAiColumnConfidence(null);
+    setAiCategoryResults(null);
+    setAiError(null);
 
     try {
+      let parsedHeaders = [];
+      let parsedRows = [];
+
       if (name.endsWith('.csv') || name.endsWith('.txt') || name.endsWith('.tsv')) {
         const text = await file.text();
-        // Detect delimiter
         const firstLine = text.split(/\r?\n/)[0] || '';
         let rows;
         if (name.endsWith('.tsv') || (firstLine.includes('\t') && !firstLine.includes(','))) {
@@ -214,32 +298,39 @@ export default function Converter() {
           rows = parseCSVRaw(text);
         }
         if (rows.length < 2) { alert('File has no data rows.'); e.target.value = ''; return; }
-        setHeaders(rows[0]);
-        setRawData(rows.slice(1));
-        setColumnRoles(autoDetectColumns(rows[0]));
-        setStep('map');
+        parsedHeaders = rows[0];
+        parsedRows = rows.slice(1);
       } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
         const data = new Uint8Array(await file.arrayBuffer());
         const wb = XLSX.read(data, { type: 'array', cellDates: true, raw: false, dateNF: 'yyyy-mm-dd' });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
         if (json.length < 2) { alert('Spreadsheet has no data rows.'); e.target.value = ''; return; }
-        const hdrs = json[0].map(h => String(h || ''));
-        setHeaders(hdrs);
-        setRawData(json.slice(1).map(r => r.map(c => String(c ?? ''))));
-        setColumnRoles(autoDetectColumns(hdrs));
-        setStep('map');
+        parsedHeaders = json[0].map(h => String(h || ''));
+        parsedRows = json.slice(1).map(r => r.map(c => String(c ?? '')));
       } else {
         alert('Unsupported file type. Please use CSV, TSV, XLS, or XLSX.');
+        if (e.target) e.target.value = '';
+        return;
+      }
+
+      setHeaders(parsedHeaders);
+      setRawData(parsedRows);
+      setColumnRoles(autoDetectColumns(parsedHeaders));
+      setStep('map');
+
+      // If AI mode is active, also run AI analysis in background
+      if (aiMode && aiEnabled && aiApiKey) {
+        aiAnalyzeColumns(parsedHeaders, parsedRows);
       }
     } catch (err) {
       alert('Error reading file: ' + err.message);
     }
     if (e.target) e.target.value = '';
-  }, []);
+  }, [aiMode, aiEnabled, aiApiKey, aiAnalyzeColumns]);
 
   // ── Step 2 → 3: Convert mapped data ─────────────────────────────────────
-  const runConversion = useCallback(() => {
+  const runConversion = useCallback(async () => {
     const dateIdx = columnRoles.indexOf('date');
     const descIdx = columnRoles.indexOf('description');
     const amountIdx = columnRoles.indexOf('amount');
@@ -300,7 +391,6 @@ export default function Converter() {
         } else if (typeVal === 'expense' || typeVal === 'debit' || typeVal === 'charge') {
           isIncome = false;
         } else if (signConvention === 'credit-card') {
-          // Credit card: positive = charge, negative = payment/credit
           isIncome = amount < 0;
           amount = Math.abs(amount);
           if (!isIncome) amount = -amount;
@@ -308,17 +398,12 @@ export default function Converter() {
           const mappedCat = mapCategory(catVal || desc);
           isIncome = mappedCat === 'income';
         } else {
-          // auto / bank: positive = income, negative = expense
           isIncome = amount > 0;
         }
 
-        // Finalize amount sign: income = positive, expense = negative
         const finalAmount = isIncome ? Math.abs(amount) : -Math.abs(amount);
-
-        // Category
         const category = isIncome ? 'income' : mapCategory(catVal || desc);
 
-        // Paid status
         let paid = defaultPaid;
         if (statusIdx >= 0) {
           const paidVal = String(row[statusIdx] || '').toLowerCase().trim();
@@ -340,10 +425,25 @@ export default function Converter() {
     });
 
     txs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    // If AI mode is active, try to AI-categorize descriptions
+    if (aiMode && aiEnabled && aiApiKey && txs.length > 0) {
+      const descriptions = txs.map(t => t.desc);
+      const aiResults = await aiCategorize(descriptions);
+      if (aiResults) {
+        aiResults.forEach(r => {
+          if (r.index >= 0 && r.index < txs.length && txs[r.index].category !== 'income') {
+            txs[r.index].category = r.category;
+            txs[r.index]._aiConfidence = r.confidence;
+          }
+        });
+      }
+    }
+
     setConverted(txs);
     setErrors(errs);
     setStep('preview');
-  }, [rawData, columnRoles, signConvention, defaultPaid]);
+  }, [rawData, columnRoles, signConvention, defaultPaid, aiMode, aiEnabled, aiApiKey, aiCategorize]);
 
   // ── Export as BalanceBooks CSV ────────────────────────────────────────────
   const exportCSV = useCallback(() => {
@@ -472,6 +572,9 @@ export default function Converter() {
     setConverted([]);
     setErrors([]);
     setShowAllErrors(false);
+    setAiColumnConfidence(null);
+    setAiCategoryResults(null);
+    setAiError(null);
   };
 
   // ── Manually edit a converted transaction's category ─────────────────────
@@ -494,14 +597,30 @@ export default function Converter() {
     <div className="space-y-6 max-w-5xl">
       {/* Hero Header */}
       <div className="bg-gradient-to-r from-[#12233d] to-[#00b4d8] rounded-2xl p-6 text-white shadow-xl">
-        <div className="flex items-center gap-3 mb-2">
-          <ArrowRightLeft size={24} />
-          <h3 className="font-bold text-lg">Spreadsheet Converter</h3>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <ArrowRightLeft size={24} />
+            <h3 className="font-bold text-lg">Spreadsheet Converter</h3>
+          </div>
+          {aiEnabled && aiApiKey && (
+            <button
+              onClick={() => setAiMode(!aiMode)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${aiMode ? 'bg-white/20 text-white border border-white/40' : 'bg-white/10 text-white/70 border border-white/20 hover:bg-white/15'}`}
+            >
+              <Sparkles size={14} />
+              AI {aiMode ? 'ON' : 'OFF'}
+            </button>
+          )}
         </div>
         <p className="text-blue-100 text-sm">
           Convert any billing spreadsheet, bank statement, or credit card export into BalanceBooks format.
           Supports CSV, TSV, XLS, and XLSX files from any bank or billing provider.
         </p>
+        {aiMode && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-blue-200">
+            <Sparkles size={12} /> AI-powered column detection and smart categorization active
+          </div>
+        )}
       </div>
 
       {/* Step Progress */}
@@ -562,16 +681,40 @@ export default function Converter() {
         </div>
       )}
 
+      {/* AI Status Banners */}
+      {aiMode && aiLoading && (
+        <div className="bg-violet-50 rounded-xl p-3 border border-violet-200 flex items-center gap-3">
+          <Loader2 size={16} className="animate-spin text-violet-600" />
+          <span className="text-sm text-violet-700 font-medium">AI is analyzing your spreadsheet...</span>
+        </div>
+      )}
+      {aiMode && aiError && (
+        <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 flex items-center gap-3">
+          <AlertTriangle size={16} className="text-amber-600" />
+          <span className="text-sm text-amber-700">{aiError} — using pattern matching instead.</span>
+          <button onClick={() => setAiError(null)} className="ml-auto text-amber-400 hover:text-amber-600"><X size={14} /></button>
+        </div>
+      )}
+
       {/* ─── STEP: Map Columns ────────────────────────────────────────────── */}
       {step === 'map' && (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border-2 border-[#12233d]/20 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h4 className="font-bold text-slate-900">Map Your Columns</h4>
+                <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                  Map Your Columns
+                  {aiMode && aiColumnConfidence && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 border border-violet-200">
+                      <Sparkles size={10} /> AI Detected
+                    </span>
+                  )}
+                </h4>
                 <p className="text-sm text-slate-500">
-                  We auto-detected column roles from <strong>{filename}</strong> ({rawData.length} rows).
-                  Adjust any mappings that look wrong.
+                  {aiMode && aiColumnConfidence
+                    ? <>AI detected column roles from <strong>{filename}</strong> ({rawData.length} rows). Review and adjust if needed.</>
+                    : <>We auto-detected column roles from <strong>{filename}</strong> ({rawData.length} rows). Adjust any mappings that look wrong.</>
+                  }
                 </p>
               </div>
               <button onClick={reset} className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-lg">
@@ -608,6 +751,17 @@ export default function Converter() {
                           </select>
                           <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
                         </div>
+                        {aiMode && aiColumnConfidence && (() => {
+                          const colConf = aiColumnConfidence.find(c => c.index === idx);
+                          if (!colConf || colConf.role === 'skip') return null;
+                          const pct = Math.round((colConf.confidence || 0) * 100);
+                          const color = pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-amber-600' : 'text-red-500';
+                          return (
+                            <span className={`text-xs mt-0.5 flex items-center gap-1 ${color}`}>
+                              <Sparkles size={9} /> {pct}% confident
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="py-3 px-2">
                         <div className="flex flex-wrap gap-1">
@@ -669,11 +823,23 @@ export default function Converter() {
             <button onClick={reset} className="px-6 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">
               Back
             </button>
+            {aiMode && aiEnabled && aiApiKey && (
+              <button
+                onClick={() => aiAnalyzeColumns(headers, rawData)}
+                disabled={aiLoading}
+                className="flex items-center gap-2 px-4 py-3 bg-violet-100 text-violet-700 rounded-xl font-medium hover:bg-violet-200 disabled:opacity-50"
+              >
+                {aiLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                Re-analyze with AI
+              </button>
+            )}
             <button
               onClick={runConversion}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg hover:from-[#0a1628] hover:to-[#0096b7]"
+              disabled={aiLoading}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg hover:from-[#0a1628] hover:to-[#0096b7] disabled:opacity-50"
             >
-              <RefreshCw size={18} /> Convert {rawData.length} Rows
+              {aiLoading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+              {aiMode ? 'AI Convert' : 'Convert'} {rawData.length} Rows
             </button>
           </div>
         </div>
@@ -752,6 +918,11 @@ export default function Converter() {
                             <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                           ))}
                         </select>
+                        {tx._aiConfidence != null && (
+                          <span className={`text-[10px] ${tx._aiConfidence >= 0.8 ? 'text-green-500' : tx._aiConfidence >= 0.5 ? 'text-amber-500' : 'text-red-400'}`}>
+                            AI {Math.round(tx._aiConfidence * 100)}%
+                          </span>
+                        )}
                         <span>&bull;</span>
                         <span className={tx.paid ? 'text-green-600' : 'text-amber-500'}>
                           {tx.paid ? 'Paid' : 'Unpaid'}

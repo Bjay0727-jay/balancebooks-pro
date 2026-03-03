@@ -4,7 +4,7 @@ import { useFinancialData } from '../hooks/useFinancialData';
 import {
   Download, Upload, Trash2, Target, Calculator, Save, FileSpreadsheet,
   Cloud, HardDrive, Bell, AlertTriangle, Check, Loader2, Unlink, Mail,
-  Crown, BarChart3
+  Crown, BarChart3, Sparkles, Eye, EyeOff, Zap
 } from 'lucide-react';
 import { FULL_MONTHS, CATEGORIES } from '../utils/constants';
 import { currency } from '../utils/formatters';
@@ -54,6 +54,16 @@ export default function Settings() {
   const licenseExpiry = useAppStore(s => s.licenseExpiry);
   const analyticsConsent = useAppStore(s => s.analyticsConsent);
   const setAnalyticsConsent = useAppStore(s => s.setAnalyticsConsent);
+
+  const aiApiKey = useAppStore(s => s.aiApiKey);
+  const aiEnabled = useAppStore(s => s.aiEnabled);
+  const aiModel = useAppStore(s => s.aiModel);
+  const setAiApiKey = useAppStore(s => s.setAiApiKey);
+  const setAiEnabled = useAppStore(s => s.setAiEnabled);
+  const setAiModel = useAppStore(s => s.setAiModel);
+
+  const [showAiKey, setShowAiKey] = React.useState(false);
+  const [aiTestStatus, setAiTestStatus] = React.useState(null); // null | 'testing' | 'success' | 'error'
 
   const { stats } = useFinancialData();
 
@@ -280,6 +290,114 @@ export default function Settings() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* AI Assistant */}
+      <div className="bg-gradient-to-r from-violet-50 via-white to-cyan-50 rounded-2xl border-2 border-violet-200 shadow-sm p-6">
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <Sparkles size={18} className="text-violet-600" />
+          AI Assistant (Converter)
+        </h3>
+        <div className="space-y-4">
+          {/* Enable/Disable toggle */}
+          <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-violet-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-violet-100">
+                <Zap size={18} className="text-violet-600" />
+              </div>
+              <div>
+                <p className="font-medium text-slate-900">Enable AI Features</p>
+                <p className="text-sm text-slate-500">Use AI for smart column detection and categorization</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aiEnabled}
+                onChange={(e) => setAiEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:ring-4 peer-focus:ring-violet-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+            </label>
+          </div>
+
+          {aiEnabled && (
+            <>
+              {/* API Key */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">OpenAI API Key</label>
+                <div className="relative">
+                  <input
+                    type={showAiKey ? 'text' : 'password'}
+                    value={aiApiKey || ''}
+                    onChange={(e) => setAiApiKey(e.target.value || null)}
+                    placeholder="sk-..."
+                    className="w-full px-4 py-3 pr-12 bg-white border-2 border-violet-200 rounded-xl focus:ring-2 focus:ring-violet-400 focus:border-violet-400 text-sm font-mono"
+                  />
+                  <button
+                    onClick={() => setShowAiKey(!showAiKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showAiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">Your key is stored locally and never sent to our servers.</p>
+              </div>
+
+              {/* Model */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">AI Model</label>
+                <select
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border-2 border-violet-200 rounded-xl focus:ring-2 focus:ring-violet-400 focus:border-violet-400 text-sm"
+                >
+                  <option value="gpt-4o-mini">GPT-4o Mini (Fast & Affordable)</option>
+                  <option value="gpt-4o">GPT-4o (Most Capable)</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Budget)</option>
+                </select>
+              </div>
+
+              {/* Test Connection */}
+              <button
+                onClick={async () => {
+                  setAiTestStatus('testing');
+                  try {
+                    const res = await fetch('http://localhost:5555/health');
+                    if (res.ok) {
+                      setAiTestStatus('success');
+                    } else {
+                      setAiTestStatus('error');
+                    }
+                  } catch {
+                    setAiTestStatus('error');
+                  }
+                  setTimeout(() => setAiTestStatus(null), 3000);
+                }}
+                disabled={aiTestStatus === 'testing'}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-violet-100 text-violet-700 rounded-xl font-medium hover:bg-violet-200 disabled:opacity-50"
+              >
+                {aiTestStatus === 'testing' ? (
+                  <><Loader2 size={16} className="animate-spin" /> Testing Connection...</>
+                ) : aiTestStatus === 'success' ? (
+                  <><Check size={16} className="text-green-600" /> <span className="text-green-700">AI Server Connected</span></>
+                ) : aiTestStatus === 'error' ? (
+                  <><AlertTriangle size={16} className="text-red-600" /> <span className="text-red-700">Server Not Running</span></>
+                ) : (
+                  <><Sparkles size={16} /> Test AI Connection</>
+                )}
+              </button>
+
+              {/* Privacy note */}
+              <div className="bg-violet-50 rounded-xl p-4 border border-violet-200">
+                <p className="text-xs text-violet-700">
+                  <strong>Privacy:</strong> Only column headers and transaction descriptions are sent to the AI for analysis.
+                  No amounts, account numbers, or personal data is shared. Your API key is stored locally on your device.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Analytics Preferences */}
