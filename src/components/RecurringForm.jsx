@@ -1,0 +1,17 @@
+import { useState } from 'react';
+import { CATEGORIES, FREQUENCY_OPTIONS } from '../utils/constants';
+
+export default function RecurringForm({ recurring, onSubmit, onCancel }) {
+  const [form, setForm] = useState({ name: recurring?.name || '', amount: recurring?.amount || '', category: recurring?.category || 'utilities', frequency: recurring?.frequency || 'monthly', dueDay: recurring?.dueDay || 1, autoPay: recurring?.autoPay || false });
+  const handle = (e) => { e.preventDefault(); onSubmit({ ...recurring, ...form, amount: parseFloat(form.amount), dueDay: parseInt(form.dueDay) }); };
+  return (
+    <form onSubmit={handle} className="space-y-4">
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Name</label><input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Netflix, Rent" className="w-full px-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Amount</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
+      <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-slate-600 font-medium mb-2">Frequency</label><select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{FREQUENCY_OPTIONS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></div><div><label className="block text-sm text-slate-600 font-medium mb-2">Due Day</label><input type="number" min="1" max="31" value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div></div>
+      <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 border-2 border-[#14b8a6]/20"><input type="checkbox" checked={form.autoPay} onChange={(e) => setForm({ ...form, autoPay: e.target.checked })} className="w-5 h-5 rounded border-green-300 text-[#14b8a6] focus:ring-[#14b8a6]" /><span className="text-slate-700 font-medium">Auto-pay (auto-marks as paid)</span></label>
+      <div className="flex gap-3 pt-4"><button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-green-600">{recurring ? 'Update' : 'Add'}</button></div>
+    </form>
+  );
+}

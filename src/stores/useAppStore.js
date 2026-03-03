@@ -1,0 +1,196 @@
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import { transactionsDB, recurringDB, balancesDB, budgetDB, debtsDB, settingsDB } from '../db/database';
+import { uid, getMonthKey } from '../utils/formatters';
+
+const saveData = (key, data) => { try { localStorage.setItem('bb_' + key, JSON.stringify(data)); } catch {} };
+const loadData = (key, defaultValue) => { try { const saved = localStorage.getItem('bb_' + key); return saved ? JSON.parse(saved) : defaultValue; } catch { return defaultValue; } };
+
+export const useAppStore = create(
+  subscribeWithSelector((set, get) => ({
+    // ── Domain Data ──────────────────────────────────────────
+    transactions: loadData('transactions', []),
+    recurringExpenses: loadData('recurring', []),
+    monthlyBalances: loadData('monthlyBalances', {}),
+    savingsGoal: loadData('savingsGoal', 500),
+    budgetGoals: loadData('budgetGoals', {}),
+    debts: loadData('debts', []),
+
+    // ── Settings ─────────────────────────────────────────────
+    autoBackupEnabled: loadData('autoBackup', false),
+    lastBackupDate: loadData('lastBackup', null),
+    notificationsEnabled: loadData('notifications', false),
+    dashboardWidget: loadData('dashboardWidget', 'ytd'),
+
+    // ── Dropbox ──────────────────────────────────────────────
+    dropboxConnected: loadData('dropboxConnected', false),
+    dropboxToken: loadData('dropboxToken', null),
+    dropboxSyncing: false,
+    dropboxLastSync: loadData('dropboxLastSync', null),
+    dropboxError: null,
+
+    // ── UI State ─────────────────────────────────────────────
+    view: 'dashboard',
+    month: new Date().getMonth(),
+    year: new Date().getFullYear(),
+    modal: null,
+    editTx: null,
+    editRecurring: null,
+    editDebt: null,
+    editBudget: null,
+    search: '',
+    filterCat: 'all',
+    filterPaid: 'all',
+    txPage: 0,
+    sidebarOpen: typeof window !== 'undefined' && window.innerWidth >= 768,
+    linkedAccounts: [],
+    plaidLoading: false,
+    importData: null,
+    importNotification: null,
+    restoreData: null,
+
+    // ── Hydration ────────────────────────────────────────────
+    hydrated: false,
+
+    // ── Setters (domain) ─────────────────────────────────────
+    setTransactions: (txs) => set({ transactions: txs }),
+    setRecurringExpenses: (rec) => set({ recurringExpenses: rec }),
+    setMonthlyBalances: (bal) => set({ monthlyBalances: bal }),
+    setSavingsGoal: (goal) => set({ savingsGoal: goal }),
+    setBudgetGoals: (goals) => set({ budgetGoals: goals }),
+    setDebts: (d) => set({ debts: d }),
+
+    // ── Setters (settings) ───────────────────────────────────
+    setAutoBackupEnabled: (val) => set({ autoBackupEnabled: val }),
+    setLastBackupDate: (date) => set({ lastBackupDate: date }),
+    setNotificationsEnabled: (val) => set({ notificationsEnabled: val }),
+    setDashboardWidget: (widget) => set({ dashboardWidget: widget }),
+
+    // ── Setters (dropbox) ────────────────────────────────────
+    setDropboxConnected: (val) => set({ dropboxConnected: val }),
+    setDropboxToken: (token) => set({ dropboxToken: token }),
+    setDropboxSyncing: (val) => set({ dropboxSyncing: val }),
+    setDropboxLastSync: (sync) => set({ dropboxLastSync: sync }),
+    setDropboxError: (err) => set({ dropboxError: err }),
+
+    // ── Setters (UI) ─────────────────────────────────────────
+    setView: (v) => set({ view: v }),
+    setMonth: (m) => set({ month: m }),
+    setYear: (y) => set({ year: y }),
+    setModal: (m) => set({ modal: m }),
+    setEditTx: (tx) => set({ editTx: tx }),
+    setEditRecurring: (r) => set({ editRecurring: r }),
+    setEditDebt: (d) => set({ editDebt: d }),
+    setEditBudget: (b) => set({ editBudget: b }),
+    setSearch: (s) => set({ search: s }),
+    setFilterCat: (c) => set({ filterCat: c }),
+    setFilterPaid: (p) => set({ filterPaid: p }),
+    setTxPage: (p) => set({ txPage: p }),
+    setSidebarOpen: (o) => set({ sidebarOpen: o }),
+    setLinkedAccounts: (a) => set({ linkedAccounts: a }),
+    setPlaidLoading: (l) => set({ plaidLoading: l }),
+    setImportData: (d) => set({ importData: d }),
+    setImportNotification: (n) => set({ importNotification: n }),
+    setRestoreData: (d) => set({ restoreData: d }),
+
+    // ── Hydrate from IndexedDB ───────────────────────────────
+    hydrate: (dbData) => {
+      if (dbData.transactions?.length > 0 || dbData.recurringExpenses?.length > 0) {
+        set({
+          transactions: dbData.transactions || [],
+          recurringExpenses: dbData.recurringExpenses || [],
+          monthlyBalances: dbData.monthlyBalances || {},
+          budgetGoals: dbData.budgetGoals || {},
+          debts: dbData.debts || [],
+          savingsGoal: dbData.savingsGoal ?? get().savingsGoal,
+          autoBackupEnabled: dbData.autoBackup ?? get().autoBackupEnabled,
+          lastBackupDate: dbData.lastBackup ?? get().lastBackupDate,
+          notificationsEnabled: dbData.notifications ?? get().notificationsEnabled,
+          hydrated: true,
+        });
+      } else {
+        set({ hydrated: true });
+      }
+    },
+
+    // ── Transaction CRUD ────────────────────────────────────
+    addTx: (tx) => {
+      set(s => ({ transactions: [...s.transactions, { ...tx, id: uid() }], modal: null }));
+    },
+    updateTx: (tx) => set(s => ({ transactions: s.transactions.map(t => t.id === tx.id ? tx : t), editTx: null })),
+    deleteTx: (id) => set(s => ({ transactions: s.transactions.filter(t => t.id !== id) })),
+    duplicateTx: (tx) => {
+      set(s => ({ transactions: [...s.transactions, { ...tx, id: uid(), date: new Date().toISOString().split('T')[0], paid: tx.amount > 0 }] }));
+    },
+    togglePaid: (id) => set(s => ({ transactions: s.transactions.map(t => t.id === id ? { ...t, paid: !t.paid } : t) })),
+
+    // ── Recurring CRUD ───────────────────────────────────────
+    addRecurring: (r) => {
+      set(s => ({ recurringExpenses: [...s.recurringExpenses, { ...r, id: uid(), active: true }], modal: null }));
+    },
+    updateRecurring: (r) => set(s => ({ recurringExpenses: s.recurringExpenses.map(e => e.id === r.id ? r : e), editRecurring: null })),
+    deleteRecurring: (id) => set(s => ({ recurringExpenses: s.recurringExpenses.filter(r => r.id !== id) })),
+    toggleRecurringActive: (id) => set(s => ({ recurringExpenses: s.recurringExpenses.map(r => r.id === id ? { ...r, active: !r.active } : r) })),
+    createFromRecurring: (r) => {
+      const today = new Date();
+      set(s => ({ transactions: [...s.transactions, { id: uid(), date: today.toISOString().split('T')[0], desc: r.name, amount: -r.amount, category: r.category, paid: r.autoPay }] }));
+    },
+
+    // ── Balance Setters ──────────────────────────────────────
+    setBeginningBalance: (value) => {
+      const { month, year } = get();
+      const key = getMonthKey(month, year);
+      set(s => ({ monthlyBalances: { ...s.monthlyBalances, [key]: { ...s.monthlyBalances[key], beginning: parseFloat(value) || 0 } } }));
+    },
+    setEndingBalance: (value) => {
+      const { month, year } = get();
+      const key = getMonthKey(month, year);
+      set(s => ({ monthlyBalances: { ...s.monthlyBalances, [key]: { ...s.monthlyBalances[key], ending: parseFloat(value) || 0 } } }));
+    },
+
+    // ── Dropbox Actions ──────────────────────────────────────
+    disconnectDropbox: () => {
+      set({
+        dropboxToken: null,
+        dropboxConnected: false,
+        dropboxLastSync: null,
+        dropboxError: null,
+      });
+      localStorage.removeItem('bb_dropboxToken');
+      localStorage.removeItem('bb_dropboxConnected');
+      localStorage.removeItem('bb_dropboxLastSync');
+    },
+  }))
+);
+
+// ── Persistence Subscriptions ──────────────────────────────────
+// Dual-write: localStorage (fallback) + IndexedDB (primary)
+const persistDual = (selector, lsKey, dbWrite) => {
+  useAppStore.subscribe(selector, (val) => {
+    saveData(lsKey, val);
+    if (useAppStore.getState().hydrated) {
+      dbWrite(val).catch(() => {});
+    }
+  });
+};
+
+persistDual(s => s.transactions,      'transactions',      v => transactionsDB.replaceAll(v));
+persistDual(s => s.recurringExpenses,  'recurring',         v => recurringDB.replaceAll(v));
+persistDual(s => s.monthlyBalances,    'monthlyBalances',   v => balancesDB.replaceAll(v));
+persistDual(s => s.budgetGoals,        'budgetGoals',       v => budgetDB.replaceAll(v));
+persistDual(s => s.debts,              'debts',             v => debtsDB.replaceAll(v));
+
+persistDual(s => s.savingsGoal,        'savingsGoal',       v => settingsDB.set('savingsGoal', v));
+persistDual(s => s.autoBackupEnabled,  'autoBackup',        v => settingsDB.set('autoBackup', v));
+persistDual(s => s.lastBackupDate,     'lastBackup',        v => settingsDB.set('lastBackup', v));
+persistDual(s => s.notificationsEnabled, 'notifications',   v => settingsDB.set('notifications', v));
+
+// localStorage-only persistence
+const persistLS = (selector, lsKey) => {
+  useAppStore.subscribe(selector, (val) => saveData(lsKey, val));
+};
+
+persistLS(s => s.dashboardWidget,  'dashboardWidget');
+persistLS(s => s.dropboxConnected, 'dropboxConnected');
+persistLS(s => s.dropboxToken,     'dropboxToken');
+persistLS(s => s.dropboxLastSync,  'dropboxLastSync');
