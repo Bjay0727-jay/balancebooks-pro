@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { uid, roundCents, currency, shortDate, getDateParts, getMonthKey, escapeCSVField } from './formatters';
+import { uid, roundCents, currency, shortDate, getDateParts, getMonthKey, escapeCSVField, buildCategoryMap } from './formatters';
 
 describe('uid', () => {
   it('generates unique IDs', () => {
@@ -156,5 +156,80 @@ describe('escapeCSVField', () => {
   it('handles normal strings without injection prefixes', () => {
     expect(escapeCSVField('Groceries')).toBe('"Groceries"');
     expect(escapeCSVField('Gas Station #42')).toBe('"Gas Station #42"');
+  });
+});
+
+describe('buildCategoryMap', () => {
+  it('sums expenses by category', () => {
+    const txs = [
+      { amount: -50, category: 'groceries' },
+      { amount: -30, category: 'groceries' },
+      { amount: -20, category: 'dining' },
+    ];
+    expect(buildCategoryMap(txs)).toEqual({ groceries: 80, dining: 20 });
+  });
+
+  it('ignores income transactions', () => {
+    const txs = [
+      { amount: 1000, category: 'income' },
+      { amount: -50, category: 'groceries' },
+    ];
+    expect(buildCategoryMap(txs)).toEqual({ groceries: 50 });
+  });
+
+  it('ignores savings category', () => {
+    const txs = [
+      { amount: -100, category: 'savings' },
+      { amount: -50, category: 'groceries' },
+    ];
+    expect(buildCategoryMap(txs)).toEqual({ groceries: 50 });
+  });
+
+  it('allocates split transaction amounts by split categories', () => {
+    const txs = [
+      {
+        amount: -150,
+        category: 'shopping',
+        splits: [
+          { category: 'groceries', amount: -100 },
+          { category: 'shopping', amount: -50 },
+        ],
+      },
+    ];
+    expect(buildCategoryMap(txs)).toEqual({ groceries: 100, shopping: 50 });
+  });
+
+  it('handles mixed split and non-split transactions', () => {
+    const txs = [
+      { amount: -30, category: 'dining' },
+      {
+        amount: -120,
+        category: 'shopping',
+        splits: [
+          { category: 'groceries', amount: -80 },
+          { category: 'personal', amount: -40 },
+        ],
+      },
+    ];
+    expect(buildCategoryMap(txs)).toEqual({ dining: 30, groceries: 80, personal: 40 });
+  });
+
+  it('excludes savings from splits', () => {
+    const txs = [
+      {
+        amount: -200,
+        category: 'other',
+        splits: [
+          { category: 'savings', amount: -100 },
+          { category: 'groceries', amount: -100 },
+        ],
+      },
+    ];
+    expect(buildCategoryMap(txs)).toEqual({ groceries: 100 });
+  });
+
+  it('returns empty object for no expenses', () => {
+    expect(buildCategoryMap([])).toEqual({});
+    expect(buildCategoryMap([{ amount: 500, category: 'income' }])).toEqual({});
   });
 });

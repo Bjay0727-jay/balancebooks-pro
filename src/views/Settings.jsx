@@ -3,7 +3,8 @@ import { useAppStore } from '../stores/useAppStore';
 import { useFinancialData } from '../hooks/useFinancialData';
 import {
   Download, Upload, Trash2, Target, Calculator, Save, FileSpreadsheet,
-  Cloud, HardDrive, Bell, AlertTriangle, Check, Loader2, Unlink, Mail
+  Cloud, HardDrive, Bell, AlertTriangle, Check, Loader2, Unlink, Mail,
+  Crown, BarChart3
 } from 'lucide-react';
 import { FULL_MONTHS, CATEGORIES } from '../utils/constants';
 import { currency } from '../utils/formatters';
@@ -47,6 +48,12 @@ export default function Settings() {
   const setBeginningBalance = useAppStore(s => s.setBeginningBalance);
   const setEndingBalance = useAppStore(s => s.setEndingBalance);
   const disconnectDropbox = useAppStore(s => s.disconnectDropbox);
+
+  const licenseStatus = useAppStore(s => s.licenseStatus);
+  const licenseEmail = useAppStore(s => s.licenseEmail);
+  const licenseExpiry = useAppStore(s => s.licenseExpiry);
+  const analyticsConsent = useAppStore(s => s.analyticsConsent);
+  const setAnalyticsConsent = useAppStore(s => s.setAnalyticsConsent);
 
   const { stats } = useFinancialData();
 
@@ -239,6 +246,71 @@ export default function Settings() {
           <label className="block text-sm text-slate-600 mb-2 font-medium">Monthly Savings Goal</label>
           <input type="number" value={savingsGoal} onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)} className="w-full px-4 py-3 bg-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-lg font-semibold" />
         </div>
+      </div>
+
+      {/* Premium License */}
+      <div className="bg-gradient-to-r from-purple-50 via-white to-blue-50 rounded-2xl border-2 border-purple-200 shadow-sm p-6">
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <Crown size={18} className="text-purple-600" />
+          Premium License
+        </h3>
+        {licenseStatus === 'active' ? (
+          <div className="space-y-3">
+            <div className="bg-green-50 rounded-xl p-4 border border-green-300 flex items-start gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                <Check size={20} className="text-green-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-green-800">Premium Active</p>
+                <p className="text-sm text-green-700 mt-1">Licensed to: {licenseEmail}</p>
+                {licenseExpiry && <p className="text-xs text-green-600 mt-0.5">Expires: {new Date(licenseExpiry).toLocaleDateString()}</p>}
+              </div>
+            </div>
+            <button onClick={() => setModal('license')} className="w-full px-4 py-2.5 bg-purple-100 text-purple-700 rounded-xl font-medium hover:bg-purple-200">
+              Manage License
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Upgrade to Premium to unlock unlimited transactions, cloud sync, advanced analytics, and more.
+            </p>
+            <button onClick={() => setModal('license')} className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-blue-700">
+              Activate Premium License
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Analytics Preferences */}
+      <div className="bg-gradient-to-r from-blue-50 via-white to-indigo-50 rounded-2xl border-2 border-blue-200 shadow-sm p-6">
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <BarChart3 size={18} className="text-blue-600" />
+          Privacy & Analytics
+        </h3>
+        <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-blue-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-100">
+              <BarChart3 size={18} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="font-medium text-slate-900">Anonymous Analytics</p>
+              <p className="text-sm text-slate-500">Help improve the app with anonymous usage data</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={analyticsConsent === 'opted-in'}
+              onChange={(e) => setAnalyticsConsent(e.target.checked ? 'opted-in' : 'opted-out')}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-200 peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+        <p className="text-xs text-slate-400 mt-3 px-1">
+          Only feature usage counts and error rates are collected. No financial data, names, or personal information ever leaves your device.
+        </p>
       </div>
 
       {/* Backup & Restore Section - User Friendly */}

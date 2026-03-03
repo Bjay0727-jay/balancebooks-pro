@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { CATEGORIES, FREQUENCY_OPTIONS, MONTHS } from '../utils/constants';
-import { getDateParts, getMonthKey, roundCents, currency } from '../utils/formatters';
+import { getDateParts, getMonthKey, roundCents, currency, buildCategoryMap } from '../utils/formatters';
 
 export function useFinancialData() {
   const transactions = useAppStore(s => s.transactions);
@@ -20,6 +20,7 @@ export function useFinancialData() {
   const filterDateFrom = useAppStore(s => s.filterDateFrom);
   const filterDateTo = useAppStore(s => s.filterDateTo);
   const searchAllMonths = useAppStore(s => s.searchAllMonths);
+  const filterAccount = useAppStore(s => s.filterAccount);
 
   const currentMonthKey = getMonthKey(month, year);
 
@@ -62,8 +63,9 @@ export function useFinancialData() {
     }
     if (filterDateFrom) list = list.filter(t => t.date >= filterDateFrom);
     if (filterDateTo) list = list.filter(t => t.date <= filterDateTo);
+    if (filterAccount !== 'all') list = list.filter(t => (t.accountId || 'primary') === filterAccount);
     return list;
-  }, [transactions, search, filterCat, filterPaid, filterAmountMin, filterAmountMax, filterDateFrom, filterDateTo, searchAllMonths, month, year]);
+  }, [transactions, search, filterCat, filterPaid, filterAmountMin, filterAmountMax, filterDateFrom, filterDateTo, searchAllMonths, filterAccount, month, year]);
 
   const stats = useMemo(() => {
     const income = roundCents(monthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0));
@@ -79,8 +81,7 @@ export function useFinancialData() {
   }, [monthTx, beginningBalance, monthlyBalances, currentMonthKey]);
 
   const catBreakdown = useMemo(() => {
-    const map = {};
-    monthTx.filter(t => t.amount < 0 && t.category !== 'savings').forEach(t => { map[t.category] = (map[t.category] || 0) + Math.abs(t.amount); });
+    const map = buildCategoryMap(monthTx);
     return Object.entries(map).map(([id, total]) => ({ ...CATEGORIES.find(c => c.id === id), total, pct: stats.expenses > 0 ? (total / stats.expenses) * 100 : 0 })).sort((a, b) => b.total - a.total);
   }, [monthTx, stats.expenses]);
 

@@ -1,12 +1,48 @@
-import { BarChart3, TrendingUp, PieChart } from 'lucide-react';
+import { BarChart3, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { useFinancialData } from '../hooks/useFinancialData';
 import { FULL_MONTHS } from '../utils/constants';
 import { currency } from '../utils/formatters';
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+const COLORS = ['#14b8a6', '#1e3a5f', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#ec4899'];
+
+const CurrencyTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-3 text-sm">
+      <p className="font-semibold text-slate-700 mb-1">{label}</p>
+      {payload.map((entry, i) => (
+        <p key={i} style={{ color: entry.color }} className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: entry.color }} />
+          {entry.name}: {currency(entry.value)}
+        </p>
+      ))}
+    </div>
+  );
+};
 
 export default function Analytics() {
   const month = useAppStore(s => s.month);
-  const { spendingTrends, catBreakdown, stats } = useFinancialData();
+  const { spendingTrends, catBreakdown, stats, cycleData } = useFinancialData();
+
+  const trendData = spendingTrends.map(t => ({
+    name: `${t.month} ${t.year}`,
+    Income: t.income,
+    Expenses: t.expenses,
+    Net: t.net,
+  }));
+
+  const pieData = catBreakdown.slice(0, 8).map(cat => ({
+    name: `${cat.icon} ${cat.name}`,
+    value: cat.total,
+    color: cat.color,
+  }));
+
+  const netWorthData = cycleData.map(d => ({
+    name: `${d.month} ${d.year}`,
+    Balance: d.ending,
+  }));
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -15,71 +51,100 @@ export default function Analytics() {
         <p className="text-purple-100">Visualize your spending patterns and trends</p>
       </div>
 
+      {/* Income vs Expenses Area Chart */}
       <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
-        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-[#14b8a6]" />6-Month Spending Trends</h3>
-        <div className="h-64 flex items-end justify-between gap-2">
-          {spendingTrends.map((t, i) => {
-            const maxVal = Math.max(...spendingTrends.map(s => Math.max(s.income, s.expenses))) || 1;
-            const incomeHeight = (t.income / maxVal) * 200;
-            const expenseHeight = (t.expenses / maxVal) * 200;
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center">
-                <div className="flex gap-1 items-end h-52 mb-2">
-                  <div className="w-6 bg-gradient-to-t from-[#14b8a6]/50 to-green-400 rounded-t transition-all hover:from-[#0d9488] hover:to-[#14b8a6]/50" style={{ height: `${incomeHeight}px` }} title={`Income: ${currency(t.income)}`} />
-                  <div className="w-6 bg-gradient-to-t from-rose-500 to-rose-400 rounded-t transition-all hover:from-rose-600 hover:to-rose-500" style={{ height: `${expenseHeight}px` }} title={`Expenses: ${currency(t.expenses)}`} />
-                </div>
-                <span className="text-xs font-medium text-slate-600">{t.month}</span>
-                <span className="text-xs text-slate-400">{t.year}</span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-100">
-          <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-gradient-to-r from-[#14b8a6]/50 to-green-400" /><span className="text-sm text-slate-600">Income</span></div>
-          <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-gradient-to-r from-rose-500 to-rose-400" /><span className="text-sm text-slate-600">Expenses</span></div>
-        </div>
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-[#14b8a6]" />6-Month Income vs. Expenses</h3>
+        <ResponsiveContainer width="100%" height={280}>
+          <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+            <defs>
+              <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} />
+            <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={v => `$${(v / 1000).toFixed(v >= 1000 ? 1 : 0)}${v >= 1000 ? 'k' : ''}`} />
+            <Tooltip content={<CurrencyTooltip />} />
+            <Legend wrapperStyle={{ fontSize: 13 }} />
+            <Area type="monotone" dataKey="Income" stroke="#14b8a6" fill="url(#incomeGrad)" strokeWidth={2} />
+            <Area type="monotone" dataKey="Expenses" stroke="#ef4444" fill="url(#expenseGrad)" strokeWidth={2} />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
+      {/* Monthly Net Bar Chart */}
       <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
-        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><PieChart size={18} className="text-purple-600" />Spending by Category ({FULL_MONTHS[month]})</h3>
-        {catBreakdown.length === 0 ? (
-          <div className="text-center py-8 text-slate-500"><PieChart size={48} className="mx-auto mb-3 text-slate-300" /><p>No spending data for this month</p></div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-center justify-center">
-              <svg width="200" height="200" viewBox="0 0 200 200">
-                {(() => {
-                  let cumulative = 0;
-                  return catBreakdown.slice(0, 8).map((cat) => {
-                    const pct = cat.pct / 100;
-                    const startAngle = cumulative * 360;
-                    cumulative += pct;
-                    const endAngle = cumulative * 360;
-                    const x1 = 100 + 80 * Math.cos((startAngle - 90) * Math.PI / 180);
-                    const y1 = 100 + 80 * Math.sin((startAngle - 90) * Math.PI / 180);
-                    const x2 = 100 + 80 * Math.cos((endAngle - 90) * Math.PI / 180);
-                    const y2 = 100 + 80 * Math.sin((endAngle - 90) * Math.PI / 180);
-                    const largeArc = pct > 0.5 ? 1 : 0;
-                    return (<path key={cat.id} d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`} fill={cat.color} opacity={0.8} className="hover:opacity-100 transition-opacity cursor-pointer"><title>{cat.name}: {currency(cat.total)} ({cat.pct.toFixed(1)}%)</title></path>);
-                  });
-                })()}
-                <circle cx="100" cy="100" r="40" fill="white" />
-                <text x="100" y="95" textAnchor="middle" className="text-sm font-bold fill-slate-700">Total</text>
-                <text x="100" y="115" textAnchor="middle" className="text-xs fill-slate-500">{currency(stats.expenses)}</text>
-              </svg>
-            </div>
-            <div className="space-y-2">
-              {catBreakdown.slice(0, 8).map(cat => (
-                <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} /><span className="text-sm font-medium text-slate-700">{cat.icon} {cat.name}</span></div>
-                  <div className="text-right"><span className="text-sm font-bold text-slate-900">{currency(cat.total)}</span><span className="text-xs text-slate-400 ml-2">({cat.pct.toFixed(1)}%)</span></div>
-                </div>
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><BarChart3 size={18} className="text-blue-600" />Monthly Net Cash Flow</h3>
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={trendData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} />
+            <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={v => `$${v}`} />
+            <Tooltip content={<CurrencyTooltip />} />
+            <Bar dataKey="Net" radius={[4, 4, 0, 0]}>
+              {trendData.map((entry, i) => (
+                <Cell key={i} fill={entry.Net >= 0 ? '#14b8a6' : '#ef4444'} />
               ))}
-            </div>
-          </div>
-        )}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Category Pie Chart */}
+        <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+          <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><PieChartIcon size={18} className="text-purple-600" />Spending by Category</h3>
+          {pieData.length === 0 ? (
+            <div className="text-center py-8 text-slate-500"><PieChartIcon size={48} className="mx-auto mb-3 text-slate-300" /><p>No spending data</p></div>
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={90} dataKey="value" paddingAngle={2}>
+                  {pieData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color || COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => currency(value)} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+          <div className="space-y-1 mt-2">
+            {pieData.map((cat, i) => (
+              <div key={i} className="flex items-center justify-between text-sm px-1">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color || COLORS[i] }} /><span className="text-slate-700">{cat.name}</span></div>
+                <span className="font-medium text-slate-900">{currency(cat.value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Net Worth Trend */}
+        <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+          <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-emerald-600" />Balance Trend (12 months)</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <AreaChart data={netWorthData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+              <defs>
+                <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#1e3a5f" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#1e3a5f" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} />
+              <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={v => `$${(v / 1000).toFixed(1)}k`} />
+              <Tooltip content={<CurrencyTooltip />} />
+              <Area type="monotone" dataKey="Balance" stroke="#1e3a5f" fill="url(#balGrad)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-[#14b8a6]/5 to-[#14b8a6]/10 rounded-xl p-4 border border-[#14b8a6]/20">
           <p className="text-[#14b8a6] text-sm font-medium">Avg Monthly Income</p>
