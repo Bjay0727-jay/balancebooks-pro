@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 80" width="380" height="80">
+  <g transform="translate(5, 5)">
+    <rect width="70" height="70" rx="17" fill="white" opacity="0.2"/>
+    <rect width="70" height="70" rx="17" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M17 35h36M35 17v36M22 26h26M22 44h26" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <text x="90" y="46" font-family="'DM Sans', system-ui, -apple-system, sans-serif" font-size="30" font-weight="700" fill="white" letter-spacing="-0.5">BalanceBooks</text>
+  <text x="90" y="66" font-family="'DM Sans', system-ui, sans-serif" font-size="11" fill="white" opacity="0.7" letter-spacing="1.5" font-weight="500">PRIVACY-FIRST FINANCIAL SOFTWARE</text>
+</svg>

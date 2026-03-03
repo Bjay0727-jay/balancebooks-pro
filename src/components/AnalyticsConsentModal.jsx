@@ -57,7 +57,7 @@ export default function AnalyticsConsentModal({ onClose }) {
           </button>
           <button
             onClick={handleOptIn}
-            className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-indigo-700"
+            className="flex-1 py-3 bg-gradient-to-r from-[#00b4d8] to-[#0096b7] text-white rounded-xl font-semibold shadow-lg hover:from-[#0096b7] hover:to-[#007a96]"
           >
             Help Improve
           </button>

@@ -58,46 +58,46 @@ export default function Transactions() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#14b8a6]" size={18} /><input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]" /></div>
-        <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
-        <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-[#14b8a6]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14b8a6]"><option value="all">All Status</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select>
-        <button onClick={() => setShowAdvanced(!showAdvanced)} className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 font-medium transition-colors ${showAdvanced || hasAdvancedFilters ? 'bg-[#14b8a6]/10 border-[#14b8a6] text-[#14b8a6]' : 'border-[#1e3a5f]/20 text-slate-600 hover:border-[#14b8a6]/50'}`}>
+        <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00b4d8]" size={18} /><input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-[#0a1628]/5 to-white border-2 border-[#12233d]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]" /></div>
+        <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#0a1628]/5 to-white border-2 border-[#12233d]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
+        <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#00b4d8]/5 to-white border-2 border-[#00b4d8]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]"><option value="all">All Status</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select>
+        <button onClick={() => setShowAdvanced(!showAdvanced)} className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 font-medium transition-colors ${showAdvanced || hasAdvancedFilters ? 'bg-[#00b4d8]/10 border-[#00b4d8] text-[#00b4d8]' : 'border-[#12233d]/20 text-slate-600 hover:border-[#00b4d8]/50'}`}>
           <SlidersHorizontal size={18} />
           <span className="hidden sm:inline">Filters</span>
-          {hasAdvancedFilters && <span className="w-2 h-2 bg-[#14b8a6] rounded-full" />}
+          {hasAdvancedFilters && <span className="w-2 h-2 bg-[#00b4d8] rounded-full" />}
         </button>
       </div>
 
       {showAdvanced && (
-        <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-xl p-4 border border-[#1e3a5f]/20 space-y-3">
+        <div className="bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 rounded-xl p-4 border border-[#12233d]/20 space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold text-slate-700">Advanced Filters</h4>
-            {hasAdvancedFilters && <button onClick={clearAllFilters} className="text-xs text-[#14b8a6] hover:underline flex items-center gap-1"><X size={12} />Clear all</button>}
+            {hasAdvancedFilters && <button onClick={clearAllFilters} className="text-xs text-[#00b4d8] hover:underline flex items-center gap-1"><X size={12} />Clear all</button>}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs text-slate-500 mb-1">Min Amount ($)</label>
-              <input type="number" min="0" step="0.01" placeholder="0.00" value={filterAmountMin} onChange={(e) => { setFilterAmountMin(e.target.value); setTxPage(0); }} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#14b8a6] focus:outline-none" />
+              <input type="number" min="0" step="0.01" placeholder="0.00" value={filterAmountMin} onChange={(e) => { setFilterAmountMin(e.target.value); setTxPage(0); }} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#00b4d8] focus:outline-none" />
             </div>
             <div>
               <label className="block text-xs text-slate-500 mb-1">Max Amount ($)</label>
-              <input type="number" min="0" step="0.01" placeholder="No limit" value={filterAmountMax} onChange={(e) => { setFilterAmountMax(e.target.value); setTxPage(0); }} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#14b8a6] focus:outline-none" />
+              <input type="number" min="0" step="0.01" placeholder="No limit" value={filterAmountMax} onChange={(e) => { setFilterAmountMax(e.target.value); setTxPage(0); }} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#00b4d8] focus:outline-none" />
             </div>
             <div>
               <label className="block text-xs text-slate-500 mb-1">From Date</label>
-              <input type="date" value={filterDateFrom} onChange={(e) => { setFilterDateFrom(e.target.value); setTxPage(0); }} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#14b8a6] focus:outline-none" />
+              <input type="date" value={filterDateFrom} onChange={(e) => { setFilterDateFrom(e.target.value); setTxPage(0); }} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#00b4d8] focus:outline-none" />
             </div>
             <div>
               <label className="block text-xs text-slate-500 mb-1">To Date</label>
-              <input type="date" value={filterDateTo} onChange={(e) => { setFilterDateTo(e.target.value); setTxPage(0); }} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#14b8a6] focus:outline-none" />
+              <input type="date" value={filterDateTo} onChange={(e) => { setFilterDateTo(e.target.value); setTxPage(0); }} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#00b4d8] focus:outline-none" />
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <button onClick={() => { setSearchAllMonths(!searchAllMonths); setTxPage(0); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${searchAllMonths ? 'bg-[#14b8a6] text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-[#14b8a6]'}`}>
+            <button onClick={() => { setSearchAllMonths(!searchAllMonths); setTxPage(0); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${searchAllMonths ? 'bg-[#00b4d8] text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-[#00b4d8]'}`}>
               <Globe size={14} />Search all months
             </button>
             {accounts.length > 1 && (
-              <select value={filterAccount} onChange={(e) => { setFilterAccount(e.target.value); setTxPage(0); }} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#14b8a6] focus:outline-none">
+              <select value={filterAccount} onChange={(e) => { setFilterAccount(e.target.value); setTxPage(0); }} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#00b4d8] focus:outline-none">
                 <option value="all">All Accounts</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
               </select>
@@ -124,7 +124,7 @@ export default function Transactions() {
               a.click();
               URL.revokeObjectURL(url);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-lg font-medium hover:from-[#1e3a5f] hover:to-[#0f172a] shadow-sm text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-lg font-medium hover:from-[#12233d] hover:to-[#0a1628] shadow-sm text-sm"
           >
             <Download size={16} /><span>Backup All</span>
           </button>
@@ -158,19 +158,19 @@ export default function Transactions() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/10 shadow-sm divide-y divide-slate-100">
+      <div className="bg-white rounded-2xl border-2 border-[#12233d]/10 shadow-sm divide-y divide-slate-100">
         {filtered.length > 0 ? filtered.slice(txPage * TX_PAGE_SIZE, (txPage + 1) * TX_PAGE_SIZE).map(tx => {
           const cat = CATEGORIES.find(c => c.id === tx.category);
           const acct = accounts.length > 1 ? accounts.find(a => a.id === (tx.accountId || 'primary')) : null;
           return (
-            <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-gradient-to-r hover:from-[#0f172a]/5/50 hover:to-[#14b8a6]/5/50">
+            <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-gradient-to-r hover:from-[#0a1628]/5/50 hover:to-[#00b4d8]/5/50">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <button onClick={() => togglePaid(tx.id)} aria-label={tx.paid ? 'Mark as unpaid' : 'Mark as paid'} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${tx.paid ? 'bg-gradient-to-r from-[#14b8a6]/50 to-green-400 border-green-500' : 'border-blue-300 hover:border-green-400'}`}>{tx.paid && <Check size={14} className="text-white" />}</button>
+                <button onClick={() => togglePaid(tx.id)} aria-label={tx.paid ? 'Mark as unpaid' : 'Mark as paid'} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${tx.paid ? 'bg-gradient-to-r from-[#00b4d8]/50 to-green-400 border-green-500' : 'border-blue-300 hover:border-green-400'}`}>{tx.paid && <Check size={14} className="text-white" />}</button>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div>
                 <div className="min-w-0">
                   <p className={`font-medium text-sm truncate ${tx.paid ? 'text-slate-900' : 'text-slate-600'}`}>
                     {tx.desc}
-                    {tx.autoGenerated && <span className="ml-1.5 text-[10px] text-[#14b8a6] bg-[#14b8a6]/10 px-1.5 py-0.5 rounded-full font-medium">auto</span>}
+                    {tx.autoGenerated && <span className="ml-1.5 text-[10px] text-[#00b4d8] bg-[#00b4d8]/10 px-1.5 py-0.5 rounded-full font-medium">auto</span>}
                     {tx.splits?.length > 0 && <span className="inline-flex items-center gap-0.5 ml-1.5 px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded text-[10px] font-semibold align-middle" title={`Split across ${tx.splits.length} categories`}><Split size={10} />{tx.splits.length}</span>}
                   </p>
                   <p className="text-xs text-slate-500">
@@ -180,9 +180,9 @@ export default function Transactions() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>{currency(tx.amount)}</span>
+                <span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#00b4d8]' : 'text-slate-900'}`}>{currency(tx.amount)}</span>
                 <button onClick={() => duplicateTx(tx)} title="Duplicate" aria-label="Duplicate transaction" className="p-2 rounded-lg hover:bg-blue-100 text-slate-400 hover:text-blue-600"><Copy size={14} /></button>
-                <button onClick={() => setEditTx(tx)} title="Edit" aria-label="Edit transaction" className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6]"><Edit2 size={14} /></button>
+                <button onClick={() => setEditTx(tx)} title="Edit" aria-label="Edit transaction" className="p-2 rounded-lg hover:bg-[#00b4d8]/10 text-[#00b4d8]"><Edit2 size={14} /></button>
                 <button onClick={() => deleteTx(tx.id)} title="Delete" aria-label="Delete transaction" className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
               </div>
             </div>
@@ -193,7 +193,7 @@ export default function Transactions() {
             <h3 className="font-semibold text-slate-600 mb-2">No transactions found</h3>
             <p className="text-sm text-slate-400 mb-4">{isFiltered ? 'Try adjusting your filters' : 'Add your first transaction to get started'}</p>
             {!isFiltered && (
-              <button onClick={() => setModal('add')} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-lg font-medium hover:shadow-lg"><Plus size={16} />Add Transaction</button>
+              <button onClick={() => setModal('add')} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-lg font-medium hover:shadow-lg"><Plus size={16} />Add Transaction</button>
             )}
           </div>
         )}

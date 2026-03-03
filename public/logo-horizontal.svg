@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 70" width="300" height="70">
+  <defs>
+    <linearGradient id="logoGrad" x1="0" y1="5" x2="60" y2="65" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00b4d8"/>
+      <stop offset="100%" stop-color="#0096b7"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(5, 5)">
+    <rect width="60" height="60" rx="15" fill="url(#logoGrad)"/>
+    <path d="M15 30h30M30 15v30M19 22.5h22M19 37.5h22" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <text x="78" y="43" font-family="'DM Sans', system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0a1628" letter-spacing="-0.5">BalanceBooks</text>
+</svg>

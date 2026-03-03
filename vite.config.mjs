@@ -16,7 +16,7 @@ export default defineConfig({
         name: 'Balance Books Pro',
         short_name: 'BalanceBooks',
         description: 'Personal finance management with privacy-first design. Track expenses, budgets, debts, and savings — all data stays on your device.',
-        theme_color: '#1e3a5f',
+        theme_color: '#12233d',
         background_color: '#f8fafc',
         display: 'standalone',
         orientation: 'any',

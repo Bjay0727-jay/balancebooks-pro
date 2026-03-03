@@ -167,26 +167,26 @@ export default function App() {
   const connectBank = () => { alert('Bank connection is coming soon!\n\nPlaid integration is in development.'); setModal(null); };
 
   const NavItem = ({ id, icon: Icon, label, badge }) => (
-    <button onClick={() => { setView(id); if (isMobile) setSidebarOpen(false); }} className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all ${view === id ? 'bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white shadow-lg' : 'text-slate-600 hover:bg-gradient-to-r hover:from-[#0f172a]/5 hover:to-[#14b8a6]/5'}`}>
+    <button onClick={() => { setView(id); if (isMobile) setSidebarOpen(false); }} className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all ${view === id ? 'bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white shadow-lg' : 'text-slate-600 hover:bg-gradient-to-r hover:from-[#0a1628]/5 hover:to-[#00b4d8]/5'}`}>
       <div className="flex items-center gap-3"><Icon size={20} /><span className="font-medium">{label}</span></div>
-      {badge && <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${view === id ? 'bg-white/20' : 'bg-gradient-to-r from-green-100 to-blue-100 text-[#14b8a6]'}`}>{badge}</span>}
+      {badge && <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${view === id ? 'bg-white/20' : 'bg-gradient-to-r from-green-100 to-blue-100 text-[#00b4d8]'}`}>{badge}</span>}
     </button>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1e3a5f]/10 via-white to-[#14b8a6]/10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-gradient-to-br from-[#12233d]/10 via-white to-[#00b4d8]/10" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       {isMobile && sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
-      <aside role="navigation" aria-label="Main navigation" className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-white via-[#1e3a5f]/5 to-[#14b8a6]/5 border-r border-[#1e3a5f]/20 p-6 flex flex-col z-50 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside role="navigation" aria-label="Main navigation" className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-white via-[#12233d]/5 to-[#00b4d8]/5 border-r border-[#12233d]/20 p-6 flex flex-col z-50 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e3a5f] to-[#0f172a] flex items-center justify-center shadow-lg overflow-hidden">
-            <svg viewBox="0 0 100 100" className="w-8 h-8">
-              <defs><linearGradient id="navyGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style={{stopColor:'#1e3a5f'}} /><stop offset="100%" style={{stopColor:'#0f172a'}} /></linearGradient><linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{stopColor:'#14b8a6'}} /><stop offset="100%" style={{stopColor:'#0d9488'}} /></linearGradient></defs>
-              <path d="M 50 5 L 92 18 L 92 55 C 92 78 73 92 50 98 C 27 92 8 78 8 55 L 8 18 Z" fill="url(#navyGrad)"/><path d="M 50 14 L 82 24 L 82 54 C 82 72 67 83 50 88 C 33 83 18 72 18 54 L 18 24 Z" fill="none" stroke="url(#tealGrad)" strokeWidth="3"/><circle cx="50" cy="52" r="24" fill="url(#tealGrad)"/><path d="M 36 52 L 46 62 L 66 42" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg">
+            <svg viewBox="0 0 100 100" className="w-full h-full">
+              <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse"><stop offset="0%" stopColor="#00b4d8"/><stop offset="100%" stopColor="#0096b7"/></linearGradient></defs>
+              <rect width="100" height="100" rx="24" fill="url(#logoGrad)"/><path d="M25 50h50M50 25v50M31 37.5h38M31 62.5h38" stroke="#fff" strokeWidth="6" strokeLinecap="round"/>
             </svg>
           </div>
-          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro &bull; v{__APP_VERSION__}</p></div>
+          <div><h1 className="font-bold text-lg bg-gradient-to-r from-[#12233d] to-[#00b4d8] bg-clip-text text-transparent">BalanceBooks</h1><p className="text-xs text-slate-400">Pro &bull; v{__APP_VERSION__}</p></div>
         </div>
         <nav className="space-y-1 flex-1 overflow-y-auto">
           <NavItem id="dashboard" icon={LayoutGrid} label="Dashboard" />
@@ -201,28 +201,28 @@ export default function App() {
           <NavItem id="recommendations" icon={Lightbulb} label="Smart Tips" badge={savingsRecommendations.filter(r => r.priority === 'high').length || null} />
           <NavItem id="settings" icon={Settings} label="Settings" />
         </nav>
-        <div className="pt-6 border-t border-[#1e3a5f]/20 space-y-2">
-          <button onClick={() => setModal('connect')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#14b8a6] to-[#0d9488] text-white font-medium hover:from-[#0d9488] hover:to-[#0f172a] shadow-md"><Link2 size={20} /><span>Connect Bank</span></button>
-          <button onClick={() => setModal('import')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white font-medium hover:from-[#1e3a5f] hover:to-[#0f172a] shadow-md"><Upload size={20} /><span>Import</span></button>
-          <button onClick={exportCSV} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-slate-500 hover:bg-white border border-[#1e3a5f]/20"><Download size={20} /><span className="font-medium">Export</span></button>
+        <div className="pt-6 border-t border-[#12233d]/20 space-y-2">
+          <button onClick={() => setModal('connect')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#00b4d8] to-[#0096b7] text-white font-medium hover:from-[#0096b7] hover:to-[#0a1628] shadow-md"><Link2 size={20} /><span>Connect Bank</span></button>
+          <button onClick={() => setModal('import')} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white font-medium hover:from-[#12233d] hover:to-[#0a1628] shadow-md"><Upload size={20} /><span>Import</span></button>
+          <button onClick={exportCSV} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-slate-500 hover:bg-white border border-[#12233d]/20"><Download size={20} /><span className="font-medium">Export</span></button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main id="main-content" className={`transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'}`}>
-        <header className="sticky top-0 z-30 bg-gradient-to-r from-[#0f172a]/5/95 via-white/95 to-[#14b8a6]/5/95 backdrop-blur-lg border-b border-[#1e3a5f]/20">
+        <header className="sticky top-0 z-30 bg-gradient-to-r from-[#0a1628]/5/95 via-white/95 to-[#00b4d8]/5/95 backdrop-blur-lg border-b border-[#12233d]/20">
           <div className="flex items-center justify-between px-4 md:px-8 py-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6]"><Menu size={20} /></button>
-              <div><h2 className="font-bold text-slate-900 text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view}</h2><p className="text-sm text-[#14b8a6] font-medium">{FULL_MONTHS[month]} {year}</p></div>
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'} className="p-2 rounded-lg hover:bg-[#00b4d8]/10 text-[#00b4d8]"><Menu size={20} /></button>
+              <div><h2 className="font-bold text-slate-900 text-xl capitalize">{view === 'accounts' ? 'Bank Accounts' : view === 'recommendations' ? 'Smart Tips' : view}</h2><p className="text-sm text-[#00b4d8] font-medium">{FULL_MONTHS[month]} {year}</p></div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 border-2 border-[#1e3a5f]/20 rounded-xl overflow-hidden shadow-sm">
-                <button onClick={() => { if (month === 0) { setMonth(11); setYear(year - 1); } else setMonth(month - 1); }} aria-label="Previous month" className="p-3 hover:bg-[#14b8a6]/10 text-[#14b8a6]"><ChevronLeft size={18} /></button>
+              <div className="flex items-center bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 border-2 border-[#12233d]/20 rounded-xl overflow-hidden shadow-sm">
+                <button onClick={() => { if (month === 0) { setMonth(11); setYear(year - 1); } else setMonth(month - 1); }} aria-label="Previous month" className="p-3 hover:bg-[#00b4d8]/10 text-[#00b4d8]"><ChevronLeft size={18} /></button>
                 <span className="px-4 font-semibold text-slate-700 min-w-[60px] text-center">{MONTHS[month]}</span>
-                <button onClick={() => { if (month === 11) { setMonth(0); setYear(year + 1); } else setMonth(month + 1); }} aria-label="Next month" className="p-3 hover:bg-[#14b8a6]/10 text-[#14b8a6]"><ChevronRight size={18} /></button>
+                <button onClick={() => { if (month === 11) { setMonth(0); setYear(year + 1); } else setMonth(month + 1); }} aria-label="Next month" className="p-3 hover:bg-[#00b4d8]/10 text-[#00b4d8]"><ChevronRight size={18} /></button>
               </div>
-              {!isMobile && <button onClick={() => setModal('add')} aria-label="Add new transaction" className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium hover:from-blue-700 hover:to-green-600 shadow-lg"><Plus size={18} />Add</button>}
+              {!isMobile && <button onClick={() => setModal('add')} aria-label="Add new transaction" className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-medium hover:from-[#0a1628] hover:to-[#0096b7] shadow-lg"><Plus size={18} />Add</button>}
             </div>
           </div>
         </header>
@@ -243,13 +243,13 @@ export default function App() {
       </main>
 
       {/* Mobile FAB */}
-      {isMobile && <button onClick={() => setModal('add')} aria-label="Add transaction" className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:from-blue-700 hover:to-green-600"><Plus size={24} /></button>}
+      {isMobile && <button onClick={() => setModal('add')} aria-label="Add transaction" className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:from-[#0a1628] hover:to-[#0096b7]"><Plus size={24} /></button>}
 
       {/* PWA Update Banner */}
       {needRefresh && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white p-4 flex items-center justify-between z-50 shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white p-4 flex items-center justify-between z-50 shadow-lg">
           <div><strong>Update Available</strong><p className="text-sm opacity-90">A new version of Balance Books Pro is ready.</p></div>
-          <button onClick={() => updateServiceWorker(true)} className="px-4 py-2 bg-white text-[#1e3a5f] rounded-lg font-semibold hover:bg-slate-100">Update Now</button>
+          <button onClick={() => updateServiceWorker(true)} className="px-4 py-2 bg-white text-[#12233d] rounded-lg font-semibold hover:bg-slate-100">Update Now</button>
         </div>
       )}
 
@@ -257,9 +257,9 @@ export default function App() {
       {modal === 'edit-beginning' && (
         <Modal title="Edit Beginning Balance" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-xl p-4 border border-[#1e3a5f]/20"><p className="text-sm text-slate-600">Set the starting balance for <strong>{FULL_MONTHS[month]} {year}</strong>.</p></div>
-            <div><label className="block text-sm text-slate-600 font-medium mb-2">Beginning Balance</label><input type="number" defaultValue={stats.beginning} onChange={(e) => useAppStore.getState().setBeginningBalance(e.target.value)} className="w-full px-4 py-4 bg-white border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-[#14b8a6]" autoFocus /></div>
-            <div className="flex gap-3"><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Close</button><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-green-600">Save</button></div>
+            <div className="bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 rounded-xl p-4 border border-[#12233d]/20"><p className="text-sm text-slate-600">Set the starting balance for <strong>{FULL_MONTHS[month]} {year}</strong>.</p></div>
+            <div><label className="block text-sm text-slate-600 font-medium mb-2">Beginning Balance</label><input type="number" defaultValue={stats.beginning} onChange={(e) => useAppStore.getState().setBeginningBalance(e.target.value)} className="w-full px-4 py-4 bg-white border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-2xl font-bold text-[#00b4d8]" autoFocus /></div>
+            <div className="flex gap-3"><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Close</button><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg hover:from-[#0a1628] hover:to-[#0096b7]">Save</button></div>
           </div>
         </Modal>
       )}
@@ -267,8 +267,8 @@ export default function App() {
       {modal === 'edit-ending' && (
         <Modal title="Edit Ending Balance" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-[#14b8a6]/20"><p className="text-sm text-slate-600">Override the ending balance for <strong>{FULL_MONTHS[month]} {year}</strong>.</p><p className="text-xs text-slate-400 mt-2">Calculated value: {currency(stats.calculatedEnding)}</p></div>
-            <div><label className="block text-sm text-slate-600 font-medium mb-2">Ending Balance</label><input type="number" defaultValue={stats.ending} onChange={(e) => useAppStore.getState().setEndingBalance(e.target.value)} className="w-full px-4 py-4 bg-white border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-[#14b8a6]" autoFocus /></div>
+            <div className="bg-gradient-to-r from-[#00b4d8]/5 to-blue-50 rounded-xl p-4 border border-[#00b4d8]/20"><p className="text-sm text-slate-600">Override the ending balance for <strong>{FULL_MONTHS[month]} {year}</strong>.</p><p className="text-xs text-slate-400 mt-2">Calculated value: {currency(stats.calculatedEnding)}</p></div>
+            <div><label className="block text-sm text-slate-600 font-medium mb-2">Ending Balance</label><input type="number" defaultValue={stats.ending} onChange={(e) => useAppStore.getState().setEndingBalance(e.target.value)} className="w-full px-4 py-4 bg-white border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-2xl font-bold text-[#00b4d8]" autoFocus /></div>
             <div className="flex gap-3"><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Close</button><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-blue-500 text-white rounded-xl font-semibold shadow-lg">Save</button></div>
           </div>
         </Modal>
@@ -277,9 +277,9 @@ export default function App() {
       {modal === 'edit-income' && (
         <Modal title="Add/Adjust Income" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-[#14b8a6]/20"><p className="text-sm text-slate-600">Current income for <strong>{FULL_MONTHS[month]} {year}</strong>: <span className="font-bold text-[#14b8a6]">{currency(stats.income)}</span></p></div>
-            <button onClick={() => setModal('add')} className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-600 to-[#14b8a6]/50 text-white rounded-xl font-semibold shadow-lg"><Plus size={18} />Add Income Transaction</button>
-            <button onClick={() => { setView('transactions'); useAppStore.getState().setFilterCat('income'); setModal(null); }} className="w-full flex items-center justify-center gap-2 py-3 bg-[#14b8a6]/5 text-green-700 rounded-xl font-medium border border-[#14b8a6]/20"><Receipt size={18} />View All Income</button>
+            <div className="bg-gradient-to-r from-[#00b4d8]/5 to-blue-50 rounded-xl p-4 border border-[#00b4d8]/20"><p className="text-sm text-slate-600">Current income for <strong>{FULL_MONTHS[month]} {year}</strong>: <span className="font-bold text-[#00b4d8]">{currency(stats.income)}</span></p></div>
+            <button onClick={() => setModal('add')} className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-600 to-[#00b4d8]/50 text-white rounded-xl font-semibold shadow-lg"><Plus size={18} />Add Income Transaction</button>
+            <button onClick={() => { setView('transactions'); useAppStore.getState().setFilterCat('income'); setModal(null); }} className="w-full flex items-center justify-center gap-2 py-3 bg-[#00b4d8]/5 text-green-700 rounded-xl font-medium border border-[#00b4d8]/20"><Receipt size={18} />View All Income</button>
             <button onClick={() => setModal(null)} className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200"><X size={18} className="inline mr-1" />Close</button>
           </div>
         </Modal>
@@ -300,8 +300,8 @@ export default function App() {
       {modal === 'edit-goal' && (
         <Modal title="Edit Savings Goal" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 rounded-xl p-4 border border-[#14b8a6]/20"><p className="text-sm text-slate-600">Set your monthly savings target. Experts recommend at least 20% of income.</p></div>
-            <div><label className="block text-sm text-slate-600 font-medium mb-2">Monthly Savings Goal</label><input type="number" defaultValue={savingsGoal} onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)} className="w-full px-4 py-4 bg-white border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-[#14b8a6] text-2xl font-bold text-[#14b8a6]" autoFocus /></div>
+            <div className="bg-gradient-to-r from-[#00b4d8]/5 to-blue-50 rounded-xl p-4 border border-[#00b4d8]/20"><p className="text-sm text-slate-600">Set your monthly savings target. Experts recommend at least 20% of income.</p></div>
+            <div><label className="block text-sm text-slate-600 font-medium mb-2">Monthly Savings Goal</label><input type="number" defaultValue={savingsGoal} onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)} className="w-full px-4 py-4 bg-white border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-2xl font-bold text-[#00b4d8]" autoFocus /></div>
             <button onClick={() => setModal(null)} className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-blue-500 text-white rounded-xl font-semibold shadow-lg">Save</button>
           </div>
         </Modal>
@@ -315,9 +315,9 @@ export default function App() {
       {modal === 'import' && (
         <Modal title="Import Expenses" onClose={() => setModal(null)}>
           <div className="space-y-6">
-            <div className="text-center py-4"><div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center mx-auto mb-4 shadow-lg"><FileSpreadsheet size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Bulk Import</h3><p className="text-slate-500 text-sm">Import from CSV/Excel template</p></div>
-            <button onClick={downloadTemplate} className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 text-slate-700 rounded-xl font-medium border-2 border-[#1e3a5f]/20"><Download size={18} className="text-[#14b8a6]" />Download Template</button>
-            <div className="relative"><input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileImport} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><div className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg"><Upload size={18} />Select File</div></div>
+            <div className="text-center py-4"><div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#12233d] to-[#00b4d8] flex items-center justify-center mx-auto mb-4 shadow-lg"><FileSpreadsheet size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Bulk Import</h3><p className="text-slate-500 text-sm">Import from CSV/Excel template</p></div>
+            <button onClick={downloadTemplate} className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 text-slate-700 rounded-xl font-medium border-2 border-[#12233d]/20"><Download size={18} className="text-[#00b4d8]" />Download Template</button>
+            <div className="relative"><input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileImport} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><div className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg"><Upload size={18} />Select File</div></div>
             <button onClick={() => setModal(null)} className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-medium border border-slate-200"><X size={18} className="inline mr-1" />Close</button>
           </div>
         </Modal>
@@ -326,11 +326,11 @@ export default function App() {
       {modal === 'import-confirm' && importData && (
         <Modal title="Confirm Import" onClose={() => { setImportData(null); setModal(null); }}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-xl p-4 border border-[#14b8a6]/20"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#14b8a6]/50 rounded-full flex items-center justify-center"><CheckCircle size={20} className="text-white" /></div><div><p className="font-bold text-green-800">{importData.transactions.length} transactions ready to import</p><p className="text-sm text-green-700">From: {importData.filename}</p></div></div></div>
-            {importData.summary && <div className="grid grid-cols-2 gap-3"><div className="bg-[#14b8a6]/5 rounded-lg p-3 border border-[#14b8a6]/20"><p className="text-xs text-[#14b8a6] font-medium">Income</p><p className="text-lg font-bold text-green-700">{currency(importData.summary.income)}</p></div><div className="bg-red-50 rounded-lg p-3 border border-red-200"><p className="text-xs text-red-600 font-medium">Expenses</p><p className="text-lg font-bold text-red-700">{currency(importData.summary.expenses)}</p></div></div>}
+            <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-xl p-4 border border-[#00b4d8]/20"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#00b4d8]/50 rounded-full flex items-center justify-center"><CheckCircle size={20} className="text-white" /></div><div><p className="font-bold text-green-800">{importData.transactions.length} transactions ready to import</p><p className="text-sm text-green-700">From: {importData.filename}</p></div></div></div>
+            {importData.summary && <div className="grid grid-cols-2 gap-3"><div className="bg-[#00b4d8]/5 rounded-lg p-3 border border-[#00b4d8]/20"><p className="text-xs text-[#00b4d8] font-medium">Income</p><p className="text-lg font-bold text-green-700">{currency(importData.summary.income)}</p></div><div className="bg-red-50 rounded-lg p-3 border border-red-200"><p className="text-xs text-red-600 font-medium">Expenses</p><p className="text-lg font-bold text-red-700">{currency(importData.summary.expenses)}</p></div></div>}
             {importData.errors?.length > 0 && <div className="bg-amber-50 rounded-lg p-3 border border-amber-200"><p className="font-semibold text-amber-800 text-sm flex items-center gap-2"><AlertTriangle size={16} />{importData.errors.length} row(s) skipped</p><ul className="mt-2 text-xs text-amber-700 max-h-16 overflow-y-auto space-y-1">{importData.errors.slice(0, 3).map((err, i) => <li key={i}>&bull; {err}</li>)}{importData.errors.length > 3 && <li>...and {importData.errors.length - 3} more</li>}</ul></div>}
-            <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg">{importData.transactions.slice(0, 8).map((tx, i) => { const cat = CATEGORIES.find(c => c.id === tx.category); return (<div key={i} className="flex items-center justify-between p-3 border-b border-slate-100 last:border-b-0"><div className="flex items-center gap-3"><span className="text-lg">{cat?.icon || '📦'}</span><div><p className="font-medium text-sm text-slate-900">{tx.desc}</p><p className="text-xs text-slate-500">{tx.date} &bull; {cat?.name || 'Other'}</p></div></div><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>{tx.amount > 0 ? '+' : ''}{currency(tx.amount)}</span></div>); })}{importData.transactions.length > 8 && <p className="p-3 text-center text-sm text-slate-500 bg-slate-50">...and {importData.transactions.length - 8} more</p>}</div>
-            <div className="flex gap-3 pt-2"><button onClick={() => { setImportData(null); setModal(null); }} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium">Cancel</button><button onClick={confirmImport} className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-semibold shadow-lg">Import {importData.transactions.length}</button></div>
+            <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg">{importData.transactions.slice(0, 8).map((tx, i) => { const cat = CATEGORIES.find(c => c.id === tx.category); return (<div key={i} className="flex items-center justify-between p-3 border-b border-slate-100 last:border-b-0"><div className="flex items-center gap-3"><span className="text-lg">{cat?.icon || '📦'}</span><div><p className="font-medium text-sm text-slate-900">{tx.desc}</p><p className="text-xs text-slate-500">{tx.date} &bull; {cat?.name || 'Other'}</p></div></div><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#00b4d8]' : 'text-slate-900'}`}>{tx.amount > 0 ? '+' : ''}{currency(tx.amount)}</span></div>); })}{importData.transactions.length > 8 && <p className="p-3 text-center text-sm text-slate-500 bg-slate-50">...and {importData.transactions.length - 8} more</p>}</div>
+            <div className="flex gap-3 pt-2"><button onClick={() => { setImportData(null); setModal(null); }} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium">Cancel</button><button onClick={confirmImport} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#00b4d8] to-[#0096b7] text-white rounded-xl font-semibold shadow-lg">Import {importData.transactions.length}</button></div>
           </div>
         </Modal>
       )}
@@ -338,9 +338,9 @@ export default function App() {
       {modal === 'connect' && (
         <Modal title="Connect Bank" onClose={() => setModal(null)}>
           <div className="space-y-5">
-            <div className="text-center py-4"><div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1e3a5f] to-[#14b8a6] flex items-center justify-center mx-auto mb-4 shadow-lg"><Building2 size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Secure Bank Connection</h3><p className="text-slate-500 text-sm">Connect your bank to automatically track payments</p></div>
+            <div className="text-center py-4"><div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#12233d] to-[#00b4d8] flex items-center justify-center mx-auto mb-4 shadow-lg"><Building2 size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Secure Bank Connection</h3><p className="text-slate-500 text-sm">Connect your bank to automatically track payments</p></div>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3"><p className="text-sm text-amber-700"><strong>Demo Mode:</strong> This will simulate a bank connection.</p></div>
-            <button onClick={connectBank} disabled={plaidLoading} className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-600 to-[#14b8a6]/50 text-white rounded-xl font-semibold disabled:opacity-50 shadow-lg">{plaidLoading ? <><Loader2 size={18} className="animate-spin" />Connecting...</> : <><Link2 size={18} />Connect Demo Bank</>}</button>
+            <button onClick={connectBank} disabled={plaidLoading} className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-600 to-[#00b4d8]/50 text-white rounded-xl font-semibold disabled:opacity-50 shadow-lg">{plaidLoading ? <><Loader2 size={18} className="animate-spin" />Connecting...</> : <><Link2 size={18} />Connect Demo Bank</>}</button>
             <p className="text-xs text-slate-400 text-center">Your data is encrypted and stored locally</p>
           </div>
         </Modal>
@@ -349,9 +349,9 @@ export default function App() {
       {modal === 'set-budgets' && (
         <Modal title="Set Budget Goals" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-[#0f172a]/5 to-[#14b8a6]/5 rounded-xl p-4 border border-[#1e3a5f]/20"><p className="text-sm text-slate-600">Set monthly spending limits for each category.</p></div>
-            <div className="max-h-96 overflow-y-auto space-y-3">{CATEGORIES.filter(c => c.id !== 'income').map(cat => (<div key={cat.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl hover:border-blue-300"><span className="text-xl">{cat.icon}</span><span className="flex-1 font-medium text-slate-700">{cat.name}</span><div className="flex items-center gap-1"><span className="text-slate-400">$</span><input type="number" min="0" step="10" placeholder="0" value={budgetGoals[cat.id] || ''} onChange={(e) => setBudgetGoals({ ...budgetGoals, [cat.id]: parseFloat(e.target.value) || 0 })} className="w-24 px-3 py-2 border border-slate-200 rounded-lg text-right font-medium focus:ring-2 focus:ring-[#14b8a6]" /></div></div>))}</div>
-            <div className="flex gap-3 pt-4"><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium">Close</button><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg">Save Budgets</button></div>
+            <div className="bg-gradient-to-r from-[#0a1628]/5 to-[#00b4d8]/5 rounded-xl p-4 border border-[#12233d]/20"><p className="text-sm text-slate-600">Set monthly spending limits for each category.</p></div>
+            <div className="max-h-96 overflow-y-auto space-y-3">{CATEGORIES.filter(c => c.id !== 'income').map(cat => (<div key={cat.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl hover:border-blue-300"><span className="text-xl">{cat.icon}</span><span className="flex-1 font-medium text-slate-700">{cat.name}</span><div className="flex items-center gap-1"><span className="text-slate-400">$</span><input type="number" min="0" step="10" placeholder="0" value={budgetGoals[cat.id] || ''} onChange={(e) => setBudgetGoals({ ...budgetGoals, [cat.id]: parseFloat(e.target.value) || 0 })} className="w-24 px-3 py-2 border border-slate-200 rounded-lg text-right font-medium focus:ring-2 focus:ring-[#00b4d8]" /></div></div>))}</div>
+            <div className="flex gap-3 pt-4"><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium">Close</button><button onClick={() => setModal(null)} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg">Save Budgets</button></div>
           </div>
         </Modal>
       )}
@@ -364,16 +364,16 @@ export default function App() {
           <div className="space-y-4">
             {!restoreData ? (
               <div className="space-y-4">
-                <div className="text-center py-6"><div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0f172a]/50 to-indigo-500 flex items-center justify-center mx-auto mb-4 shadow-lg"><Upload size={36} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Select Your Backup File</h3><p className="text-sm text-slate-500">Choose the backup file you previously saved.</p></div>
-                <div className="bg-blue-50 rounded-xl p-4 border border-[#1e3a5f]/20"><p className="text-sm text-blue-800 mb-2 font-medium">Where to find your backup:</p><ul className="text-sm text-blue-700 space-y-1"><li>&bull; Check your <strong>Downloads</strong> folder</li><li>&bull; Look for <strong>BalanceBooks-Backup-...</strong></li><li>&bull; Or check your email</li></ul></div>
-                <div className="relative"><input type="file" accept=".backup,.json" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { const parsed = JSON.parse(ev.target.result); const data = parsed.data || parsed; const txs = data.transactions || parsed.transactions; if (txs && Array.isArray(txs)) { setRestoreData({ filename: file.name, date: parsed.exportDateFormatted || parsed.exportDate || 'Unknown', version: parsed.version || '1.0', summary: parsed.summary || { transactions: txs.length, recurringBills: (data.recurringExpenses || []).length, debts: (data.debts || []).length, budgetGoals: Object.keys(data.budgetGoals || {}).filter(k => (data.budgetGoals || {})[k] > 0).length }, raw: parsed }); } else { alert('Not a valid backup file.'); } } catch { alert('Could not read this file.'); } }; reader.readAsText(file); e.target.value = ''; }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><div className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg cursor-pointer"><Upload size={18} />Choose Backup File</div></div>
+                <div className="text-center py-6"><div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0a1628]/50 to-indigo-500 flex items-center justify-center mx-auto mb-4 shadow-lg"><Upload size={36} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900 mb-2">Select Your Backup File</h3><p className="text-sm text-slate-500">Choose the backup file you previously saved.</p></div>
+                <div className="bg-blue-50 rounded-xl p-4 border border-[#12233d]/20"><p className="text-sm text-blue-800 mb-2 font-medium">Where to find your backup:</p><ul className="text-sm text-blue-700 space-y-1"><li>&bull; Check your <strong>Downloads</strong> folder</li><li>&bull; Look for <strong>BalanceBooks-Backup-...</strong></li><li>&bull; Or check your email</li></ul></div>
+                <div className="relative"><input type="file" accept=".backup,.json" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { const parsed = JSON.parse(ev.target.result); const data = parsed.data || parsed; const txs = data.transactions || parsed.transactions; if (txs && Array.isArray(txs)) { setRestoreData({ filename: file.name, date: parsed.exportDateFormatted || parsed.exportDate || 'Unknown', version: parsed.version || '1.0', summary: parsed.summary || { transactions: txs.length, recurringBills: (data.recurringExpenses || []).length, debts: (data.debts || []).length, budgetGoals: Object.keys(data.budgetGoals || {}).filter(k => (data.budgetGoals || {})[k] > 0).length }, raw: parsed }); } else { alert('Not a valid backup file.'); } } catch { alert('Could not read this file.'); } }; reader.readAsText(file); e.target.value = ''; }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><div className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-[#00b4d8] to-[#0096b7] text-white rounded-xl font-semibold shadow-lg cursor-pointer"><Upload size={18} />Choose Backup File</div></div>
                 <button onClick={() => { setModal(null); setRestoreData(null); }} className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-medium">Cancel</button>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="text-center"><div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#14b8a6]/50 to-emerald-500 flex items-center justify-center mx-auto mb-3 shadow-lg"><CheckCircle size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900">Backup Found!</h3></div>
-                <div className="bg-gradient-to-r from-[#14b8a6]/5 to-emerald-50 rounded-xl p-4 border border-[#14b8a6]/20"><div className="flex items-center gap-2 mb-3"><FileSpreadsheet size={18} className="text-[#14b8a6]" /><span className="font-medium text-green-800">{restoreData.filename}</span></div><div className="text-sm text-green-700 space-y-1"><p>Saved: <strong>{typeof restoreData.date === 'string' && restoreData.date.includes('T') ? new Date(restoreData.date).toLocaleDateString() : restoreData.date}</strong></p><p>Version: <strong>{restoreData.version}</strong></p></div></div>
-                <div className="bg-blue-50 rounded-xl p-4 border border-[#1e3a5f]/20"><p className="font-medium text-blue-800 mb-3">This backup contains:</p><div className="grid grid-cols-2 gap-3"><div className="bg-white rounded-lg p-3 text-center"><p className="text-2xl font-bold text-[#14b8a6]">{restoreData.summary.transactions}</p><p className="text-xs text-slate-500">Transactions</p></div><div className="bg-white rounded-lg p-3 text-center"><p className="text-2xl font-bold text-[#14b8a6]">{restoreData.summary.recurringBills}</p><p className="text-xs text-slate-500">Recurring</p></div><div className="bg-white rounded-lg p-3 text-center"><p className="text-2xl font-bold text-purple-600">{restoreData.summary.debts}</p><p className="text-xs text-slate-500">Debts</p></div><div className="bg-white rounded-lg p-3 text-center"><p className="text-2xl font-bold text-amber-600">{restoreData.summary.budgetGoals}</p><p className="text-xs text-slate-500">Budgets</p></div></div></div>
+                <div className="text-center"><div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#00b4d8]/50 to-emerald-500 flex items-center justify-center mx-auto mb-3 shadow-lg"><CheckCircle size={32} className="text-white" /></div><h3 className="text-lg font-semibold text-slate-900">Backup Found!</h3></div>
+                <div className="bg-gradient-to-r from-[#00b4d8]/5 to-emerald-50 rounded-xl p-4 border border-[#00b4d8]/20"><div className="flex items-center gap-2 mb-3"><FileSpreadsheet size={18} className="text-[#00b4d8]" /><span className="font-medium text-green-800">{restoreData.filename}</span></div><div className="text-sm text-green-700 space-y-1"><p>Saved: <strong>{typeof restoreData.date === 'string' && restoreData.date.includes('T') ? new Date(restoreData.date).toLocaleDateString() : restoreData.date}</strong></p><p>Version: <strong>{restoreData.version}</strong></p></div></div>
+                <div className="bg-blue-50 rounded-xl p-4 border border-[#12233d]/20"><p className="font-medium text-blue-800 mb-3">This backup contains:</p><div className="grid grid-cols-2 gap-3"><div className="bg-white rounded-lg p-3 text-center"><p className="text-2xl font-bold text-[#00b4d8]">{restoreData.summary.transactions}</p><p className="text-xs text-slate-500">Transactions</p></div><div className="bg-white rounded-lg p-3 text-center"><p className="text-2xl font-bold text-[#00b4d8]">{restoreData.summary.recurringBills}</p><p className="text-xs text-slate-500">Recurring</p></div><div className="bg-white rounded-lg p-3 text-center"><p className="text-2xl font-bold text-purple-600">{restoreData.summary.debts}</p><p className="text-xs text-slate-500">Debts</p></div><div className="bg-white rounded-lg p-3 text-center"><p className="text-2xl font-bold text-amber-600">{restoreData.summary.budgetGoals}</p><p className="text-xs text-slate-500">Budgets</p></div></div></div>
                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-200"><p className="text-sm text-amber-800 flex items-start gap-2"><AlertTriangle size={18} className="shrink-0 mt-0.5" /><span><strong>Warning:</strong> This replaces all current data.</span></p></div>
                 <div className="flex gap-3"><button onClick={() => setRestoreData(null)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium">&larr; Back</button><button onClick={() => { const parsed = restoreData.raw; const data = parsed.data || parsed; const txs = Array.isArray(data.transactions || parsed.transactions) ? (data.transactions || parsed.transactions) : []; const validTxs = txs.filter(t => t && t.date && typeof t.amount === 'number'); setTransactions(validTxs); setRecurringExpenses(Array.isArray(data.recurringExpenses || parsed.recurringExpenses) ? (data.recurringExpenses || parsed.recurringExpenses) : []); setMonthlyBalances(typeof (data.monthlyBalances || parsed.monthlyBalances) === 'object' ? (data.monthlyBalances || parsed.monthlyBalances) : {}); const g = data.savingsGoal || parsed.savingsGoal; if (typeof g === 'number') setSavingsGoal(g); const bg = data.budgetGoals || parsed.budgetGoals; if (bg && typeof bg === 'object') setBudgetGoals(bg); const rd = data.debts || parsed.debts; if (Array.isArray(rd)) setDebts(rd); setRestoreData(null); setModal(null); setTimeout(() => alert(`Restore Complete!\n\n${restoreData.summary.transactions} transactions restored.`), 100); }} className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold shadow-lg">Restore My Data</button></div>
               </div>
@@ -410,7 +410,7 @@ export default function App() {
 
       {/* Import Success Toast */}
       {importNotification && (
-        <div className="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 animate-pulse max-w-sm">
+        <div className="fixed bottom-6 right-6 bg-gradient-to-r from-[#00b4d8] to-[#0096b7] text-white px-6 py-4 rounded-2xl shadow-2xl z-50 animate-pulse max-w-sm">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0"><CheckCircle size={24} /></div>
             <div className="flex-1"><p className="font-bold text-lg">Import Successful!</p><p className="text-sm text-green-100 mt-1">{importNotification.count} transactions imported</p><div className="flex gap-4 mt-2 text-sm"><span className="text-green-200">+{currency(importNotification.income)} income</span><span className="text-red-200">-{currency(importNotification.expenses)} expenses</span></div></div>

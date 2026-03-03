@@ -23,7 +23,7 @@ export default function Modal({ title, children, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-md rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-[#1e3a5f]/10 bg-gradient-to-r from-[#0f172a]/5 via-white to-[#14b8a6]/5">
+        <div className="flex items-center justify-between p-6 border-b border-[#12233d]/10 bg-gradient-to-r from-[#0a1628]/5 via-white to-[#00b4d8]/5">
           <h3 className="text-lg font-bold text-slate-900">{title}</h3>
           <button onClick={onClose} aria-label="Close dialog" className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors"><X size={18} /></button>
         </div>

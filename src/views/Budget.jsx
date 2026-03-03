@@ -10,13 +10,13 @@ export default function Budget() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-5 border-2 border-[#1e3a5f]/20 shadow-sm">
+        <div className="bg-white rounded-2xl p-5 border-2 border-[#12233d]/20 shadow-sm">
           <p className="text-slate-500 text-sm font-medium mb-1">Total Budget</p>
-          <p className="text-2xl font-bold text-[#14b8a6]">{currency(budgetStats.totalBudget)}</p>
+          <p className="text-2xl font-bold text-[#00b4d8]">{currency(budgetStats.totalBudget)}</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 border-2 border-[#14b8a6]/20 shadow-sm">
+        <div className="bg-white rounded-2xl p-5 border-2 border-[#00b4d8]/20 shadow-sm">
           <p className="text-slate-500 text-sm font-medium mb-1">Total Spent</p>
-          <p className="text-2xl font-bold text-[#14b8a6]">{currency(budgetStats.totalSpent)}</p>
+          <p className="text-2xl font-bold text-[#00b4d8]">{currency(budgetStats.totalSpent)}</p>
         </div>
         <div className={`bg-white rounded-2xl p-5 border-2 shadow-sm ${budgetStats.remaining >= 0 ? 'border-emerald-200' : 'border-rose-200'}`}>
           <p className="text-slate-500 text-sm font-medium mb-1">Remaining</p>
@@ -44,13 +44,13 @@ export default function Budget() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border-2 border-[#1e3a5f]/20 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border-2 border-[#12233d]/20 shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-            <Target size={18} className="text-[#14b8a6]" />
+            <Target size={18} className="text-[#00b4d8]" />
             Category Budgets
           </h3>
-          <button onClick={() => setModal('set-budgets')} className="px-4 py-2 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-medium text-sm shadow-lg hover:from-blue-700 hover:to-green-600">
+          <button onClick={() => setModal('set-budgets')} className="px-4 py-2 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white rounded-xl font-medium text-sm shadow-lg hover:from-[#0a1628] hover:to-[#0096b7]">
             <Plus size={16} className="inline mr-1" />Set Budgets
           </button>
         </div>
@@ -71,7 +71,7 @@ export default function Budget() {
                     <span className="font-medium text-slate-900">{b.name}</span>
                   </div>
                   <div className="text-right">
-                    <span className={`font-bold ${b.status === 'over' ? 'text-rose-600' : b.status === 'warning' ? 'text-amber-600' : 'text-[#14b8a6]'}`}>
+                    <span className={`font-bold ${b.status === 'over' ? 'text-rose-600' : b.status === 'warning' ? 'text-amber-600' : 'text-[#00b4d8]'}`}>
                       {currency(b.spent)}
                     </span>
                     <span className="text-slate-400"> / {currency(b.budget)}</span>
@@ -79,14 +79,14 @@ export default function Budget() {
                 </div>
                 <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className={`absolute h-full rounded-full transition-all ${b.status === 'over' ? 'bg-gradient-to-r from-rose-500 to-rose-600' : b.status === 'warning' ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-green-400 to-[#14b8a6]/50'}`}
+                    className={`absolute h-full rounded-full transition-all ${b.status === 'over' ? 'bg-gradient-to-r from-rose-500 to-rose-600' : b.status === 'warning' ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-green-400 to-[#00b4d8]/50'}`}
                     style={{ width: `${Math.min(b.percentUsed, 100)}%` }}
                   />
                   {b.percentUsed > 100 && <div className="absolute right-0 top-0 h-full w-1 bg-rose-700 animate-pulse" />}
                 </div>
                 <div className="flex justify-between mt-1 text-xs">
                   <span className={b.status === 'over' ? 'text-rose-600 font-medium' : 'text-slate-500'}>{b.percentUsed.toFixed(0)}% used</span>
-                  <span className={b.remaining >= 0 ? 'text-[#14b8a6]' : 'text-rose-600'}>{b.remaining >= 0 ? `${currency(b.remaining)} left` : `${currency(Math.abs(b.remaining))} over`}</span>
+                  <span className={b.remaining >= 0 ? 'text-[#00b4d8]' : 'text-rose-600'}>{b.remaining >= 0 ? `${currency(b.remaining)} left` : `${currency(Math.abs(b.remaining))} over`}</span>
                 </div>
               </div>
             ))}
