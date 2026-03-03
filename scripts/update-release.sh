@@ -47,7 +47,7 @@ Use instantly at: https://app.balancebooksapp.com
 - Improved Workbox caching strategies for fonts and CDN resources
 
 ### 🔑 License & Analytics Infrastructure
-- LemonSqueezy license activation/deactivation flow
+- Stripe license activation/deactivation flow
 - Privacy-respecting analytics opt-in with sendBeacon
 - Pro feature gating (Dropbox sync, debt planner, analytics, unlimited transactions)
 RELEASE_BODY

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import { useAppStore } from '../stores/useAppStore';
-import { Key, Mail, Check, AlertTriangle, Loader2, Crown, Unlock } from 'lucide-react';
+import { Key, Mail, Check, AlertTriangle, Loader2, Crown, Unlock, ExternalLink } from 'lucide-react';
 
 const PRO_FEATURES = [
   'Unlimited transactions',
@@ -10,6 +10,8 @@ const PRO_FEATURES = [
   'Advanced analytics',
   'Priority support',
 ];
+
+const STRIPE_CHECKOUT_URL = import.meta.env.VITE_STRIPE_CHECKOUT_URL || 'https://buy.stripe.com/balancebooks-pro';
 
 export default function LicenseModal({ onClose }) {
   const licenseStatus = useAppStore(s => s.licenseStatus);
@@ -47,6 +49,22 @@ export default function LicenseModal({ onClose }) {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* Buy via Stripe */}
+            <a
+              href={STRIPE_CHECKOUT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#635bff] to-[#00b4d8] text-white rounded-xl font-semibold shadow-lg hover:opacity-90 transition-opacity"
+            >
+              <ExternalLink size={18} /> Purchase on Stripe
+            </a>
+
+            <div className="relative flex items-center gap-3 text-sm text-slate-400">
+              <div className="flex-1 border-t border-slate-200" />
+              Already purchased? Enter your key below
+              <div className="flex-1 border-t border-slate-200" />
             </div>
 
             {/* Input fields */}
