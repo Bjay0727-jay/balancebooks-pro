@@ -25,6 +25,17 @@ export const useAppStore = create(
     dashboardWidget: loadData('dashboardWidget', 'ytd'),
     onboarded: loadData('onboarded', false),
 
+    // ── License ──────────────────────────────────────────────
+    licenseKey: loadData('licenseKey', null),
+    licenseEmail: loadData('licenseEmail', null),
+    licenseStatus: loadData('licenseStatus', 'trial'), // 'trial' | 'active' | 'expired' | 'invalid'
+    licenseExpiry: loadData('licenseExpiry', null),
+    licenseActivating: false,
+    licenseError: null,
+
+    // ── Analytics ────────────────────────────────────────────
+    analyticsConsent: loadData('analyticsConsent', 'not-asked'), // 'not-asked' | 'opted-in' | 'opted-out'
+
     // ── Dropbox ──────────────────────────────────────────────
     dropboxConnected: loadData('dropboxConnected', false),
     dropboxToken: loadData('dropboxToken', null),
@@ -76,6 +87,46 @@ export const useAppStore = create(
     setLastBackupDate: (date) => set({ lastBackupDate: date }),
     setNotificationsEnabled: (val) => set({ notificationsEnabled: val }),
     setDashboardWidget: (widget) => set({ dashboardWidget: widget }),
+
+    // ── Setters (license) ─────────────────────────────────────
+    setLicenseKey: (key) => set({ licenseKey: key }),
+    setLicenseEmail: (email) => set({ licenseEmail: email }),
+    setLicenseStatus: (status) => set({ licenseStatus: status }),
+    setLicenseExpiry: (expiry) => set({ licenseExpiry: expiry }),
+    setLicenseActivating: (val) => set({ licenseActivating: val }),
+    setLicenseError: (err) => set({ licenseError: err }),
+
+    activateLicense: async (key, email) => {
+      set({ licenseActivating: true, licenseError: null });
+      try {
+        const res = await fetch('https://api.lemonsqueezy.com/v1/licenses/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ license_key: key, instance_name: 'BalanceBooks Pro' }),
+        });
+        const data = await res.json();
+        if (data.activated || data.valid) {
+          set({ licenseKey: key, licenseEmail: email, licenseStatus: 'active', licenseExpiry: data.license_key?.expires_at || null });
+          return { success: true };
+        }
+        const msg = data.error || data.message || 'Invalid license key';
+        set({ licenseStatus: 'invalid', licenseError: msg });
+        return { success: false, error: msg };
+      } catch (err) {
+        set({ licenseError: err.message });
+        return { success: false, error: err.message };
+      } finally {
+        set({ licenseActivating: false });
+      }
+    },
+
+    deactivateLicense: () => {
+      set({ licenseKey: null, licenseEmail: null, licenseStatus: 'trial', licenseExpiry: null, licenseError: null });
+      ['licenseKey', 'licenseEmail', 'licenseStatus', 'licenseExpiry'].forEach(k => localStorage.removeItem('bb_' + k));
+    },
+
+    // ── Setters (analytics) ─────────────────────────────────
+    setAnalyticsConsent: (val) => set({ analyticsConsent: val }),
 
     // ── Setters (dropbox) ────────────────────────────────────
     setDropboxConnected: (val) => set({ dropboxConnected: val }),
@@ -231,6 +282,11 @@ const persistLS = (selector, lsKey) => {
   useAppStore.subscribe(selector, (val) => saveData(lsKey, val));
 };
 
+persistLS(s => s.licenseKey,       'licenseKey');
+persistLS(s => s.licenseEmail,     'licenseEmail');
+persistLS(s => s.licenseStatus,    'licenseStatus');
+persistLS(s => s.licenseExpiry,    'licenseExpiry');
+persistLS(s => s.analyticsConsent, 'analyticsConsent');
 persistLS(s => s.accounts,        'accounts');
 persistLS(s => s.dashboardWidget,  'dashboardWidget');
 persistLS(s => s.dropboxConnected, 'dropboxConnected');

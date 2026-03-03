@@ -14,7 +14,11 @@ import TxForm from './components/TxForm';
 import RecurringForm from './components/RecurringForm';
 import DebtForm from './components/DebtForm';
 import OnboardingWizard from './components/OnboardingWizard';
+import LicenseModal from './components/LicenseModal';
+import AnalyticsConsentModal from './components/AnalyticsConsentModal';
 import { useRecurringAutoGen } from './hooks/useRecurringAutoGen';
+import { useLicenseManager } from './hooks/useLicenseManager';
+import { useAnalytics } from './hooks/useAnalytics';
 import Dashboard from './views/Dashboard';
 import Transactions from './views/Transactions';
 import Recurring from './views/Recurring';
@@ -97,8 +101,27 @@ export default function App() {
   // Auto-generate transactions from recurring expenses
   useRecurringAutoGen();
 
+  // License manager
+  useLicenseManager();
+
+  // Analytics (tracks page views when opted in)
+  const { trackPageView } = useAnalytics();
+  const analyticsConsent = useAppStore(s => s.analyticsConsent);
+
   // Hydrate from IndexedDB
   useEffect(() => { if (dbReady && dbData && !hydrated) hydrate(dbData); }, [dbReady, dbData, hydrated, hydrate]);
+
+  // Show analytics consent prompt after onboarding (one-time)
+  useEffect(() => {
+    if (hydrated && onboarded && analyticsConsent === 'not-asked') {
+      // Delay slightly so it doesn't compete with onboarding
+      const t = setTimeout(() => setModal('analytics-consent'), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [hydrated, onboarded, analyticsConsent, setModal]);
+
+  // Track page views
+  useEffect(() => { trackPageView(view); }, [view, trackPageView]);
 
   // Auto-backup every 24 hours
   const performAutoBackup = useCallback(() => {
@@ -354,6 +377,9 @@ export default function App() {
           </div>
         </Modal>
       )}
+
+      {modal === 'license' && <LicenseModal onClose={() => setModal(null)} />}
+      {modal === 'analytics-consent' && <AnalyticsConsentModal onClose={() => setModal(null)} />}
 
       {/* Onboarding Wizard */}
       {hydrated && !onboarded && <OnboardingWizard />}
