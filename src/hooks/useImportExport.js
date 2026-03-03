@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import { CATEGORIES, FULL_MONTHS } from '../utils/constants';
 import { uid, currency, roundCents, escapeCSVField, getDateParts } from '../utils/formatters';
 import { useAppStore } from '../stores/useAppStore';
@@ -92,8 +93,6 @@ const parseCSV = (content) => {
 
 const parseExcel = async (file) => {
   return new Promise((resolve) => {
-    const XLSX = window.XLSX;
-    if (!XLSX) { resolve({ transactions: [], errors: ['Excel library not loaded. Please save as CSV.'] }); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
