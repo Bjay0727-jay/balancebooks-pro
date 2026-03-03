@@ -1,11 +1,13 @@
-import { Target, Plus, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { Target, Plus, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { useFinancialData } from '../hooks/useFinancialData';
-import { currency } from '../utils/formatters';
+import { currency, shortDate } from '../utils/formatters';
 
 export default function Budget() {
   const setModal = useAppStore(s => s.setModal);
-  const { budgetAnalysis, budgetStats } = useFinancialData();
+  const { budgetAnalysis, budgetStats, monthTx } = useFinancialData();
+  const [expandedCat, setExpandedCat] = useState(null);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -63,33 +65,55 @@ export default function Budget() {
           </div>
         ) : (
           <div className="space-y-4">
-            {budgetAnalysis.map(b => (
-              <div key={b.id} className="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-all">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{b.icon}</span>
-                    <span className="font-medium text-slate-900">{b.name}</span>
+            {budgetAnalysis.map(b => {
+              const isExpanded = expandedCat === b.id;
+              const catTxs = isExpanded ? monthTx.filter(t => t.amount < 0 && (t.category === b.id || t.splits?.some(s => s.category === b.id))).sort((a, c) => (c.date || '').localeCompare(a.date || '')) : [];
+              return (
+              <div key={b.id} className="border border-slate-200 rounded-xl overflow-hidden hover:border-blue-300 transition-all">
+                <button type="button" onClick={() => setExpandedCat(isExpanded ? null : b.id)} className="w-full p-4 text-left cursor-pointer">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{b.icon}</span>
+                      <span className="font-medium text-slate-900">{b.name}</span>
+                      {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                    </div>
+                    <div className="text-right">
+                      <span className={`font-bold ${b.status === 'over' ? 'text-rose-600' : b.status === 'warning' ? 'text-amber-600' : 'text-[#00b4d8]'}`}>
+                        {currency(b.spent)}
+                      </span>
+                      <span className="text-slate-400"> / {currency(b.budget)}</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`font-bold ${b.status === 'over' ? 'text-rose-600' : b.status === 'warning' ? 'text-amber-600' : 'text-[#00b4d8]'}`}>
-                      {currency(b.spent)}
-                    </span>
-                    <span className="text-slate-400"> / {currency(b.budget)}</span>
+                  <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`absolute h-full rounded-full transition-all ${b.status === 'over' ? 'bg-gradient-to-r from-rose-500 to-rose-600' : b.status === 'warning' ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-green-400 to-[#00b4d8]/50'}`}
+                      style={{ width: `${Math.min(b.percentUsed, 100)}%` }}
+                    />
+                    {b.percentUsed > 100 && <div className="absolute right-0 top-0 h-full w-1 bg-rose-700 animate-pulse" />}
                   </div>
-                </div>
-                <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className={`absolute h-full rounded-full transition-all ${b.status === 'over' ? 'bg-gradient-to-r from-rose-500 to-rose-600' : b.status === 'warning' ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-green-400 to-[#00b4d8]/50'}`}
-                    style={{ width: `${Math.min(b.percentUsed, 100)}%` }}
-                  />
-                  {b.percentUsed > 100 && <div className="absolute right-0 top-0 h-full w-1 bg-rose-700 animate-pulse" />}
-                </div>
-                <div className="flex justify-between mt-1 text-xs">
-                  <span className={b.status === 'over' ? 'text-rose-600 font-medium' : 'text-slate-500'}>{b.percentUsed.toFixed(0)}% used</span>
-                  <span className={b.remaining >= 0 ? 'text-[#00b4d8]' : 'text-rose-600'}>{b.remaining >= 0 ? `${currency(b.remaining)} left` : `${currency(Math.abs(b.remaining))} over`}</span>
-                </div>
+                  <div className="flex justify-between mt-1 text-xs">
+                    <span className={b.status === 'over' ? 'text-rose-600 font-medium' : 'text-slate-500'}>{b.percentUsed.toFixed(0)}% used</span>
+                    <span className={b.remaining >= 0 ? 'text-[#00b4d8]' : 'text-rose-600'}>{b.remaining >= 0 ? `${currency(b.remaining)} left` : `${currency(Math.abs(b.remaining))} over`}</span>
+                  </div>
+                </button>
+                {isExpanded && (
+                  <div className="border-t border-slate-100 bg-slate-50/50 divide-y divide-slate-100">
+                    {catTxs.length > 0 ? catTxs.map(tx => (
+                      <div key={tx.id} className="flex items-center justify-between px-4 py-2.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-800 truncate">{tx.desc}</p>
+                          <p className="text-xs text-slate-400">{shortDate(tx.date)}</p>
+                        </div>
+                        <span className="text-sm font-bold text-slate-900 tabular-nums">{currency(tx.amount)}</span>
+                      </div>
+                    )) : (
+                      <p className="px-4 py-3 text-sm text-slate-400">No transactions this month</p>
+                    )}
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

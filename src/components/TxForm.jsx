@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { CATEGORIES } from '../utils/constants';
-import { Plus, Trash2, Split } from 'lucide-react';
+import { CATEGORIES, FREQUENCY_OPTIONS } from '../utils/constants';
+import { Plus, Trash2, Split, RefreshCw } from 'lucide-react';
 
-export default function TxForm({ tx, onSubmit, onCancel, showPaid }) {
+export default function TxForm({ tx, onSubmit, onCancel, showPaid, onAddRecurring }) {
   const initType = tx?.amount > 0 ? 'income' : 'expense';
   const [form, setForm] = useState({
     date: tx?.date || new Date().toISOString().split('T')[0],
@@ -12,6 +12,8 @@ export default function TxForm({ tx, onSubmit, onCancel, showPaid }) {
     category: tx?.category || 'other',
     paid: tx ? (tx.paid || false) : (initType === 'income'),
   });
+  const [recurring, setRecurring] = useState(false);
+  const [recurFrequency, setRecurFrequency] = useState('monthly');
   const [splitMode, setSplitMode] = useState(() => !!(tx?.splits?.length));
   const [splits, setSplits] = useState(() =>
     tx?.splits?.length
@@ -57,6 +59,17 @@ export default function TxForm({ tx, onSubmit, onCancel, showPaid }) {
       delete txData.splits;
     }
     onSubmit(txData);
+    if (recurring && onAddRecurring && form.type === 'expense') {
+      const day = parseInt(form.date.split('-')[2]) || 1;
+      onAddRecurring({
+        name: form.desc,
+        amount: Math.abs(totalAmount),
+        category: form.category,
+        frequency: recurFrequency,
+        dueDay: day,
+        autoPay: form.paid,
+      });
+    }
   };
 
   const toggleSplitMode = () => {
@@ -151,6 +164,21 @@ export default function TxForm({ tx, onSubmit, onCancel, showPaid }) {
           <button type="button" onClick={addSplit} className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium">
             <Plus size={14} /> Add Split
           </button>
+        </div>
+      )}
+
+      {form.type === 'expense' && onAddRecurring && (
+        <div className="space-y-2">
+          <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200">
+            <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500" />
+            <RefreshCw size={16} className="text-purple-500" />
+            <span className="text-slate-700 font-medium">Recurring expense</span>
+          </label>
+          {recurring && (
+            <select value={recurFrequency} onChange={(e) => setRecurFrequency(e.target.value)} className="w-full px-4 py-2.5 bg-white border-2 border-purple-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400">
+              {FREQUENCY_OPTIONS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          )}
         </div>
       )}
 
