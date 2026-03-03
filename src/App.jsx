@@ -9,10 +9,12 @@ import { useAppStore } from './stores/useAppStore';
 import { useFinancialData } from './hooks/useFinancialData';
 import { useImportExport } from './hooks/useImportExport';
 import { useDropbox } from './hooks/useDropbox';
+import { useRecurringAutoGen } from './hooks/useRecurringAutoGen';
 import Modal from './components/Modal';
 import TxForm from './components/TxForm';
 import RecurringForm from './components/RecurringForm';
 import DebtForm from './components/DebtForm';
+import OnboardingWizard from './components/OnboardingWizard';
 import Dashboard from './views/Dashboard';
 import Transactions from './views/Transactions';
 import Recurring from './views/Recurring';
@@ -77,6 +79,7 @@ export default function App() {
   const notificationsEnabled = useAppStore(s => s.notificationsEnabled);
   const hydrated = useAppStore(s => s.hydrated);
   const hydrate = useAppStore(s => s.hydrate);
+  const onboarded = useAppStore(s => s.onboarded);
   const addTx = useAppStore(s => s.addTx);
   const updateTx = useAppStore(s => s.updateTx);
   const addRecurring = useAppStore(s => s.addRecurring);
@@ -90,6 +93,9 @@ export default function App() {
 
   // Dropbox (handles OAuth callback via effect)
   useDropbox();
+
+  // Auto-generate transactions from recurring expenses
+  useRecurringAutoGen();
 
   // Hydrate from IndexedDB
   useEffect(() => { if (dbReady && dbData && !hydrated) hydrate(dbData); }, [dbReady, dbData, hydrated, hydrate]);
@@ -348,6 +354,9 @@ export default function App() {
           </div>
         </Modal>
       )}
+
+      {/* Onboarding Wizard */}
+      {hydrated && !onboarded && <OnboardingWizard />}
 
       {/* Import Success Toast */}
       {importNotification && (

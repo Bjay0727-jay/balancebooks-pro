@@ -15,6 +15,11 @@ export function useFinancialData() {
   const search = useAppStore(s => s.search);
   const filterCat = useAppStore(s => s.filterCat);
   const filterPaid = useAppStore(s => s.filterPaid);
+  const filterAmountMin = useAppStore(s => s.filterAmountMin);
+  const filterAmountMax = useAppStore(s => s.filterAmountMax);
+  const filterDateFrom = useAppStore(s => s.filterDateFrom);
+  const filterDateTo = useAppStore(s => s.filterDateTo);
+  const searchAllMonths = useAppStore(s => s.searchAllMonths);
 
   const currentMonthKey = getMonthKey(month, year);
 
@@ -36,13 +41,29 @@ export function useFinancialData() {
   }), [transactions, month, year]);
 
   const filtered = useMemo(() => {
-    let list = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    let list = searchAllMonths
+      ? [...transactions]
+      : transactions.filter(t => {
+          const parts = getDateParts(t.date);
+          return parts && parts.month === month && parts.year === year;
+        });
+    list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     if (search) list = list.filter(t => t.desc.toLowerCase().includes(search.toLowerCase()));
     if (filterCat !== 'all') list = list.filter(t => t.category === filterCat);
     if (filterPaid === 'paid') list = list.filter(t => t.paid);
     if (filterPaid === 'unpaid') list = list.filter(t => !t.paid);
+    if (filterAmountMin !== '') {
+      const min = parseFloat(filterAmountMin);
+      if (!isNaN(min)) list = list.filter(t => Math.abs(t.amount) >= min);
+    }
+    if (filterAmountMax !== '') {
+      const max = parseFloat(filterAmountMax);
+      if (!isNaN(max)) list = list.filter(t => Math.abs(t.amount) <= max);
+    }
+    if (filterDateFrom) list = list.filter(t => t.date >= filterDateFrom);
+    if (filterDateTo) list = list.filter(t => t.date <= filterDateTo);
     return list;
-  }, [transactions, search, filterCat, filterPaid]);
+  }, [transactions, search, filterCat, filterPaid, filterAmountMin, filterAmountMax, filterDateFrom, filterDateTo, searchAllMonths, month, year]);
 
   const stats = useMemo(() => {
     const income = roundCents(monthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0));
