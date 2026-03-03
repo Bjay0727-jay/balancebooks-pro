@@ -9,6 +9,7 @@ import { useAppStore } from './stores/useAppStore';
 import { useFinancialData } from './hooks/useFinancialData';
 import { useImportExport } from './hooks/useImportExport';
 import { useDropbox } from './hooks/useDropbox';
+import { useUpdateChecker } from './hooks/useUpdateChecker';
 import Modal from './components/Modal';
 import TxForm from './components/TxForm';
 import RecurringForm from './components/RecurringForm';
@@ -40,6 +41,7 @@ export default function App() {
   const swReg = useRegisterSW({ immediate: !isElectron });
   const needRefresh = swReg.needRefresh?.[0] || false;
   const updateServiceWorker = swReg.updateServiceWorker;
+  const { updateInfo, showBanner: showUpdateBanner, dismiss: dismissUpdate } = useUpdateChecker(__APP_VERSION__);
   const { initialized: dbReady, data: dbData } = useAppInit();
 
   // Store state
@@ -253,6 +255,23 @@ export default function App() {
         <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#12233d] to-[#00b4d8] text-white p-4 flex items-center justify-between z-50 shadow-lg">
           <div><strong>Update Available</strong><p className="text-sm opacity-90">A new version of Balance Books Pro is ready.</p></div>
           <button onClick={() => updateServiceWorker(true)} className="px-4 py-2 bg-white text-[#12233d] rounded-lg font-semibold hover:bg-slate-100">Update Now</button>
+        </div>
+      )}
+
+      {/* App Update Notification */}
+      {showUpdateBanner && !needRefresh && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-4 flex items-center justify-between z-50 shadow-lg">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0"><Download size={20} /></div>
+            <div className="min-w-0">
+              <strong>Version {updateInfo.version} Available</strong>
+              {updateInfo.releaseNotes && <p className="text-sm opacity-90 truncate">{updateInfo.releaseNotes}</p>}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={dismissUpdate} className="px-3 py-2 text-sm bg-white/20 rounded-lg hover:bg-white/30">Later</button>
+            <a href={updateInfo.downloadUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-white text-emerald-700 rounded-lg font-semibold hover:bg-slate-100">Download</a>
+          </div>
         </div>
       )}
 
