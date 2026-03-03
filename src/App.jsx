@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save } from 'lucide-react';
+import { Download, PiggyBank, TrendingUp, TrendingDown, Calendar, Plus, Trash2, Edit2, X, ArrowUpRight, ArrowDownRight, Wallet, Target, ChevronLeft, ChevronRight, Building2, Settings, Search, LayoutGrid, Receipt, Shield, Link2, Unlink, Loader2, Menu, RefreshCw, Check, Clock, AlertCircle, FileSpreadsheet, Upload, Lightbulb, DollarSign, Bell, Calculator, Sparkles, AlertTriangle, CheckCircle, Info, CreditCard, Percent, Zap, TrendingUp as Trending, PieChart, BarChart3, Goal, Smartphone, Cloud, HardDrive, Mail, Save, Copy } from 'lucide-react';
 import { CATEGORIES, FREQUENCY_OPTIONS, MONTHS, FULL_MONTHS } from './utils/constants';
 import { uid, currency, shortDate, getDateParts as _getDateParts, getMonthKey as _getMonthKey, roundCents, escapeCSVField } from './utils/formatters';
+import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useAppInit } from './hooks/useAppInit';
+import { transactionsDB, recurringDB, balancesDB, budgetDB, debtsDB, settingsDB } from './db/database';
 
 const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 
@@ -21,6 +24,10 @@ const loadData = (key, defaultValue) => { try { const saved = localStorage.getIt
 
 export default function App() {
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const swReg = useRegisterSW({ immediate: !isElectron });
+  const needRefresh = swReg.needRefresh?.[0] || false;
+  const updateServiceWorker = swReg.updateServiceWorker;
+  const { initialized: dbReady, initializing: dbLoading, data: dbData } = useAppInit();
   const [view, setView] = useState('dashboard');
   const [transactions, setTransactions] = useState(() => loadData('transactions', []));
   const [recurringExpenses, setRecurringExpenses] = useState(() => loadData('recurring', []));
@@ -66,34 +73,86 @@ export default function App() {
   const DROPBOX_APP_KEY = typeof import.meta !== 'undefined' ? (import.meta.env?.VITE_DROPBOX_APP_KEY || '') : '';
   const DROPBOX_REDIRECT_URI = window.location.origin;
 
-  useEffect(() => { saveData('transactions', transactions); }, [transactions]);
+  // Hydrate state from IndexedDB once migration/load completes
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (dbReady && dbData && !hydrated) {
+      if (dbData.transactions?.length > 0 || dbData.recurringExpenses?.length > 0) {
+        setTransactions(dbData.transactions || []);
+        setRecurringExpenses(dbData.recurringExpenses || []);
+        setMonthlyBalances(dbData.monthlyBalances || {});
+        setBudgetGoals(dbData.budgetGoals || {});
+        setDebts(dbData.debts || []);
+        if (dbData.savingsGoal != null) setSavingsGoal(dbData.savingsGoal);
+        if (dbData.autoBackup != null) setAutoBackupEnabled(dbData.autoBackup);
+        if (dbData.lastBackup != null) setLastBackupDate(dbData.lastBackup);
+        if (dbData.notifications != null) setNotificationsEnabled(dbData.notifications);
+      }
+      setHydrated(true);
+    }
+  }, [dbReady, dbData, hydrated]);
+
+  // Dual-write: persist to both localStorage (fallback) and IndexedDB
+  useEffect(() => { saveData('transactions', transactions); if (hydrated) transactionsDB.replaceAll(transactions).catch(() => {}); }, [transactions, hydrated]);
   useEffect(() => { saveData('dashboardWidget', dashboardWidget); }, [dashboardWidget]);
-  useEffect(() => { saveData('recurring', recurringExpenses); }, [recurringExpenses]);
-  useEffect(() => { saveData('monthlyBalances', monthlyBalances); }, [monthlyBalances]);
-  useEffect(() => { saveData('savingsGoal', savingsGoal); }, [savingsGoal]);
-  useEffect(() => { saveData('budgetGoals', budgetGoals); }, [budgetGoals]);
-  useEffect(() => { saveData('debts', debts); }, [debts]);
-  useEffect(() => { saveData('autoBackup', autoBackupEnabled); }, [autoBackupEnabled]);
-  useEffect(() => { saveData('lastBackup', lastBackupDate); }, [lastBackupDate]);
-  useEffect(() => { saveData('notifications', notificationsEnabled); }, [notificationsEnabled]);
+  useEffect(() => { saveData('recurring', recurringExpenses); if (hydrated) recurringDB.replaceAll(recurringExpenses).catch(() => {}); }, [recurringExpenses, hydrated]);
+  useEffect(() => { saveData('monthlyBalances', monthlyBalances); if (hydrated) balancesDB.replaceAll(monthlyBalances).catch(() => {}); }, [monthlyBalances, hydrated]);
+  useEffect(() => { saveData('savingsGoal', savingsGoal); if (hydrated) settingsDB.set('savingsGoal', savingsGoal).catch(() => {}); }, [savingsGoal, hydrated]);
+  useEffect(() => { saveData('budgetGoals', budgetGoals); if (hydrated) budgetDB.replaceAll(budgetGoals).catch(() => {}); }, [budgetGoals, hydrated]);
+  useEffect(() => { saveData('debts', debts); if (hydrated) debtsDB.replaceAll(debts).catch(() => {}); }, [debts, hydrated]);
+  useEffect(() => { saveData('autoBackup', autoBackupEnabled); if (hydrated) settingsDB.set('autoBackup', autoBackupEnabled).catch(() => {}); }, [autoBackupEnabled, hydrated]);
+  useEffect(() => { saveData('lastBackup', lastBackupDate); if (hydrated) settingsDB.set('lastBackup', lastBackupDate).catch(() => {}); }, [lastBackupDate, hydrated]);
+  useEffect(() => { saveData('notifications', notificationsEnabled); if (hydrated) settingsDB.set('notifications', notificationsEnabled).catch(() => {}); }, [notificationsEnabled, hydrated]);
 
   // Save Dropbox state
   useEffect(() => { saveData('dropboxConnected', dropboxConnected); }, [dropboxConnected]);
   useEffect(() => { saveData('dropboxToken', dropboxToken); }, [dropboxToken]);
   useEffect(() => { saveData('dropboxLastSync', dropboxLastSync); }, [dropboxLastSync]);
 
-  // Handle Dropbox OAuth callback
+  // Handle Dropbox OAuth callback (PKCE flow: code in query params)
   useEffect(() => {
-    const handleDropboxCallback = () => {
+    const handleDropboxCallback = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const codeVerifier = sessionStorage.getItem('bb_dropbox_code_verifier');
+      if (code && codeVerifier && DROPBOX_APP_KEY) {
+        try {
+          // Exchange authorization code for access token
+          const resp = await fetch('https://api.dropboxapi.com/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              code,
+              grant_type: 'authorization_code',
+              client_id: DROPBOX_APP_KEY,
+              redirect_uri: DROPBOX_REDIRECT_URI,
+              code_verifier: codeVerifier,
+            }),
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            setDropboxToken(data.access_token);
+            setDropboxConnected(true);
+            setDropboxError(null);
+          } else {
+            setDropboxError('Failed to connect to Dropbox. Please try again.');
+          }
+        } catch (err) {
+          setDropboxError('Connection error: ' + err.message);
+        } finally {
+          sessionStorage.removeItem('bb_dropbox_code_verifier');
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      }
+      // Also handle legacy implicit flow tokens (for existing users)
       const hash = window.location.hash;
       if (hash && hash.includes('access_token')) {
-        const params = new URLSearchParams(hash.substring(1));
-        const token = params.get('access_token');
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const token = hashParams.get('access_token');
         if (token) {
           setDropboxToken(token);
           setDropboxConnected(true);
           setDropboxError(null);
-          // Clean URL
           window.history.replaceState(null, '', window.location.pathname);
         }
       }
@@ -168,13 +227,21 @@ export default function App() {
     }
   }, [transactions, recurringExpenses, monthlyBalances, savingsGoal, budgetGoals, debts]);
 
-  // Dropbox: Connect (OAuth)
-  const connectDropbox = () => {
+  // Dropbox: Connect (PKCE OAuth flow)
+  const connectDropbox = async () => {
     if (!DROPBOX_APP_KEY) {
       alert('Dropbox integration is not configured.\n\nTo enable cloud backup, set the VITE_DROPBOX_APP_KEY environment variable and rebuild the app.');
       return;
     }
-    const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(DROPBOX_REDIRECT_URI)}`;
+    // Generate PKCE code verifier and challenge
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const codeVerifier = btoa(String.fromCharCode(...array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const encoder = new TextEncoder();
+    const digest = await crypto.subtle.digest('SHA-256', encoder.encode(codeVerifier));
+    const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    sessionStorage.setItem('bb_dropbox_code_verifier', codeVerifier);
+    const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=code&redirect_uri=${encodeURIComponent(DROPBOX_REDIRECT_URI)}&code_challenge=${codeChallenge}&code_challenge_method=S256&token_access_type=offline`;
     window.location.href = authUrl;
   };
 
@@ -1262,6 +1329,7 @@ export default function App() {
   const addTx = (tx) => { setTransactions([...transactions, { ...tx, id: uid() }]); setModal(null); };
   const updateTx = (tx) => { setTransactions(transactions.map(t => t.id === tx.id ? tx : t)); setEditTx(null); };
   const deleteTx = (id) => setTransactions(transactions.filter(t => t.id !== id));
+  const duplicateTx = (tx) => { setTransactions([...transactions, { ...tx, id: uid(), date: new Date().toISOString().split('T')[0], paid: tx.amount > 0 }]); };
   const togglePaid = (id) => setTransactions(transactions.map(t => t.id === id ? { ...t, paid: !t.paid } : t));
 
   const addRecurring = (r) => { setRecurringExpenses([...recurringExpenses, { ...r, id: uid(), active: true }]); setModal(null); };
@@ -1694,7 +1762,7 @@ export default function App() {
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: cat?.bg }}>{cat?.icon}</div>
                       <div className="min-w-0"><p className={`font-medium text-sm truncate ${tx.paid ? 'text-slate-900' : 'text-slate-600'}`}>{tx.desc}</p><p className="text-xs text-slate-500">{shortDate(tx.date)}</p></div>
                     </div>
-                    <div className="flex items-center gap-2"><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>{currency(tx.amount)}</span><button onClick={() => setEditTx(tx)} className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6] hover:text-[#14b8a6]"><Edit2 size={14} /></button><button onClick={() => deleteTx(tx.id)} className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button></div>
+                    <div className="flex items-center gap-2"><span className={`font-bold text-sm ${tx.amount > 0 ? 'text-[#14b8a6]' : 'text-slate-900'}`}>{currency(tx.amount)}</span><button onClick={() => duplicateTx(tx)} title="Duplicate" className="p-2 rounded-lg hover:bg-blue-100 text-slate-400 hover:text-blue-600"><Copy size={14} /></button><button onClick={() => setEditTx(tx)} title="Edit" className="p-2 rounded-lg hover:bg-[#14b8a6]/10 text-[#14b8a6] hover:text-[#14b8a6]"><Edit2 size={14} /></button><button onClick={() => deleteTx(tx.id)} title="Delete" className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button></div>
                   </div>
                 ); }) : (
                   <div className="p-12 text-center">
@@ -2654,7 +2722,8 @@ export default function App() {
                   </button>
                   <button 
                     onClick={() => {
-                      if (confirm('RESET EVERYTHING?\n\nThis will delete ALL your data including:\n• Transactions\n• Recurring expenses\n• Monthly balances\n• Savings goal\n• Budget goals\n• Debts\n\nThis cannot be undone!')) {
+                      const typed = prompt('RESET EVERYTHING?\n\nThis will permanently delete ALL your data including:\n• Transactions\n• Recurring expenses\n• Monthly balances\n• Savings goal\n• Budget goals\n• Debts\n\nType DELETE to confirm:');
+                      if (typed === 'DELETE') {
                         setTransactions([]);
                         setRecurringExpenses([]);
                         setMonthlyBalances({});
@@ -2685,6 +2754,17 @@ export default function App() {
       </main>
 
       {isMobile && <button onClick={() => setModal('add')} aria-label="Add transaction" className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:from-blue-700 hover:to-green-600"><Plus size={24} /></button>}
+
+      {/* PWA Update Banner */}
+      {needRefresh && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white p-4 flex items-center justify-between z-50 shadow-lg">
+          <div>
+            <strong>Update Available</strong>
+            <p className="text-sm opacity-90">A new version of Balance Books Pro is ready.</p>
+          </div>
+          <button onClick={() => updateServiceWorker(true)} className="px-4 py-2 bg-white text-[#1e3a5f] rounded-lg font-semibold hover:bg-slate-100">Update Now</button>
+        </div>
+      )}
 
       {/* Edit Beginning Balance Modal */}
       {modal === 'edit-beginning' && (
@@ -3310,14 +3390,15 @@ function Modal({ title, children, onClose }) {
 }
 
 function TxForm({ tx, onSubmit, onCancel, showPaid }) {
-  const [form, setForm] = useState({ date: tx?.date || new Date().toISOString().split('T')[0], desc: tx?.desc || '', amount: tx ? Math.abs(tx.amount) : '', type: tx?.amount > 0 ? 'income' : 'expense', category: tx?.category || 'other', paid: tx?.paid || false });
+  const initType = tx?.amount > 0 ? 'income' : 'expense';
+  const [form, setForm] = useState({ date: tx?.date || new Date().toISOString().split('T')[0], desc: tx?.desc || '', amount: tx ? Math.abs(tx.amount) : '', type: initType, category: tx?.category || 'other', paid: tx ? (tx.paid || false) : (initType === 'income') });
   const handle = (e) => { e.preventDefault(); const amt = form.type === 'income' ? Math.abs(parseFloat(form.amount)) : -Math.abs(parseFloat(form.amount)); onSubmit({ ...tx, date: form.date, desc: form.desc, amount: amt, category: form.category, paid: form.paid }); };
   return (
     <form onSubmit={handle} className="space-y-4">
       <div><label className="block text-sm text-slate-600 font-medium mb-2">Date</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-3 bg-gradient-to-r from-[#0f172a]/5 to-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
       <div><label className="block text-sm text-slate-600 font-medium mb-2">Description</label><input type="text" value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} placeholder="Enter description" className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
       <div><label className="block text-sm text-slate-600 font-medium mb-2">Amount</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" className="w-full px-4 py-3 bg-gradient-to-r from-[#14b8a6]/5 to-white border-2 border-[#14b8a6]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]" required /></div>
-      <div><label className="block text-sm text-slate-600 font-medium mb-2">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value, category: e.target.value === 'income' ? 'income' : form.category })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]"><option value="expense">Expense</option><option value="income">Income</option></select></div>
+      <div><label className="block text-sm text-slate-600 font-medium mb-2">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value, category: e.target.value === 'income' ? 'income' : form.category, paid: e.target.value === 'income' ? true : form.paid })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]"><option value="expense">Expense</option><option value="income">Income</option></select></div>
       <div><label className="block text-sm text-slate-600 font-medium mb-2">Category</label><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-white border-2 border-[#1e3a5f]/20 rounded-xl focus:ring-2 focus:ring-[#14b8a6]">{CATEGORIES.filter(c => form.type === 'income' ? c.id === 'income' : c.id !== 'income').map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select></div>
       {showPaid && <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gradient-to-r from-[#14b8a6]/5 to-blue-50 border-2 border-[#14b8a6]/20"><input type="checkbox" checked={form.paid} onChange={(e) => setForm({ ...form, paid: e.target.checked })} className="w-5 h-5 rounded border-green-300 text-[#14b8a6] focus:ring-[#14b8a6]" /><span className="text-slate-700 font-medium">Mark as paid</span></label>}
       <div className="flex gap-3 pt-4"><button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-700 font-medium hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#14b8a6] text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-green-600">{tx ? 'Update' : 'Add'}</button></div>

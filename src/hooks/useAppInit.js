@@ -1,24 +1,33 @@
 // src/hooks/useAppInit.js
 import { useState, useEffect } from 'react';
-import { initializeSettings } from '../db/database';
-import { migrateFromLocalStorage, getMigrationStatus } from '../db/migration';
+import { migrateFromLocalStorage, needsMigration, loadFromIndexedDB } from '../db/migration';
 
 export function useAppInit() {
   const [initialized, setInitialized] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [data, setData] = useState(null);
 
   useEffect(() => {
     async function init() {
       try {
-        const status = getMigrationStatus();
-        if (!status.migrated) {
-          await migrateFromLocalStorage();
-        } else {
-          await initializeSettings();
+        // Run migration if needed (localStorage -> IndexedDB)
+        if (needsMigration()) {
+          const result = await migrateFromLocalStorage();
+          if (!result.success && !result.skipped) {
+            console.warn('[Init] Migration failed, falling back to localStorage');
+            setInitialized(true);
+            setInitializing(false);
+            return;
+          }
         }
+        // Load data from IndexedDB
+        const loaded = await loadFromIndexedDB();
+        setData(loaded);
         setInitialized(true);
       } catch (err) {
-        console.error('Init failed:', err);
+        console.error('[Init] Failed:', err);
+        // Fall through — App.jsx will use its own localStorage fallback
+        setInitialized(true);
       } finally {
         setInitializing(false);
       }
@@ -26,5 +35,5 @@ export function useAppInit() {
     init();
   }, []);
 
-  return { initialized, initializing };
+  return { initialized, initializing, data };
 }

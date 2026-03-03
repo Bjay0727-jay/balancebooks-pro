@@ -11,7 +11,7 @@
   status = 200
 
 # ===========================================
-# Cache Control - Fixes Chrome refresh issue
+# Cache Control
 # ===========================================
 
 # HTML and root files - always check for updates
@@ -33,15 +33,6 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# ===========================================
-# Existing headers
-# ===========================================
-
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache"
-
 [[headers]]
   for = "/manifest.json"
   [headers.values]
@@ -53,3 +44,4 @@
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://content.dropboxapi.com https://api.dropboxapi.com; img-src 'self' data: blob:;"
