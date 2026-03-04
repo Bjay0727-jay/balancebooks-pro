@@ -9,7 +9,7 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('BalanceBooksDB');
 
-// Schema v1
+// Schema v1 (original)
 db.version(1).stores({
   transactions: '++id, date, category, paid, amount',
   recurringExpenses: '++id, category, active, dueDay',
@@ -18,6 +18,11 @@ db.version(1).stores({
   debts: '++id, type, interestRate',
   settings: 'key'
 });
+
+// Schema v2-v3: no-op upgrades — keeps compat with browsers
+// whose DB was already bumped to a higher version.
+db.version(2).stores({});
+db.version(3).stores({});
 
 // ============ TRANSACTIONS ============
 export const transactionsDB = {

@@ -78,7 +78,7 @@ function createWindow() {
         responseHeaders: {
           ...details.responseHeaders,
           'Content-Security-Policy': [
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' http://localhost:5555 https://content.dropboxapi.com https://api.dropboxapi.com; img-src 'self' data: blob:;"
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; font-src https://fonts.gstatic.com https://api.fontshare.com; connect-src 'self' http://localhost:5555 https://content.dropboxapi.com https://api.dropboxapi.com https://www.googleapis.com https://www.dropbox.com https://fonts.googleapis.com https://fonts.gstatic.com https://www.balancebooksapp.com; img-src 'self' data: blob:;"
           ]
         }
       });

@@ -60,11 +60,29 @@ export default defineConfig({
             },
           },
           {
+            urlPattern: /^https:\/\/api\.fontshare\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'fontshare',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'cdn-libs',
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\/version\.json$/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'version-check',
+              expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
