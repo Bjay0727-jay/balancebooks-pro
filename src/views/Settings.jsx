@@ -70,6 +70,17 @@ export default function Settings() {
 
   const { stats } = useFinancialData();
 
+  // Local state for number inputs to prevent cursor reset on every keystroke
+  const [localBeginning, setLocalBeginning] = React.useState('');
+  const [localEnding, setLocalEnding] = React.useState('');
+  const [localSavingsGoal, setLocalSavingsGoal] = React.useState('');
+  const [editingField, setEditingField] = React.useState(null);
+
+  // Sync local state from store when not actively editing
+  React.useEffect(() => { if (editingField !== 'beginning') setLocalBeginning(stats.beginning); }, [stats.beginning, editingField]);
+  React.useEffect(() => { if (editingField !== 'ending') setLocalEnding(stats.ending); }, [stats.ending, editingField]);
+  React.useEffect(() => { if (editingField !== 'savingsGoal') setLocalSavingsGoal(savingsGoal); }, [savingsGoal, editingField]);
+
   // ── Dropbox OAuth ─────────────────────────────────────────────
   const connectDropbox = () => {
     // TODO: Move Dropbox OAuth logic here
@@ -244,11 +255,11 @@ export default function Settings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-slate-600 mb-2 font-medium">Beginning Balance ({FULL_MONTHS[month]} {year})</label>
-            <input type="number" value={stats.beginning} onChange={(e) => setBeginningBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#12233d]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
+            <input type="number" value={localBeginning} onFocus={() => setEditingField('beginning')} onChange={(e) => setLocalBeginning(e.target.value)} onBlur={(e) => { setBeginningBalance(e.target.value); setEditingField(null); }} className="w-full px-4 py-3 bg-white border-2 border-[#12233d]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
           </div>
           <div>
             <label className="block text-sm text-slate-600 mb-2 font-medium">Ending Balance Override</label>
-            <input type="number" value={stats.ending} onChange={(e) => setEndingBalance(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-[#00b4d8]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
+            <input type="number" value={localEnding} onFocus={() => setEditingField('ending')} onChange={(e) => setLocalEnding(e.target.value)} onBlur={(e) => { setEndingBalance(e.target.value); setEditingField(null); }} className="w-full px-4 py-3 bg-white border-2 border-[#00b4d8]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
             <p className="text-xs text-slate-400 mt-1">Calculated: {currency(stats.calculatedEnding)}</p>
           </div>
         </div>
@@ -257,7 +268,7 @@ export default function Settings() {
         <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Target size={18} className="text-[#00b4d8]" />Savings Settings</h3>
         <div>
           <label className="block text-sm text-slate-600 mb-2 font-medium">Monthly Savings Goal</label>
-          <input type="number" value={savingsGoal} onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)} className="w-full px-4 py-3 bg-white border-2 border-[#00b4d8]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
+          <input type="number" value={localSavingsGoal} onFocus={() => setEditingField('savingsGoal')} onChange={(e) => setLocalSavingsGoal(e.target.value)} onBlur={(e) => { setSavingsGoal(parseFloat(e.target.value) || 0); setEditingField(null); }} className="w-full px-4 py-3 bg-white border-2 border-[#00b4d8]/20 rounded-xl focus:ring-2 focus:ring-[#00b4d8] text-lg font-semibold" />
         </div>
       </div>
 
