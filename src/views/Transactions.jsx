@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Receipt, Download, Trash2, Plus, Check, Edit2, Copy, ChevronLeft, ChevronRight, SlidersHorizontal, X, Globe, Split, CheckSquare, Square, MinusSquare, DollarSign, RefreshCw } from 'lucide-react';
+import { Search, Receipt, Download, Trash2, Plus, Check, Edit2, Copy, ChevronLeft, ChevronRight, SlidersHorizontal, X, Globe, Split, CheckSquare, Square, MinusSquare, DollarSign, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { CATEGORIES } from '../utils/constants';
 import { useAppStore } from '../stores/useAppStore';
 import { useFinancialData } from '../hooks/useFinancialData';
@@ -47,6 +47,7 @@ export default function Transactions() {
   const addRecurring = useAppStore(s => s.addRecurring);
   const { filtered } = useFinancialData();
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sortBy, setSortBy] = useState('date-desc');
 
   // Selection state
   const [selected, setSelected] = useState(new Set());
@@ -62,10 +63,28 @@ export default function Transactions() {
 
   const isFiltered = filterCat !== 'all' || filterPaid !== 'all' || search || hasAdvancedFilters;
 
+  // Sorted list
+  const sorted = useMemo(() => {
+    if (sortBy === 'date-desc') return filtered; // default from useFinancialData
+    const copy = [...filtered];
+    switch (sortBy) {
+      case 'date-asc':
+        copy.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        break;
+      case 'amount-desc':
+        copy.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+        break;
+      case 'amount-asc':
+        copy.sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount));
+        break;
+    }
+    return copy;
+  }, [filtered, sortBy]);
+
   // Current page items
   const pageItems = useMemo(() =>
-    filtered.slice(txPage * TX_PAGE_SIZE, (txPage + 1) * TX_PAGE_SIZE),
-    [filtered, txPage]
+    sorted.slice(txPage * TX_PAGE_SIZE, (txPage + 1) * TX_PAGE_SIZE),
+    [sorted, txPage]
   );
 
   // Selection helpers
@@ -157,6 +176,7 @@ export default function Transactions() {
         <div className="flex-1 min-w-[200px] relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00b4d8]" size={18} /><input type="text" placeholder="Search expenses..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-[#0a1628]/5 to-white border-2 border-[#12233d]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]" /></div>
         <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#0a1628]/5 to-white border-2 border-[#12233d]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]"><option value="all">All Categories</option>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}</select>
         <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-4 py-3 bg-gradient-to-r from-[#00b4d8]/5 to-white border-2 border-[#00b4d8]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]"><option value="all">All Status</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select>
+        <select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setTxPage(0); }} className="px-4 py-3 bg-gradient-to-r from-[#0a1628]/5 to-white border-2 border-[#12233d]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00b4d8]"><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High→Low)</option><option value="amount-asc">Amount (Low→High)</option></select>
         <button onClick={() => setShowAdvanced(!showAdvanced)} className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 font-medium transition-colors ${showAdvanced || hasAdvancedFilters ? 'bg-[#00b4d8]/10 border-[#00b4d8] text-[#00b4d8]' : 'border-[#12233d]/20 text-slate-600 hover:border-[#00b4d8]/50'}`}>
           <SlidersHorizontal size={18} />
           <span className="hidden sm:inline">Filters</span>
